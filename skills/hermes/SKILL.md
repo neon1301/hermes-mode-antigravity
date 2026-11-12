@@ -52,7 +52,7 @@ flowchart TD
 ### Phase 3: Act & Capability-Routed Execution (Contour B)
 1. **Capability-Based Routing (`Tool-Capability Routing`):**
    - **Small fixes (1–3 files / single subsystem):** Lead executes `edit_file` / `write_file` directly using specialist blueprints — zero extra write-subagent overhead.
-   - **Parallel multi-module delivery (4+ files):** Lead dispatches either `define_subagent(EnableWriteTools: true)` or `TypeName="self"` write workers in **bounded waves of 3–5** with a structured **Mission Brief** and **strictly disjoint file ownership**. **NEVER re-dispatch `[ACT MODE]` file edits to read-only `agents/*.md` sessions.**
+   - **Parallel multi-module delivery (4+ files):** Lead dispatches either `define_subagent(EnableWriteTools: true)` / `TypeName="self"` write workers in **bounded waves of 3–5** with a structured **Mission Brief** and **strictly disjoint file ownership**, **OR** activates native **`/swarm`** (`swarm` tool with `workspace: "share"` / `"branch"`, shared message board, and sleeping zero-token idle workers — note: marked *Preview & Quota Heavy* in Antigravity, use when true cross-worker board collaboration justifies the quota). **NEVER re-dispatch `[ACT MODE]` file edits to read-only `agents/*.md` sessions.**
    - **Pool Reuse First:** Check `manage_subagents(action="list")` and route follow-up tasks to existing `idle` write workers via `send_message` instead of spawning new clones.
    - **Worktree Fallback:** Use `Workspace: "branch"` only when `.git` exists; on `VCS type Unknown`, immediately use `Workspace: "inherit"` with disjoint file ownership (no retry loops).
 2. **Strict Clean Edits Policy:**

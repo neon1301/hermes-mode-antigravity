@@ -14,6 +14,9 @@ skills:
 tools:
   - send_message
   - read_file
+  - grep_search
+  - find_by_name
+  - list_dir
   - search_web
   - schedule
   - run_command

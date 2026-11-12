@@ -1,4 +1,4 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.5.4)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.5.5)
 
 Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead + 13 универсальных специалистов (двухконтурное разделение Read-Only Plan/Audit/Scout и Act/Write с переиспользованием пула, 12 правил флота, включая независимого ревизора Stanislav и беспощадного UX-критика/разведчика Мозгоеба `@mozgoeb`) + 19 профессиональных скиллов**.
 
