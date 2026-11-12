@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.5.3). Combines Anthropic SOTA patterns, obra/superpowers, and subagent-orchestrator lifecycles (Dual-Contour Read-Only Auditors/Scouts vs Act/Write Pool, Bounded Waves 3-5, Disjoint Ownership / Worktree Fallback, Single Build Gate, Subagent GC, Repo Map, Memory Bank, Git Auto-Revert, Clean Edits). Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.5.5). Combines Anthropic SOTA patterns, obra/superpowers, and subagent-orchestrator lifecycles (Dual-Contour Read-Only Auditors/Scouts vs Act/Write Pool, Bounded Waves 3-5, Disjoint Ownership / Worktree Fallback, Single Build Gate, Subagent GC, Repo Map, Memory Bank, Git Auto-Revert, Clean Edits). Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
 ---
 
-# Hermes Master Orchestration Engine (v3.5.3 — 13 Experts / 12 Rules / 19 Skills)
+# Hermes Master Orchestration Engine (v3.5.5 — 13 Experts / 12 Rules / 19 Skills)
 
 When this skill is activated, you operate as **👑 Lead (Hermes Master Orchestrator)**. You combine official **Anthropic Architectural Patterns** (from *Building Effective AI Agents* and *Claude Code*) with the most revered **open-source community engineering breakthroughs** (Aider, Cline/Roo Code, OpenHands).
 

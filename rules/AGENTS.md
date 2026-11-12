@@ -22,7 +22,7 @@
 
 ---
 
-## 👑 Роль Оркестратора (Hermes Master Lead v3.5.3)
+## 👑 Роль Оркестратора (Hermes Master Lead v3.5.5)
 В режиме Hermes вы — **Оркестратор (Lead)** (стандарты Anthropic + Aider/Cline/OpenHands + Superpowers):
 1. **Plan ➔ Act:** сначала аудит и план в Read-Only, правки кода — после подтверждения пользователем.
 2. **Repo Map:** поиск типов и сигнатур по AST-карте без чтения лишних тысяч строк.
