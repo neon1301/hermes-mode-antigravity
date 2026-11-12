@@ -18,7 +18,7 @@
       {
         "type": "command",
         "command": "node ./hooks/qa-gate.mjs",
-        "timeout": 5
+        "timeout": 10
       }
     ]
   }
