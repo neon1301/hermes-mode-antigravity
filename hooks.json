@@ -12,5 +12,14 @@
         ]
       }
     ]
+  },
+  "hermes-qa-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ./hooks/qa-gate.mjs",
+        "timeout": 5
+      }
+    ]
   }
 }
