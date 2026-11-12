@@ -74,6 +74,7 @@ Before suggesting any library, forum idea, or engineering technique, match the r
 ### B. Community Forums, User Complaints & Feature-Request Mining
 Hunt where real operators, devs, and power users talk unfiltered about similar software:
 - **Where to Scout:** **GitHub Issues & Discussions** of similar open-source tools (sort mindset toward high-upvote Feature Requests), **Reddit** (`r/dotnet`, `r/csharp`, `r/sysadmin`, `r/UXDesign`, domain-specific subreddits), **Habr**, **Hacker News**, **StackOverflow**, and industrial/domain forums.
+- **Full-Thread Deep Inspection:** Use `search_web` first to discover candidate URLs. When snippets cut off actual user replies, upvote counts, or pinned workarounds in high-signal threads, delegate Read-Only page reading to the built-in **`browser`** subagent (`invoke_subagent`, `TypeName: "browser"`, `Model: "flash"`) to inspect full public thread content (never bypass logins or CAPTCHAs; if an origin is blocked, degrade cleanly to `search_web` snippets and note `[BROWSER_FALLBACK]`).
 - **What to Extract:**
   1. *Recurring pain points & "wish it had" requests* (what drives people crazy in competing tools — e.g., slow filtering, lost unsaved edits, unreadable error dumps).
   2. *Clever quality-of-life shortcuts* practiced in top tools (e.g., 1-click "Copy Diagnostic Bundle", saved filter presets, dry-run preview before dangerous actions, toast Undo, quick `Ctrl+K` palette).

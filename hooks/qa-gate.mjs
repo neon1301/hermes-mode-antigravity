@@ -30,7 +30,7 @@ const WRITE_TOOL_NAMES = new Set([
 
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
-const HERMES_TRIGGER_RE = /(?:^|\s)(?:\/hermes\b|@(?:dmitry|elena|mozgoeb|мозгоеб|viktor|alexey|ruslan|artem|mikhail|sergey|igor|anna|denis|stanislav)\b)|hermes-fleet[\\/](?:skills[\\/]hermes|rules[\\/]AGENTS\.md)/i;
+const HERMES_TRIGGER_RE = /(?:^|\s)(?:\/hermes(?=$|[\s.,:;!?)"'])|@(?:dmitry|elena|mozgoeb|мозгоеб|viktor|alexey|ruslan|artem|mikhail|sergey|igor|anna|denis|stanislav)(?=$|[\s.,:;!?)"']))|режим\s+hermes|hermes\s+mode|hermes-fleet[\\/](?:skills[\\/]hermes|rules[\\/]AGENTS\.md)/i;
 const HERMES_AGENTS = new Set([
   'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
   'igor', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'

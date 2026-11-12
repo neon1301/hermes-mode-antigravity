@@ -312,6 +312,18 @@ const cases = [
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
       ])
     })
+  },
+  {
+    name: 'trigger_gate_on_cyrillic_at_mozgoeb',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_cyrillic_mozgoeb',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_cyrillic_mozgoeb', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@мозгоеб поправь и проверь' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/ui.tsx' } }] }
+      ])
+    })
   }
 ];
 

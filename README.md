@@ -1,6 +1,6 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.5.5)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.0)
 
-Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead + 13 универсальных специалистов (двухконтурное разделение Read-Only Plan/Audit/Scout и Act/Write с переиспользованием пула, 12 правил флота, включая независимого ревизора Stanislav и беспощадного UX-критика/разведчика Мозгоеба `@mozgoeb`) + 19 профессиональных скиллов**.
+Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead + 13 универсальных специалистов (двухконтурное разделение Read-Only Plan/Audit/Scout и Act/Write с переиспользованием пула, 12 правил флота с триггерной подгрузкой через `PreInvocation`, защитные хуки `PreToolUse`/`Stop`, независимый ревизор Stanislav и UX-критик/разведчик Мозгоеб `@mozgoeb`) + 19 профессиональных скиллов**.
 
 Команда Hermes спроектирована как **универсальные разработчики промышленных систем**: мы не привязаны к конкретным брендам станков или контроллеров, а работаем с любым промышленным оборудованием, автоматизированными линиями и вендорами по всему миру.
 
@@ -11,7 +11,7 @@
 * ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 12 правил флота, аудит соблюдения всех 19 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
 * 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
 * 🎨 **Elena** — Frontend Lead & UI/UX (Anthropic Frontend Design, Web & Desktop GUI WinForms/WPF, контракт 4 состояний, анимации и формы настроек GUI, иконки через `image-generator`, A11y).
-* 🔥 **Мозгоеб (`mozgoeb`)** — Relentless UX Critic, Product Roast & Tech Innovation Scout (`product-ux-scouting`: взгляд обычного пользователя и жёсткая прожарка интерфейса по `P0–P3`, эвристикам Нильсена `0–4`, когнитивной нагрузке, лишним кликам, иконкам и анимациям + майнинг форумов GitHub/Reddit/Habr и поиск проверенных рабочих методов и библиотек `Adopt/Trial/Hold` строго под стек проекта; строго Read-Only Scout).
+* 🔥 **Мозгоеб (`mozgoeb`)** — Relentless UX Critic, Product Roast & Tech Innovation Scout (`product-ux-scouting`: взгляд обычного пользователя и жёсткая прожарка интерфейса по `P0–P3`, эвристикам Нильсена `0–4`, когнитивной нагрузке, лишним кликам, иконкам и анимациям + майнинг форумов GitHub/Reddit/Habr через `search_web` и Read-Only `browser`-субагент для полного чтения тредов + проверенные рабочие методы и библиотеки `Adopt/Trial/Hold`; строго Read-Only Scout).
 * 🛡️ **Viktor** — Lead QA Automation & AppSec Reviewer (7-векторный барьер: `qa-test-automation` + прокачанный `security-audit` — Cloudflare 6-Phase Fresh-Verifier, Trail of Bits `differential-review`/`sharp-edges`, OWASP Auth/JWT/IDOR/SSRF/Crypto, DevSecOps SCA/Docker/CI, TDD, E2E и Zero-Hardcode).
 * ⚙️ **Alexey** — Lead Industrial Hardware, Equipment & Protocol Systems Engineer (универсальное исследование оборудования и вендоров, даташиты, мануалы, регистровые карты, Modbus, Profinet, EtherCAT, OPC UA, сокеты, безопасность станка).
 * 📊 **Ruslan** — Principal SAP & Enterprise Integration Architect (Все 5 столпов интеграции: SAP .NET Connector NCo 3.1/4.0, BAPI/RFC транзакции, SAP GUI Scripting без утечек COM, асинхронные IDoc/ALE очереди, современные OData/REST API).
@@ -27,7 +27,7 @@
 ## 🛠️ Встроенная библиотека профессиональных скиллов (19 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.5.5): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.0): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.

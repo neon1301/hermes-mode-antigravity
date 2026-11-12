@@ -1,4 +1,13 @@
 {
+  "hermes-context-injector": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/context-injector.mjs",
+        "timeout": 5
+      }
+    ]
+  },
   "hermes-clean-edits": {
     "PreToolUse": [
       {
