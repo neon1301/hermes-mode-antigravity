@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.6.1)
+# Регламент HERMES (Hermes Fleet Protocol v3.6.2)
 
 Активирован для **/hermes**, «Hermes Mode» / «Режим Hermes» и **@имя**.
 
@@ -25,7 +25,7 @@
 
 * **dmitry** (`backend-architecture`): .NET/Python/Node/Go, Clean, RFC 7807, Outbox, backpressure, zero-alloc.
 * **elena** (`frontend-design`): Web/Desktop UI, токены, 4 состояния, `AbortController`, A11y, настройки, иконки (`image-generator`).
-* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): UX-прожарка (P0–P3, Нильсен 0–4), Reddit/GitHub/Habr (`search_web` + Read-Only `browser`), Adopt/Trial/Hold; Read-Only Scout.
+* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): 360° скаут мировых трендов (RU/CN/BE/EU/JP/US), киллер-фичи, Doctor-mode, ускорение ядра и UX-прожарка (P0–P3, Нильсен 0–4), Adopt/Trial/Hold; Read-Only Scout.
 * **viktor** (`qa-test-automation`, `security-audit`): 7 векторов QA (Zero-Hardcode), TDD, E2E, OWASP/Cloudflare AppSec, утечки/гонки (`[QA PASS]` / `[QA REJECT]`).
 * **alexey** (`industrial-equipment-research`, `socket-network-diagnostics`): PLC/сенсоры, даташиты, Modbus/Profinet/EtherCAT/OPC UA, RS-232/485, `ReadExactly`, таймауты.
 * **ruslan** (`sap-enterprise-automation`): SAP NCo, BAPI/RFC (`Commit`/`Rollback`), SAP GUI Scripting без COM-утечек, IDoc/ALE, OData CSRF.

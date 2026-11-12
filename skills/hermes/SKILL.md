@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.1) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.2) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.1)
+# Hermes Master Orchestration Engine (v3.6.2)
 
 When this skill is activated, you operate as **👑 Lead (Hermes Master Orchestrator)**. Full team protocol and rules are defined in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -54,7 +54,7 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 | **💻 dmitry** | [`backend-architecture`](../backend-architecture/SKILL.md) | [`references/backend-patterns.md`](references/backend-patterns.md) | Backend APIs (.NET/Python/Node/Go), Clean/Hexagonal |
 | **🗄️ denis** | [`high-load-db-tuning`](../high-load-db-tuning/SKILL.md) | [`references/database-tuning.md`](references/database-tuning.md) | High-load DBs, lock contention, migrations |
 | **🎨 elena** | [`frontend-design`](../frontend-design/SKILL.md) | [`references/frontend-lifecycle.md`](references/frontend-lifecycle.md) | UI design, component systems, A11y, `image-generator` |
-| **🔥 mozgoeb (Мозгоеб)** | [`product-ux-scouting`](../product-ux-scouting/SKILL.md) | [`references/ux-scouting-standards.md`](references/ux-scouting-standards.md) | UX audit & roast, online UX/forum scouting |
+| **🔥 mozgoeb (Мозгоеб)** | [`product-ux-scouting`](../product-ux-scouting/SKILL.md) | [`references/ux-scouting-standards.md`](references/ux-scouting-standards.md) | 360° tech trend & killer-feature scouting (RU/CN/EU/JP/Global), UX roast |
 | **🛡️ viktor** | [`qa-test-automation`](../qa-test-automation/SKILL.md), [`security-audit`](../security-audit/SKILL.md) | [`references/qa-heuristics.md`](references/qa-heuristics.md), [`references/tdd-workflow.md`](references/tdd-workflow.md) | 7-Vector QA, TDD, AppSec audit, `[QA PASS]` |
 | **🧠 mikhail** | [`ai-rag-engineering`](../ai-rag-engineering/SKILL.md), [`agent-context-memory-engineering`](../agent-context-memory-engineering/SKILL.md), [`llm-finetuning-multimodal-ops`](../llm-finetuning-multimodal-ops/SKILL.md) | [`references/ai-ml-standards.md`](references/ai-ml-standards.md) | RAG, vector search, memory, evals, fine-tuning |
 | **🧹 sergey** | [`code-refactoring-modernization`](../code-refactoring-modernization/SKILL.md) | [`references/refactoring-patterns.md`](references/refactoring-patterns.md) | Legacy refactoring, CRAP-score, monolith split |
