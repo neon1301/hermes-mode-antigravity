@@ -15,7 +15,11 @@ function writeTranscript(name, steps) {
 }
 
 function runGate(payload) {
-  const out = execFileSync('node', [gatePath], { input: JSON.stringify(payload), encoding: 'utf-8' });
+  const out = execFileSync('node', [gatePath], {
+    input: JSON.stringify(payload),
+    encoding: 'utf-8',
+    env: { ...process.env, HERMES_QA_GATE_STATE_DIR: tmpDir }
+  });
   return JSON.parse(out);
 }
 

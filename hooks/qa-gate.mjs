@@ -114,7 +114,8 @@ function isIgnoredArtifactOrScratch(targetPath, artifactDir) {
 
 function getCounterFile(convId, turnMarker) {
   const key = crypto.createHash('sha1').update(`${convId}:${turnMarker}`).digest('hex').slice(0, 16);
-  return path.join(os.tmpdir(), `hermes-qa-gate-${key}.json`);
+  const stateDir = process.env.HERMES_QA_GATE_STATE_DIR || os.tmpdir();
+  return path.join(stateDir, `hermes-qa-gate-${key}.json`);
 }
 
 function readCounter(counterFile) {
