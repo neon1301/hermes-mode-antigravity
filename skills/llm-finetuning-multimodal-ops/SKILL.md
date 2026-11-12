@@ -1,6 +1,6 @@
 ---
 name: llm-finetuning-multimodal-ops
-description: End-to-end LLM fine-tuning (SFT, LoRA/QLoRA, Unsloth, LLaMA-Factory, TRL DPO/GRPO), synthetic training dataset curation, high-throughput GPU serving (vLLM, SGLang, quantization/PagedAttention), and multimodal/complex document pipelines (Docling PDF/tables, Whisper ASR, Vision-Language). Synthesizing Orchestra-Research/AI-Research-SKILLs, huggingface/skills, Unsloth, TRL, vLLM, and Docling. Use when fine-tuning custom models, sizing GPU serving engines, or processing PDFs/audio/images into AI workflows.
+description: End-to-end LLM fine-tuning (SFT, LoRA/QLoRA), synthetic dataset curation, GPU serving (vLLM, SGLang), and multimodal document pipelines (Docling, Whisper, Vision-Language). Use when fine-tuning custom models, sizing GPU serving engines, or processing PDFs/audio/images into AI workflows.
 ---
 
 # LLM Fine-Tuning, GPU Serving & Multimodal AI Ops Skill

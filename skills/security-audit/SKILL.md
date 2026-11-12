@@ -1,6 +1,6 @@
 ---
 name: security-audit
-description: Enterprise cybersecurity auditing, OWASP Top 10/ASVS vulnerability hunting, Cloudflare 6-phase adversarial validation, Trail of Bits differential/sharp-edges review, Auth/JWT/SSRF/Crypto hardening, industrial socket DoS defense, and DevSecOps SAST/SCA triage (synthesizing cloudflare/security-audit-skill, trailofbits/skills, semgrep/skills, getsentry/skills, and white-box exploit verification). Use when auditing security, reviewing sensitive diffs, checking auth/crypto/dependencies, or producing CWE-mapped findings.
+description: Enterprise cybersecurity auditing, OWASP Top 10/ASVS vulnerability hunting, adversarial validation, Auth/JWT/SSRF/Crypto hardening, industrial socket DoS defense, and DevSecOps SAST/SCA triage. Use when auditing security, reviewing sensitive diffs, checking auth/crypto/dependencies, or producing CWE-mapped findings.
 ---
 
 # Cybersecurity Audit & AppSec Verification Skill

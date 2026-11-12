@@ -58,10 +58,19 @@ const cases = [
     })
   },
   {
-    name: 'inject_on_cyrillic_at_mozgoeb_mention',
-    check: (res) => Array.isArray(res.injectSteps) && res.injectSteps.length === 1,
+    name: 'skip_full_protocol_on_single_specialist_mention',
+    check: (res) => !res.injectSteps,
     run: () => runInjector({
       lastUserInput: '@мозгоеб прожарь интерфейс'
+    })
+  },
+  {
+    name: 'inject_on_hermes_mode_phrase',
+    check: (res) => Array.isArray(res.injectSteps)
+      && res.injectSteps.length === 1
+      && String(res.injectSteps[0]?.systemMessage?.systemMessage || '').includes('<!-- HERMES_PROTOCOL_LOADED -->'),
+    run: () => runInjector({
+      lastUserInput: 'включи режим hermes'
     })
   },
   {

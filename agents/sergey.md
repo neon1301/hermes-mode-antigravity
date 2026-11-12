@@ -4,7 +4,7 @@ role: Senior Refactoring Architect & Code Modernizer
 description: Specialist in legacy code refactoring, monolith decomposition, SOLID architecture, dead code elimination, and file modularity.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

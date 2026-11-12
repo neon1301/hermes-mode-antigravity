@@ -1,6 +1,6 @@
 ---
 name: hardware-protocol-simulation
-description: Universal industrial equipment mocking, stateful TCP/UDP/Modbus/OPC-UA protocol emulators, network fault injection (RST drops, byte fragmentation, latency jitter), and smart packet fuzzing (synthesizing trailofbits/skills fuzzing-obstacles, WireMock Chaos, and industrial socket resilience). Use when testing hardware integration, stream parsers, reconnection loops, or load resilience without physical factory equipment.
+description: Universal industrial equipment mocking, stateful TCP/UDP/Modbus/OPC-UA protocol emulators, network fault injection (RST drops, byte fragmentation, latency jitter), and smart packet fuzzing. Use when testing hardware integration, stream parsers, reconnection loops, or load resilience without physical factory equipment.
 ---
 
 # Hardware Emulation, Fault Injection & Protocol Fuzzing Skill

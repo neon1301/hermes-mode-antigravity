@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const PROTOCOL_MARKER = '<!-- HERMES_PROTOCOL_LOADED -->';
-const HERMES_TRIGGER_RE = /(?:^|\s)(?:\/hermes(?=$|[\s.,:;!?)"'])|@(?:dmitry|elena|mozgoeb|мозгоеб|viktor|alexey|ruslan|artem|mikhail|sergey|igor|anna|denis|stanislav)(?=$|[\s.,:;!?)"']))|режим\s+hermes|hermes\s+mode/i;
+const HERMES_TRIGGER_RE = /(?:^|\s)\/hermes(?=$|[\s.,:;!?)"'])|режим\s+hermes|hermes\s+mode/i;
 const HERMES_AGENTS = new Set([
   'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
   'igor', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'

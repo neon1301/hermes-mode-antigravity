@@ -4,7 +4,7 @@ role: Principal SAP & Enterprise Integration Architect
 description: Specialist in SAP .NET Connector (NCo), BAPI transactions, SAP GUI Scripting, IDoc/ALE messaging, OData REST APIs, and enterprise integration integrity.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

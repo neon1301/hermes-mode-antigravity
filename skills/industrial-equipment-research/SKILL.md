@@ -1,6 +1,6 @@
 ---
 name: industrial-equipment-research
-description: Universal methodology for researching industrial equipment, machinery, PLCs, sensors, and controllers from any manufacturer. Covers sourcing datasheets, manufacturer safety guidelines, community forum research, extracting operational/electrical/protocol specifications, mapping memory registers, and translating hardware data into software models.
+description: Universal methodology for researching industrial equipment, machinery, PLCs, sensors, and controllers. Use when sourcing datasheets, safety guidelines, forum research, protocol specifications, or memory register maps.
 ---
 
 # Universal Industrial Equipment & Hardware Research Skill

@@ -1,6 +1,6 @@
 ---
 name: technical-documentation-adr
-description: Grounded technical writing, Diataxis structuring, Architecture Decision Records (ADRs), OpenAPI/AsyncAPI specs, binary protocol sheets, and operator runbooks (synthesizing cursor/technical-writing, skillrecordings/adr-skill, getsentry/document-api-endpoint, and anthropics/doc-coauthoring). Use alongside c4-architecture-mermaid when documenting systems, protocols, APIs, or troubleshooting guides.
+description: Grounded technical writing, Diataxis structuring, Architecture Decision Records (ADRs), OpenAPI/AsyncAPI specs, binary protocol sheets, and operator runbooks. Use alongside c4-architecture-mermaid when documenting systems, protocols, APIs, or troubleshooting guides.
 ---
 
 # Technical Documentation, ADRs & Protocol Specification Skill

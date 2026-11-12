@@ -4,7 +4,7 @@ role: Principal Technical Writer & Architecture Documentation Architect
 description: Specialist in architectural diagrams (Mermaid, C4), socket protocol specifications, OpenAPI/Swagger docs, operator runbooks, and changelogs.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: off
 skills:

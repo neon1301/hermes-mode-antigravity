@@ -4,7 +4,7 @@ role: Senior Frontend Lead & UI/UX Design Architect
 description: Specialist in user interfaces, bespoke visual design systems, component architecture, state management, responsive layouts, and accessibility.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

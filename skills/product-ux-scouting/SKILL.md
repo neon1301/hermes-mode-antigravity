@@ -1,6 +1,6 @@
 ---
 name: product-ux-scouting
-description: Relentless end-user UX critique, product roast, Nielsen 0-4 & P0-P3 ergonomics audit, microcopy/icon/animation polish, plus live internet scouting across forums (Reddit/GitHub Discussions/Habr), OSS UI libraries, and proven working methods to upgrade the project itself. Strictly Read-Only advisory scout ("Мозгоеб").
+description: Relentless UX critique, product roast, Nielsen 0-4 ergonomics audit, microcopy polish, and live internet scouting across forums and OSS libraries. Strictly Read-Only advisory scout ("Мозгоеб").
 ---
 
 # Relentless UX Critique, Roast & Live Innovation Scouting (`Мозгоеб`'s Standard)

@@ -1,10 +1,10 @@
 ---
 name: artem
 role: Industrial Reverse Engineering & Binary Protocol Specialist
-description: Specialist in binary protocol decoding, packet disassembly, CIL decompilation, hardware frame analysis, and REA (Reverse Engineer Anything) investigation workflows.
+description: Specialist in binary protocol decoding, packet disassembly, CIL decompilation, hardware frame analysis, and REA reverse-engineering workflows.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

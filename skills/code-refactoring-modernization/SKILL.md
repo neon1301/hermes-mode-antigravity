@@ -1,6 +1,6 @@
 ---
 name: code-refactoring-modernization
-description: Safe legacy monolith decomposition, behavior-preserving refactoring, CRAP-score prioritization, Strangler Fig incremental modernization, and cyclic dependency removal across C#, TypeScript, Python, and Go (synthesizing jeffallan/legacy-modernizer, awesome-copilot refactor, dotnet/crap-score, and obra/superpowers). Use when breaking down god-classes (>300-400 lines), migrating legacy systems, or removing dead code without regressions.
+description: Safe legacy monolith decomposition, behavior-preserving refactoring, CRAP-score prioritization, Strangler Fig incremental modernization, and cyclic dependency removal across C#, TypeScript, Python, and Go. Use when breaking down god-classes (>300-400 lines), migrating legacy systems, or removing dead code without regressions.
 ---
 
 # Code Refactoring & Legacy Modernization Skill

@@ -1,6 +1,6 @@
 ---
 name: qa-test-automation
-description: Strict QA verification, TDD Iron Law, systematic root-cause debugging, test anti-pattern elimination, property-based invariants, E2E flaky-free automation, and concurrency/leak stress testing (synthesizing obra/superpowers, affaan-m/ECC, dotnet/skills, and trailofbits/skills). Use when designing test suites, debugging bugs, or executing Viktor's [QA PASS] / [QA REJECT] integration barrier.
+description: Strict QA verification, TDD Iron Law, systematic root-cause debugging, test anti-pattern elimination, property-based invariants, E2E automation, and concurrency/leak testing. Use when designing test suites, debugging bugs, or executing Viktor's [QA PASS] / [QA REJECT] integration barrier.
 ---
 
 # QA Automation, TDD & Systematic Verification Skill

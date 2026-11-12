@@ -4,7 +4,7 @@ role: Senior AI/ML, LLM Systems & Data Engineer
 description: Specialist in RAG pipelines, vector search, embedding models, LLM orchestration, dataset processing, and high-performance inference.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

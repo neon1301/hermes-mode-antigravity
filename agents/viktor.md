@@ -4,7 +4,7 @@ role: Lead QA Automation & Security Reviewer
 description: Specialist in code review, edge case detection, memory leak prevention, security auditing, and test coverage.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:

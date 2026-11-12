@@ -1,6 +1,6 @@
 ---
 name: agent-context-memory-engineering
-description: Context engineering, long-term agent memory architectures, context compression/optimization, multi-agent harness design, de-biased LLM-as-a-Judge evals, and adversarial LLM red-teaming (synthesizing Agent-Skills-for-Context-Engineering, Promptfoo, Garak, and Anthropic harness patterns). Use when designing autonomous AI agents, fixing context degradation, building cross-session memory, optimizing token/KV budgets, or hardening LLMs against prompt injection and jailbreaks.
+description: Context engineering, long-term agent memory architectures, context compression, multi-agent harness design, and adversarial red-teaming. Use when designing autonomous AI agents, fixing context degradation, building cross-session memory, optimizing token/KV budgets, or hardening LLMs against prompt injection and jailbreaks.
 ---
 
 # Agent Context, Memory & Harness Engineering Skill

@@ -1,6 +1,6 @@
 ---
 name: ai-rag-engineering
-description: End-to-end AI, RAG, vector search, LLM orchestration, evals, and high-throughput data engineering (synthesizing qdrant/skills, langfuse/skills, huggingface/skills, and hybrid search standards). Use when building RAG pipelines, tuning HNSW/pgvector/Qdrant indexes, writing LLM evals, enforcing structured outputs, or optimizing Polars/DuckDB/local inference.
+description: End-to-end AI, RAG, vector search, LLM orchestration, evals, and high-throughput data engineering. Use when building RAG pipelines, tuning HNSW/pgvector/Qdrant indexes, writing LLM evals, enforcing structured outputs, or optimizing Polars/DuckDB/local inference.
 ---
 
 # AI, RAG & Data Engineering Skill

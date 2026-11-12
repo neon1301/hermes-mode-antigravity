@@ -4,7 +4,7 @@ role: Industrial Hardware & Protocol Simulation Engineer
 description: Specialist in universal socket mock servers, multi-vendor machine telemetry simulators, packet fuzzing, and local hardware testing.
 subagent: true
 mainAgent: true
-inheritCustomizations: true
+inheritCustomizations: false
 inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:
