@@ -1,30 +1,54 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.0)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  🏛️ Hermes Fleet Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.6.0 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $sourceDir = $PSScriptRoot
 $targetDir = Join-Path $env:USERPROFILE ".gemini\config\plugins\hermes-fleet"
 
-Write-Host "Целевая папка плагина: $targetDir" -ForegroundColor Yellow
+Write-Host "Target plugin directory: $targetDir" -ForegroundColor Yellow
 
 if (-not (Test-Path $targetDir)) {
     New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 }
 
-$items = @("plugin.json", "hooks.json", "hooks", "README.md", "assets", "rules", "skills", "agents")
+$items = @(
+    "plugin.json",
+    "hooks.json",
+    "LICENSE",
+    "README.md",
+    "hooks",
+    "assets",
+    "rules",
+    "skills",
+    "agents"
+)
 
 foreach ($item in $items) {
     $itemPath = Join-Path $sourceDir $item
+    $destPath = Join-Path $targetDir $item
     if (Test-Path $itemPath) {
-        Copy-Item -Path $itemPath -Destination $targetDir -Recurse -Force
-        Write-Host "  [OK] Скопировано: $item" -ForegroundColor Green
+        if ((Get-Item $itemPath).PSIsContainer -and (Test-Path $destPath)) {
+            Remove-Item -Path $destPath -Recurse -Force
+        }
+        Copy-Item -Path $itemPath -Destination $destPath -Recurse -Force
+        Write-Host "  [OK] Copied: $item" -ForegroundColor Green
     }
 }
 
-Write-Host "`nПлагин успешно установлен!" -ForegroundColor Green
-Write-Host "1. Перезапустите Google Antigravity или откройте новый чат." -ForegroundColor Cyan
-Write-Host "2. Для вызова режима напишите в чате: /hermes или обратитесь к специалисту: @dmitry, @viktor, @elena" -ForegroundColor Cyan
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    Write-Host "`nRunning hook self-tests..." -ForegroundColor Cyan
+    node (Join-Path $targetDir "hooks\context-injector.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "context-injector.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\clean-edits-guard.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "clean-edits-guard.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\qa-gate.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
+}
+
+Write-Host "`nHermes Fleet v3.6.0 installed successfully!" -ForegroundColor Green
+Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
+Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @mozgoeb, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan

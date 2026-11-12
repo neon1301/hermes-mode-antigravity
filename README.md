@@ -68,11 +68,15 @@
 
 **Кроссплатформенно (Windows / macOS / Linux — рекомендуемый способ через CLI):**
 ```bash
-agy plugin install E:\hermes-mode-antigravity
-agy plugin validate E:\hermes-mode-antigravity --strict
+git clone https://github.com/neon1301/hermes-mode-antigravity.git
+cd hermes-mode-antigravity
+agy plugin install .
+agy plugin validate . --strict
 ```
 
-**Windows (через PowerShell):**
+**Windows (через PowerShell-инсталлятор с автопроверкой хуков):**
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\hermes-mode-antigravity\install.ps1
+git clone https://github.com/neon1301/hermes-mode-antigravity.git
+cd hermes-mode-antigravity
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```

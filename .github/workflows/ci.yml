@@ -1,0 +1,46 @@
+name: Hermes Fleet CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JSON manifests and bundle structure
+        run: |
+          node -e "
+            const fs = require('fs');
+            const plugin = JSON.parse(fs.readFileSync('plugin.json', 'utf8'));
+            const hooks = JSON.parse(fs.readFileSync('hooks.json', 'utf8'));
+            if (plugin.name !== 'hermes-fleet' || !plugin.version) throw new Error('Invalid plugin.json');
+            if (!hooks['hermes-context-injector'] || !hooks['hermes-clean-edits'] || !hooks['hermes-qa-gate']) {
+              throw new Error('Missing required hooks in hooks.json');
+            }
+            const agents = fs.readdirSync('agents').filter(f => f.endsWith('.md'));
+            const skills = fs.readdirSync('skills').filter(f => fs.existsSync('skills/' + f + '/SKILL.md'));
+            if (agents.length !== 13) throw new Error('Expected 13 agents, got ' + agents.length);
+            if (skills.length !== 19) throw new Error('Expected 19 skills, got ' + skills.length);
+            console.log('Manifest & structure check passed:', { version: plugin.version, agents: agents.length, skills: skills.length });
+          "
+
+      - name: Run PreInvocation Context Injector tests
+        run: node hooks/context-injector.test.mjs
+
+      - name: Run PreToolUse Clean Edits & Zero-Hardcode Guard tests
+        run: node hooks/clean-edits-guard.test.mjs
+
+      - name: Run Stop QA & Compliance Gate tests
+        run: node hooks/qa-gate.test.mjs
