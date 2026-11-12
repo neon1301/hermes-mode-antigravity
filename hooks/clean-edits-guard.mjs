@@ -56,21 +56,30 @@ const FILE_WRITE_TOOLS = new Set([
 
 const CODE_EXT_LIST = '(?:cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)';
 const PATCH_FILE_RE = /(?:^|[\\/])patch_[^\\/]*\.(ps1|bat|cmd|py|sh)$/i;
-const SHELL_PATCH_CREATE_RE = /\b(?:out-file|set-content|add-content|tee-object|tee|cat\s*>|echo\s+.*>|touch|ni|new-item)\b[^\n]*\bpatch_[a-z0-9._-]*\.(ps1|bat|cmd|py|sh)\b|(?:>|>>)\s*["']?[^"'\s]*patch_[a-z0-9._-]*\.(ps1|bat|cmd|py|sh)\b/i;
+const SHELL_PATCH_CREATE_RE = new RegExp(
+  `\\b(?:out-file|set-content|add-content|tee-object|tee|touch|ni|new-item)\\b[^\\n]*\\bpatch_[a-z0-9._-]*\\.(?:ps1|bat|cmd|py|sh)\\b|(?:^|[^<>])>{1,2}\\s*["']?[^"'\\s]*patch_[a-z0-9._-]*\\.(?:ps1|bat|cmd|py|sh)(?=$|[\\s"'|;&])`,
+  'i'
+);
 
 const SHELL_MUTATE_PATTERNS = [
-  { name: 'sed -i / perl -i', re: /(?:^|[;&|\n]\s*|(?:xargs|find\b[^\n]*-exec|(?:ba|z)?sh\s+-c)\s+[^\n]*)(?:sed\s+-i(?:\s|$)|perl\s+-[^\n;&|]*i\b)/i },
+  { name: 'sed -i / perl -i', re: /(?:^|[;&|\n]\s*|(?:xargs|find\b[^\n]*-exec|(?:ba|z)?sh\s+-c)\s+[^\n]*)(?:sed\s+(?:-[a-z]*i\S*|--in-place(?:=\S*)?)(?:\s|$)|perl\s+-[^\n;&|]*i\b)/i },
   { name: 'python -c file write', re: /\bpython[3]?\s+-c\b[^\n]*\b(?:open\([^)]*['"][wa]['"]|write_text\(|write_bytes\()/i },
   { name: 'node -e file write', re: /\bnode\s+(?:-e|--eval)\b[^\n]*\b(?:writeFile(?:Sync)?|appendFile(?:Sync)?)\b/i },
-  { name: 'shell Set-Content/Out-File/redirect/tee on source file', re: new RegExp(`(?:\\b(?:set-content|out-file|add-content|tee)\\b|(?:^|[^>])>(?:>)?\\s*)[^\\n|;&]*\\.${CODE_EXT_LIST}\\b`, 'i') },
+  {
+    name: 'shell Set-Content/Out-File/redirect/tee on source file',
+    re: new RegExp(
+      `(?:^|[;&|\\n]\\s*|(?:pwsh|powershell)(?:\\.exe)?\\s+[^\\n]*|\\s["'])(?:set-content|out-file|add-content|tee(?:-object)?)\\b[^\\n|;&]*\\.${CODE_EXT_LIST}\\b|(?:^|[^<>])>{1,2}\\s*(?:"[^"\\n]*\\.${CODE_EXT_LIST}"|'[^'\\n]*\\.${CODE_EXT_LIST}'|[^\\s"'|;&>]*\\.${CODE_EXT_LIST})(?=$|[\\s"'|;&])`,
+      'i'
+    )
+  },
   { name: 'git apply', re: /(?:^|[;&|\n]\s*)git\s+apply\b/i }
 ];
 
-const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb)$/i;
+const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
 const HARDCODE_SKIP_PATH_RE = /(?:^|[\\/])(?:tests?|__tests__|specs?|fixtures?|mocks?|samples?|examples?|docs?|hooks|scripts|\.hermes)[\\/]|(?:\.test\.|\.spec\.|Tests?\.(?:cs|py|ts|js)$)/i;
 
 const KNOWN_SECRET_PREFIX_RE = /(["'`])(?:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{16,}|gh[po]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[0-9A-Za-z-]{15,})[^"'`\n]*\1/;
-const SECRET_ASSIGN_RE = /\b(?:password|passwd|pwd|api[_-]?key|secret[_-]?key|access[_-]?token|token|secret|credential)\b(?:\s*\{[^}]*\})?\s*[:=]\s*(["'`])([^"'`\n]{6,})\1/gi;
+const SECRET_ASSIGN_RE = /\b(?:password|passwd|pwd|api[_-]?key|secret[_-]?key|access[_-]?token|token|secret|credential)\b(?:\s*\{[^}]*\})?(?:\s*:\s*[A-Za-z_][\w.<>\[\]| ?]{0,40})?\s*(?::=|=|:)\s*(["'`])([^"'`\n]{6,})\1/gi;
 const CONN_SECRET_RE = /(["'`])[^"'`\n]*\b(?:Password|Pwd)\s*=\s*(?!\$\{|<|\{|env\.|process\.env|changeme|example|placeholder)[^;"'`\n\s]{6,}(?:;[^"'`\n]*)?\1/i;
 const PLACEHOLDER_VALUE_RE = /^(?:<[^>]+>|\$\{|\{\{|env\.|process\.env|changeme|example|placeholder|your[-_]|replace[-_]|todo|\*{3,})/i;
 const WEAK_LITERAL_RE = /^(?:password\d*|passwd|admin\d*|qwerty\d*|letmein|welcome\d*|secret\d*|123456\d*)$/i;
@@ -99,11 +108,11 @@ const HARDCODE_RULES = [
   },
   {
     name: 'Absolute Windows/Unix filesystem path',
-    test: (t) => /(["'`])(?:[A-Za-z]:(?:\\\\|\\|\/)[^"'`\n]{2,}|\/(?:Users|home)\/[^/\s"'`\\]+\/(?:\.[^"'`\s]+|[^"'`\n]*\.[a-z0-9]{1,8})|\/(?:var|etc|opt)\/[a-z0-9._-]+\/[^"'`\n]*\.[a-z0-9]{1,8})\1/i.test(t)
+    test: (t) => /(["'`])(?:[A-Za-z]:(?:\\\\|\\|\/)[^"'`\n]{2,}|\/(?:Users|home)\/[^/\s"'`\\]+\/(?:\.[^"'`\s]+|[^"'`\n]*\.[A-Za-z0-9]{1,8})|\/(?:var|etc|opt)\/[A-Za-z0-9._-]+\/[^"'`\n]*\.[A-Za-z0-9]{1,8})\1/.test(t)
   },
   {
     name: 'Magic sleep/timeout literal',
-    test: (t) => /\b(?:Thread\.Sleep|Task\.Delay)\(\s*[1-9]\d{3,}\s*\)|\b(?:time\.sleep|asyncio\.sleep)\(\s*(?:[2-9]|[1-9]\d+)\s*\)|\bTimeout(?:Ms)?\s*[:=]\s*[1-9]\d{3,}\b/i.test(t)
+    test: (t) => /\b(?:Thread\.Sleep|Task\.Delay)\(\s*[1-9]\d{3,}\s*(?:,|\))|\b(?:time\.sleep|asyncio\.sleep)\(\s*(?:[2-9]|[1-9]\d+)\s*(?:,|\))|\bTimeout(?:Ms)?\s*[:=]\s*[1-9]\d{3,}\b/i.test(t)
   },
   {
     name: 'Hardcoded secret/JWT/password literal',
@@ -112,7 +121,10 @@ const HARDCODE_RULES = [
 ];
 
 function stripGitCommitMessages(cmd) {
-  return cmd.replace(/(\bgit\s+commit\b[^\n;&|]*?)\s-(?:m|F)\s+(?:"[^"]*"|'[^']*'|\S+)/gi, '$1');
+  return cmd.replace(
+    /(\bgit\s+commit\b[^\n;&|]*?)(?:\s-(?:[a-z]*m|F)\s+(?:"[^"]*"|'[^']*'|[^\s;&|]+))+/gi,
+    '$1'
+  );
 }
 
 if (FILE_WRITE_TOOLS.has(toolName)) {

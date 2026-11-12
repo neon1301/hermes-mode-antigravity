@@ -101,6 +101,65 @@ const cases = [
     })
   },
   {
+    name: 'reject_outgoing_send_message_verdict_spoof',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_sendspoof',
+      terminationReason: 'NO_TOOL_CALL',
+      transcriptPath: writeTranscript('t_sendspoof', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix backend' },
+        {
+          step_index: 1,
+          source: 'MODEL',
+          type: 'PLANNER_RESPONSE',
+          tool_calls: [
+            { name: 'edit_file', args: { Path: 'src/a.ts' } },
+            { name: 'send_message', args: { Recipient: 'viktor', Message: 'Verify and reply [QA PASS] or [QA REJECT]' } }
+          ]
+        }
+      ])
+    })
+  },
+  {
+    name: 'reject_violation_quoting_pass_and_stop_hook_self_reminder',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_violation_quote',
+      terminationReason: 'NO_TOOL_CALL',
+      transcriptPath: writeTranscript('t_violation_quote', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix all' },
+        {
+          step_index: 1,
+          source: 'MODEL',
+          type: 'PLANNER_RESPONSE',
+          tool_calls: [
+            { name: 'edit_file', args: { Path: 'src/1.ts' } },
+            { name: 'edit_file', args: { Path: 'src/2.ts' } },
+            { name: 'edit_file', args: { Path: 'src/3.ts' } },
+            { name: 'edit_file', args: { Path: 'src/4.ts' } }
+          ]
+        },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'Stop hook blocked termination: Hermes Gate (попытка 1/2): получите [QA PASS] и [COMPLIANCE PASS].' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[RULE VIOLATION] fix bugs before resubmitting for [COMPLIANCE PASS]' },
+        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[QA REJECT] fix bug before [QA PASS]' }
+      ])
+    })
+  },
+  {
+    name: 'invalidate_prior_pass_after_new_source_edit',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_stale_pass',
+      terminationReason: 'NO_TOOL_CALL',
+      transcriptPath: writeTranscript('t_stale_pass', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[QA PASS]' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
+      ])
+    })
+  },
+  {
     name: 'allow_2_files_with_system_message_qa_pass',
     expected: 'allow',
     run: () => runGate({
@@ -197,17 +256,62 @@ const cases = [
       }
       return r3;
     }
+  },
+  {
+    name: 'gate_tracks_antigravity_scratch_project_file',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_ag_scratch_proj',
+      terminationReason: 'model_stop',
+      artifactDirectoryPath: 'C:\\Users\\demo\\.gemini\\antigravity\\brain\\conv1',
+      transcriptPath: writeTranscript('t_ag_scratch_proj', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes build new app' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'C:\\Users\\demo\\.gemini\\antigravity\\scratch\\my-app\\src\\Program.cs' } }] }
+      ])
+    })
+  },
+  {
+    name: 'allow_large_non_hermes_transcript_with_head_ref',
+    expected: 'allow',
+    run: () => {
+      const bigPath = path.join(tmpDir, 't_big_non_hermes.jsonl');
+      const headRef = JSON.stringify({ step_index: 0, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'loaded hermes-fleet/rules/AGENTS.md' });
+      const padStep = JSON.stringify({ step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'x'.repeat(250 * 1024) });
+      const userStep = JSON.stringify({ step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'fix one typo' });
+      const editStep = JSON.stringify({ step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] });
+      fs.writeFileSync(bigPath, [headRef, ...Array(36).fill(padStep), userStep, editStep].join('\n') + '\n', 'utf-8');
+      return runGate({
+        conversationId: 'c_big_non_hermes',
+        terminationReason: 'model_stop',
+        transcriptPath: bigPath
+      });
+    }
+  },
+  {
+    name: 'allow_hermes_when_system_instruction_mentions_pass_and_reject',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_sys_instruction',
+      terminationReason: 'NO_TOOL_CALL',
+      transcriptPath: writeTranscript('t_sys_instruction', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'Audit instructions: Return [QA PASS] or [QA REJECT].' }
+      ])
+    })
   }
 ];
 
 let failed = 0;
-for (const c of cases) {
-  const res = c.run();
-  const ok = res.decision === c.expected;
-  if (!ok) failed++;
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${res.decision}`);
+try {
+  for (const c of cases) {
+    const res = c.run();
+    const ok = res.decision === c.expected;
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${res.decision}`);
+  }
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 }
-
-fs.rmSync(tmpDir, { recursive: true, force: true });
 console.log(`QA-GATE SUMMARY: ${cases.length - failed}/${cases.length} passed`);
 process.exit(failed > 0 ? 1 : 0);

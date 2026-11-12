@@ -33,6 +33,9 @@ const cases = [
   { name: 'deny_tee_cs', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'cat foo | tee app.cs' } } } },
   { name: 'deny_git_apply', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
   { name: 'deny_ps_set_content_cs', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'Set-Content -Path src/Program.cs -Value hello' } } } },
+  { name: 'deny_git_commit_unquoted_m_then_sed_i', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git commit -m foo;sed -i s/a/b/ app.ts' } } } },
+  { name: 'deny_sed_i_bak', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'sed -i.bak s/a/b/ src/app.ts' } } } },
+  { name: 'deny_sed_in_place', expected: 'deny', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'sed --in-place s/a/b/ src/app.ts' } } } },
 
   // Rule 9 deny cases
   { name: 'deny_hardcode_url_ip_cs', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: `var url = ${q('http://' + ip + ':8080/api')};` } } } },
@@ -49,8 +52,14 @@ const cases = [
   { name: 'deny_token_alnum_literal', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Auth.cs', Content: `var Token = ${q('abc123def456ghi789')};` } } } },
   { name: 'deny_connection_string_password', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Db.cs', Content: `var cs = ${q(connStr)};` } } } },
   { name: 'deny_connection_string_no_trailing_semicolon', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Db.cs', Content: `var cs = ${q(connStrNoSemi)};` } } } },
+  { name: 'deny_ts_typed_secret', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Auth.ts', Content: `const apiKey: string = ${q('abc123def456')};` } } } },
+  { name: 'deny_go_walrus_secret', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/auth.go', Content: `apiKey := ${q('abc123def456')}` } } } },
+  { name: 'deny_task_delay_with_ct', expected: 'deny', payload: { toolCall: { name: 'edit_file', args: { Path: 'src/Worker.cs', Replacement: 'await Task.Delay(5000, cancellationToken);' } } } },
+  { name: 'deny_razor_secret', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Page.razor', Content: `var Token = ${q('abc123def456ghi789')};` } } } },
 
   // Must ALLOW cases (zero false positives)
+  { name: 'allow_rg_quoted_gt_before_ts', expected: 'allow', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'rg "a > b" src/app.ts' } } } },
+  { name: 'allow_users_web_avatar_route', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/App.tsx', Content: 'const x = "/users/me/avatar.png";' } } } },
   { name: 'allow_forgot_password_ui_text', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/LoginVm.cs', Content: 'Password = "Forgot password?";' } } } },
   { name: 'allow_aspnet_antiforgery_token', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/SecurityHeaders.cs', Content: 'var Token = "AntiForgeryToken";' } } } },
   { name: 'allow_csharp_password_label', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/LoginVm.cs', Content: 'public string Password { get; set; } = "PasswordLabel";' } } } },
