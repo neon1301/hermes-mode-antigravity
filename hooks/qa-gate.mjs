@@ -179,6 +179,11 @@ try {
   process.exit(0);
 }
 
+if (payload?.fullyIdle === false) {
+  allow();
+  process.exit(0);
+}
+
 const termReason = String(payload?.terminationReason || '').trim().toLowerCase();
 if (termReason && ABNORMAL_REASONS.has(termReason)) {
   allow();

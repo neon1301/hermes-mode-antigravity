@@ -299,6 +299,19 @@ const cases = [
         { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'Audit instructions: Return [QA PASS] or [QA REJECT].' }
       ])
     })
+  },
+  {
+    name: 'allow_when_background_tasks_running_fullyIdle_false',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_bg_running',
+      terminationReason: 'NO_TOOL_CALL',
+      fullyIdle: false,
+      transcriptPath: writeTranscript('t_bg_running', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
+      ])
+    })
   }
 ];
 
