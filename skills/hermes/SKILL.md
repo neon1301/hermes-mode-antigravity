@@ -19,12 +19,14 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 
 ### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
 - **Contour A (Read-Only):** Specialists (`agents/*.md`) produce findings and **Patch Blueprints** (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
+- **Adaptive Model Tiering:** `Model: "flash"` — разведка и документация (`mozgoeb`, `anna`, `igor`), быстрый поиск; `Model: "inherit"` (или `"pro"`) — сложная архитектура, гонки/БД/реверс и финальный QA (`dmitry`, `denis`, `artem`, `viktor`).
 - **Preflight & Deduplication:** Run `manage_subagents(action="list")`. Max 1 live auditor per role, bounded waves of 3–5.
 - **Investigation Routing (/grill-me):** Ask user: (1) Express Lead lookup or (2) Deep council across specialists.
 - **DAG & Sign-Off:** Build dependency graph (`blocked_by`); confirm plan before Act Mode.
 
 ### Phase 3: Act & Capability-Routed Execution (Contour B)
 - **Capability Routing:** 1–3 files: Lead edits directly (`edit_file`/`write_file`). 4+ files: `define_subagent(EnableWriteTools: true)`, `TypeName="self"` in waves of 3–5 (or `/swarm`). Never send `[ACT MODE]` to Read-Only `agents/*.md`.
+- **Model Tiering for Waves:** Механические волны записи (`self` по готовому `Patch Blueprint`) запускать с `Model: "flash"`.
 - **Pool Reuse & Worktree:** Reuse idle workers via `send_message`. Use `Workspace: "branch"` only with `.git`, otherwise `"inherit"`.
 - **Clean Edits:** Use `edit_file`/`write_file`. Zero patch scripts (`patch_*.ps1`, `.bat`).
 - **Contracts & Zero-Hardcode ([`references/configuration-hygiene.md`](references/configuration-hygiene.md)):** `[CONTRACT PROPOSAL]` ➔ `[CONTRACT ACKNOWLEDGED]`. Zero hardcoded IPs/credentials/paths/sleeps; use dynamic config. Hardcode triggers `[QA REJECT]`.

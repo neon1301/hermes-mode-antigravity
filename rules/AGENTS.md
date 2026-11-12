@@ -11,5 +11,6 @@
 
 Ключевые инварианты на любой задаче Hermes:
 * **Plan ➔ Act & Контуры:** Read-Only специалисты (`agents/*.md`) делают аудит/контракты/Patch Blueprint; 1–3 файла правит Lead напрямую, 4+ — через `self`/`define_subagent`/`swarm` волнами 3–5 с Subagent GC.
+* **Adaptive Model Tiering (`invoke_subagent`):** `Model: "flash"` — разведка и документация (`mozgoeb`, `anna`, `igor`), быстрый поиск и механические волны записи (`self` по готовому `Patch Blueprint`); `Model: "inherit"` (или `"pro"`) — сложная архитектура, гонки/БД/реверс и финальный QA (`dmitry`, `denis`, `artem`, `viktor`).
 * **Clean Edits & Zero-Hardcode:** только `edit_file`/`write_file` (без `patch_*` и переписывающих однострочников); никаких зашитых IP/секретов/абсолютных путей/магических пауз.
 * **Quality Gate:** приёмка `[QA PASS]` (Viktor) + `[COMPLIANCE PASS]` (Stanislav, при 4+ файлах) перед финализацией.

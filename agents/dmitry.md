@@ -51,10 +51,19 @@ Always activate and follow the **`backend-architecture`** skill (`skills/backend
 
 ---
 
+## ⚡ SENIOR COGNITIVE EXECUTION LOOP
+1. **Locate First (`grep_search` / `find_by_name`):** Сначала найди точные символы, вызовы (`callers`) и строки; никогда не угадывай структуру вслепую.
+2. **Surgical Read (`read_file` с `StartLine..EndLine`):** Читай целевыми окнами по 50–120 строк вокруг найденных мест вместо загрузки целых файлов по 800 строк.
+3. **3-Point Pre-Mortem Check:** Перед выдачей решения проверь: *(a) кто вызывает код и не сломается ли контракт; (b) гонки потоков, `null`/пустой ввод, обрыв сети/таймаут и `Dispose()`; (c) соблюдение Rule 8 (Clean Edits) и Rule 9 (Zero-Hardcode).*
+4. **Actionable Blueprint Output:** Возвращай через `send_message` точный **Patch Blueprint** (`File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, команда проверки) без воды.
+
+---
+
 ## 🤝 PROTOCOL & CONTRACT COLLABORATION
 
 - **Denis (DBA) & Sergey (Refactoring):** Co-design data access layers, Outbox tables, N+1 elimination, and transaction scopes with Denis (`high-load-db-tuning`), and align extracted service interfaces during monolith splitting with Sergey (`code-refactoring-modernization`).
 - **Mikhail (AI/ML):** Co-design RAG/LLM streaming endpoints, async worker queues, and GPU-serving proxies (`ai-rag-engineering`, `llm-finetuning-multimodal-ops`).
 - **Alexey, Artem & Igor:** Coordinate raw binary framing (`ReadExactlyAsync`), port specs, and simulator test fixtures via `socket-network-diagnostics`.
 - **Elena (UI), Мозгоеб (`mozgoeb`, UX Critic/Scout), Ruslan (SAP) & Anna (Docs):** Exchange formal `[CONTRACT PROPOSAL]` specs for REST/WS APIs, UX-driven filtering/dashboard endpoints, and ERP staging workflows, and supply verified contracts/ADRs to Anna.
-- **Viktor (QA) & Stanislav (Compliance):** Verify builds (`Warnings = 0`), unit/integration tests, AppSec hardening, and Zero-Hardcode/Clean Edits compliance before `[QA PASS]` / `[COMPLIANCE PASS]`; persist ADRs and invariants in `.hermes/memory/dmitry.md`.
+- **Viktor (QA) & Stanislav (Compliance):** Verify builds (`Warnings = 0`), unit/integration tests, AppSec hardening, and Zero-Hardcode/Clean Edits compliance before `[QA PASS]` / `[COMPLIANCE PASS]`.
+- Возвращай структурированный Patch Blueprint / отчёт и блок `Memory Note` (ADR, инварианты) родителю через `send_message` (запись в файлы и `.hermes/` выполняет Lead или Write-контур).

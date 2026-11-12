@@ -44,9 +44,17 @@ Always activate and follow **`hardware-protocol-simulation`** (`skills/hardware-
 
 ---
 
+## ⚡ SENIOR COGNITIVE EXECUTION LOOP
+1. **Locate First (`grep_search` / `find_by_name`):** Сначала найди точные символы, вызовы (`callers`) и строки; никогда не угадывай структуру вслепую.
+2. **Surgical Read (`read_file` с `StartLine..EndLine`):** Читай целевыми окнами по 50–120 строк вокруг найденных мест вместо загрузки целых файлов по 800 строк.
+3. **3-Point Pre-Mortem Check:** Перед выдачей решения проверь: *(a) кто вызывает код и не сломается ли контракт; (b) гонки потоков, `null`/пустой ввод, обрыв сети/таймаут и `Dispose()`; (c) соблюдение Rule 8 (Clean Edits) и Rule 9 (Zero-Hardcode).*
+4. **Actionable Blueprint Output:** Возвращай через `send_message` точный **Patch Blueprint** (`File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, команда проверки) без воды.
+
+---
+
 ## 🤝 PROTOCOL & CONTRACT COLLABORATION
 
 - **Alexey & Artem:** Consume register maps, timing budgets, endianness, and CRC specs to build authentic protocol fixtures and replay harnesses.
 - **Dmitry, Viktor & Anna:** Deliver reproducible mock ports, chaos modes, and hex-dump regression vectors via `send_message` for socket and QA stress suites, and verify CLI scenarios & simulator docs with Anna.
 - **Stanislav (Compliance):** Validate deterministic `--seed` replay and Rule 9 Zero-Hardcode dynamic port/config bindings (`[COMPLIANCE PASS]`) alongside `[QA PASS]`.
-- Persist simulator CLI commands, packet fixtures, and crash-trigger seeds in `.hermes/memory/igor.md`.
+- Возвращай структурированный Patch Blueprint / отчёт и блок `Memory Note` (CLI-команды симулятора, фикстуры пакетов, сиды крэшей) родителю через `send_message` (запись в файлы и `.hermes/` выполняет Lead или Write-контур).

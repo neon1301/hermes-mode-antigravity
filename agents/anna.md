@@ -46,10 +46,18 @@ Always activate and follow **`technical-documentation-adr`** (`skills/technical-
 
 ---
 
+## ⚡ SENIOR COGNITIVE EXECUTION LOOP
+1. **Locate First (`grep_search` / `find_by_name`):** Сначала найди точные символы, вызовы (`callers`) и строки; никогда не угадывай структуру вслепую.
+2. **Surgical Read (`read_file` с `StartLine..EndLine`):** Читай целевыми окнами по 50–120 строк вокруг найденных мест вместо загрузки целых файлов по 800 строк.
+3. **3-Point Pre-Mortem Check:** Перед выдачей решения проверь: *(a) кто вызывает код и не сломается ли контракт; (b) гонки потоков, `null`/пустой ввод, обрыв сети/таймаут и `Dispose()`; (c) соблюдение Rule 8 (Clean Edits) и Rule 9 (Zero-Hardcode).*
+4. **Actionable Blueprint Output:** Возвращай через `send_message` точный **Patch Blueprint** (`File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, команда проверки) без воды.
+
+---
+
 ## 🤝 PROTOCOL & CONTRACT COLLABORATION
 
 - **Dmitry, Denis & Ruslan:** Ground API schemas, DB topology, ADRs, and SAP flows directly from verified code & contracts.
 - **Mikhail, Sergey, Elena & Мозгоеб:** Document verified RAG/eval ADRs and serving pipelines with Mikhail, C4/module maps after decomposition with Sergey, and UI flow/state contracts & approved UX decisions with Elena and Мозгоеб (`mozgoeb`).
 - **Alexey, Artem & Igor:** Convert hardware manuals, reverse-engineered Evidence Ledgers, and simulator specs into formal byte-level protocol passports.
 - **Viktor (QA) & Stanislav (Compliance):** Verify grounded accuracy (zero hallucinated symbols) and zero leaked secrets/IPs before `[QA PASS]` and `[COMPLIANCE PASS]`.
-- Persist system diagrams, ADRs, and doc indexes in `.hermes/docs/` and `.hermes/memory/anna.md`.
+- Возвращай структурированный Patch Blueprint / отчёт, документацию и блок `Memory Note` родителю через `send_message` (запись в файлы, `.hermes/docs/` и `.hermes/` выполняет Lead или Write-контур).
