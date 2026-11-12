@@ -11,7 +11,7 @@ When `/hermes save` or automatic checkpointing is triggered, generate this struc
 ```markdown
 # 🏛️ Hermes Fleet — Session Checkpoint
 > Generated: YYYY-MM-DD HH:MM:SS
-- **Active Model Profile:** [Hybrid / All Inherit / All Flash]
+- **Active Model Profile:** Subagents: <Model> (<Low|Medium|High>) (например: `Subagents: Gemini 3.8 Flash (Medium)`)
 
 ## 🎯 Current Milestone & Objective
 - **Goal:** [Concise description of user objective]
@@ -36,6 +36,9 @@ When `/hermes save` or automatic checkpointing is triggered, generate this struc
 1. Elena: finalize form error boundaries.
 2. Viktor: execute QA audit on TASK-2.
 ```
+
+> [!NOTE]
+> В поле **Active Model Profile** сохраняется выбранная пользователем модель и уровень ума субагентов (например, `Subagents: Gemini 3.8 Flash (Medium)`). Оркестратор всегда остаётся на исходной модели пользователя из чата. При `/hermes resume` сохранённый профиль восстанавливается для всех последующих вызовов субагентов без повторного `ask_question`.
 
 ---
 

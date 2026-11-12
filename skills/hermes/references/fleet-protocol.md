@@ -55,11 +55,30 @@
 12. **Dual-Contour Lifecycle, Pool Reuse & Subagent GC (Rule 12):**
     * **Контур A (Read-Only):** Плагинные специалисты (`agents/*.md`) работают Read-Only (`grep_search`/`find_by_name`/`list_dir`). `elena` вызывает `image-generator`, `mozgoeb` — Read-Only `browser` для тредов. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`, проверка) и приёмку (`[COMPLIANCE PASS]` / `[QA PASS]`). Без write-инструментов возвращают `BLOCKED (read-only session)` + Patch Blueprint.
     * **Контур B (Act/Write):** 1–3 файла Lead правит сам (`edit_file`/`write_file`); 4+ файлов — `define_subagent(EnableWriteTools: true)`, `TypeName="self"` волнами по 3–5 либо `swarm` (`workspace: "share"`/`"branch"`). Запрещено слать `[ACT MODE]` в Read-Only `agents/*.md`.
-    * **Интерактивный выбор профиля моделей на старте сессии (Model Profile Handshake):** В начале новой сессии `/hermes` (на фазе Plan Mode перед первым запуском субагентов, если выбор ещё не сохранён в `.hermes/checkpoint.md`) Оркестратор обязан спросить пользователя (через `ask_question` или краткий вопрос в плане), какой режим моделей использовать для (а) Оркестратора и (б) сотрудников (`invoke_subagent` / `swarm`):
-      1. **⚡ Гибридный (Recommended)** — Оркестратор на текущей модели; разведка/доки (`mozgoeb`, `anna`, `igor`) и механические волны записи (`self` по готовому Blueprint) на `Model: "flash"`, а сложная архитектура, БД, реверс и финальный QA (`dmitry`, `denis`, `artem`, `viktor`, `stanislav`) на `Model: "inherit"` (или `"pro"`).
-      2. **🧠 Максимум (All Inherit / Pro)** — все субагенты и волны записи работают на старшей модели (`Model: "inherit"` / `"pro"`).
-      3. **🚀 Эконом / Скорость (All Workers Flash)** — все вызываемые субагенты и воркеры запускаются на быстром `Model: "flash"`, а Оркестратор координирует и проверяет их на основной модели.
-      Выбранный профиль фиксируется на всю сессию (и сохраняется в `.hermes/checkpoint.md` при `/hermes save`).
+    * **Интерактивный выбор модели и уровня ума для субагентов (Model Handshake):** Оркестратор (Lead) всегда остаётся на той модели ИИ, которую пользователь выбрал при старте чата. Для всех субагентов (сотрудников) на старте новой сессии `/hermes` (на фазе Plan Mode перед первым запуском субагентов, если выбор ещё не сохранён в `.hermes/checkpoint.md`) Оркестратор вызывает `ask_question` ровно с 2 вопросами в одном окне:
+      * **Вопрос 1:** `Какую модель ИИ использовать для всех субагентов?`
+        `options`:
+        1. `(Recommended) Gemini 3.8 Flash`
+        2. `Gemini 4 Hydrogen`
+        3. `Gemini 4 Argon`
+        4. `Claude Sonnet 5.5`
+        5. `Claude Opus 5.5`
+        6. `GPT-OSS 120B`
+      * **Вопрос 2:** `Какой режим (уровень ума) поставить субагентам?`
+        `options`:
+        1. `(Recommended) Medium`
+        2. `High`
+        3. `Low`
+      
+      **Применение выбранной пары `<Модель> + <Low/Medium/High>` ко всем субагентам:**
+      * **При запуске через `swarm(action="add")`:** передавать точный ID модели и уровня:
+        `gemini-3.8-flash-low|medium|high`, `gemini-4-hydrogen-low|medium|high`, `gemini-4-argon-low|medium|high`, `claude-sonnet-5-5-low|medium|high`, `claude-opus-5-5-low|medium|high`, `gpt-oss-120b-medium`.
+      * **При запуске через `invoke_subagent`:** маппить в параметр `Model`:
+        * `Gemini 3.8 Flash` + `Low` ➔ `Model: "flash_lite"`
+        * `Gemini 3.8 Flash` + `Medium` / `High` ➔ `Model: "flash"`
+        * `Gemini 4 Hydrogen` / `Gemini 4 Argon` ➔ `Model: "pro"` (или `"inherit"`, если у Оркестратора та же модель)
+        * `Claude Sonnet 5.5` / `Claude Opus 5.5` / `GPT-OSS 120B` ➔ `Model: "inherit"` (или запуск через `swarm` с точным ID модели), а в начало `Prompt` субагента добавлять директиву `[MODEL_PROFILE: <Модель> (<Low|Medium|High>)]`.
+      * Выбранная пара (например, `Gemini 3.8 Flash (Medium)`) применяется одинаково ко всем субагентам в сессии и сохраняется в `.hermes/checkpoint.md` при `/hermes save`.
     * **Preflight & Pool Reuse:** До `invoke_subagent` вызвать `manage_subagents(action="list")`. 1 роль = max 1 live аудитор (дозапрос в `send_message`). Волны отдавать свободным (`idle`) write-воркерам.
     * **Bounded Waves (3–5), Disjoint Ownership & Single Build Gate:** Волна ≤ 3–5 воркеров с disjoint-файлами и Mission Brief (`Goal`, `Owned Files`, `Contracts`, `Done`). `Workspace: "branch"` — только при `.git`, иначе откат на `"inherit"`. Без конкурирующих сборок — Single Build Gate (`dotnet build`, `tsc --noEmit`, `pytest`, `go build ./...`) запускает Lead после волны.
     * **Post-Restart & GC:** После перезапуска вызвать `manage_subagents(action="list")`. Завершённых воркеров удалять через `manage_subagents(action="kill")` (или `kill_all` после `[COMPLIANCE PASS]` + `[QA PASS]`).
