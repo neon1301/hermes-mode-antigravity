@@ -11,6 +11,7 @@ When `/hermes save` or automatic checkpointing is triggered, generate this struc
 ```markdown
 # 🏛️ Hermes Fleet — Session Checkpoint
 > Generated: YYYY-MM-DD HH:MM:SS
+- **Active Model Profile:** [Hybrid / All Inherit / All Flash]
 
 ## 🎯 Current Milestone & Objective
 - **Goal:** [Concise description of user objective]

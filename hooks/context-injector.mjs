@@ -88,6 +88,23 @@ function inspectTranscript(steps) {
   return { hermesActive, alreadyInjected };
 }
 
+function resolveWorkspaceDir(payload) {
+  let rawDir = payload?.cwd;
+  if (!rawDir && Array.isArray(payload?.workspacePaths) && payload.workspacePaths.length > 0) {
+    rawDir = payload.workspacePaths[0];
+  }
+  if (!rawDir || typeof rawDir !== 'string') return null;
+  const trimmed = rawDir.trim();
+  if (trimmed.startsWith('file://')) {
+    try {
+      return fileURLToPath(trimmed);
+    } catch {
+      return null;
+    }
+  }
+  return trimmed;
+}
+
 const raw = readStdin().trim();
 if (!raw) {
   allowEmpty();
@@ -132,9 +149,31 @@ if (!fs.existsSync(protocolPath)) {
 
 try {
   const protocolText = fs.readFileSync(protocolPath, 'utf-8').trim();
-  const content = protocolText.includes(PROTOCOL_MARKER)
+  let content = protocolText.includes(PROTOCOL_MARKER)
     ? protocolText
     : `${PROTOCOL_MARKER}\n${protocolText}`;
+
+  const workspaceDir = resolveWorkspaceDir(payload);
+  if (workspaceDir) {
+    const checkpointPath = path.join(workspaceDir, '.hermes', 'checkpoint.md');
+    if (fs.existsSync(checkpointPath)) {
+      try {
+        const stat = fs.statSync(checkpointPath);
+        if (stat.size > 0) {
+          let cpText = fs.readFileSync(checkpointPath, 'utf-8');
+          if (cpText.length > 2048) {
+            cpText = cpText.slice(0, 2048);
+          }
+          if (cpText.trim().length > 0) {
+            content += `\n\n---\n## 📌 Авто-подхват чекпоинта (.hermes/checkpoint.md)\n${cpText}`;
+          }
+        }
+      } catch {
+        // Ignore checkpoint read failures
+      }
+    }
+  }
+
   process.stdout.write(JSON.stringify({
     injectSteps: [
       {

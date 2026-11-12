@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.0)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.1)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.6.0 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.6.1 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $sourceDir = $PSScriptRoot

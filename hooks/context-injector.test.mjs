@@ -84,6 +84,22 @@ const cases = [
         { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'continue' }
       ])
     })
+  },
+  {
+    name: 'inject_checkpoint_when_present_in_cwd',
+    check: (res) => Array.isArray(res.injectSteps)
+      && res.injectSteps.length === 1
+      && String(res.injectSteps[0]?.systemMessage?.systemMessage || '').includes('<!-- HERMES_PROTOCOL_LOADED -->')
+      && String(res.injectSteps[0]?.systemMessage?.systemMessage || '').includes('Active Model Profile: Hybrid'),
+    run: () => {
+      const hermesDir = path.join(tmpDir, '.hermes');
+      fs.mkdirSync(hermesDir, { recursive: true });
+      fs.writeFileSync(path.join(hermesDir, 'checkpoint.md'), 'Active Model Profile: Hybrid', 'utf-8');
+      return runInjector({
+        cwd: tmpDir,
+        lastUserInput: '/hermes start'
+      });
+    }
   }
 ];
 

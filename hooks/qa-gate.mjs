@@ -237,14 +237,49 @@ const editedSourceFiles = new Set();
 let hasQaPass = false;
 let hasCompliancePass = false;
 
+const nonAuditorSubagentIds = new Set();
+let pendingNonAuditorCount = 0;
+
+for (const s of turnSteps) {
+  for (const tc of collectToolCalls(s)) {
+    const name = String(tc?.name || '').toLowerCase();
+    const args = tc?.args || {};
+    if (name === 'invoke_subagent') {
+      const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
+      if (typeName !== 'viktor' && typeName !== 'stanislav') {
+        pendingNonAuditorCount++;
+      }
+    }
+  }
+
+  const stepType = String(s?.type || '').toUpperCase();
+  if (pendingNonAuditorCount > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
+    const textToScan = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+    const m = textToScan.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+    if (m) {
+      nonAuditorSubagentIds.add(m[1].toLowerCase());
+      pendingNonAuditorCount--;
+    }
+  }
+}
+
+const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|COMPLIANCE)\s+PASS\]/gi;
+
 for (const s of turnSteps) {
   // Only accept verdicts from real incoming subagent deliveries, never from MODEL prose/thinking, outgoing send_message, or Stop-hook self-reminders
   if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
     const sysText = String(s?.content || '');
     const isStopReminder = /Stop hook blocked termination:|Hermes Gate \(попытка/i.test(sysText);
     if (!isStopReminder) {
-      if (/\[QA PASS\]/.test(sysText) && !/\[QA REJECT\]/.test(sysText)) hasQaPass = true;
-      if (/\[COMPLIANCE PASS\]/.test(sysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
+      const senderMatch = sysText.match(/sender=["']?([0-9a-f-]{36})["']?/i);
+      const senderUuid = senderMatch ? senderMatch[1].toLowerCase() : (String(s?.sender || '').match(/^[0-9a-f-]{36}$/i) ? String(s.sender).toLowerCase() : '');
+      const isFromNonAuditor = senderUuid && nonAuditorSubagentIds.has(senderUuid);
+
+      if (!isFromNonAuditor) {
+        const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
+        if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) hasQaPass = true;
+        if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
+      }
     }
   }
 

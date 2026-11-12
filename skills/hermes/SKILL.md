@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.1) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.0)
+# Hermes Master Orchestration Engine (v3.6.1)
 
 When this skill is activated, you operate as **👑 Lead (Hermes Master Orchestrator)**. Full team protocol and rules are defined in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -19,14 +19,14 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 
 ### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
 - **Contour A (Read-Only):** Specialists (`agents/*.md`) produce findings and **Patch Blueprints** (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
-- **Adaptive Model Tiering:** `Model: "flash"` — разведка и документация (`mozgoeb`, `anna`, `igor`), быстрый поиск; `Model: "inherit"` (или `"pro"`) — сложная архитектура, гонки/БД/реверс и финальный QA (`dmitry`, `denis`, `artem`, `viktor`).
+- **Интерактивный выбор профиля моделей на старте сессии (Model Profile Handshake):** До первого запуска субагентов (если выбор не сохранён в `.hermes/checkpoint.md`) Оркестратор обязан запросить через `ask_question` или вопрос в плане профиль: (1) **⚡ Гибридный (Recommended)** (Lead на текущей; разведка/доки `mozgoeb`/`anna`/`igor` и волны `self` на `Model: "flash"`; архитектура/БД/реверс/QA `dmitry`/`denis`/`artem`/`viktor`/`stanislav` на `Model: "inherit"`/`"pro"`), (2) **🧠 Максимум (All Inherit / Pro)** (все субагенты и волны записи на `Model: "inherit"`/`"pro"`), (3) **🚀 Эконом / Скорость (All Workers Flash)** (все воркеры на `Model: "flash"`). Профиль фиксируется на всю сессию и сохраняется в `.hermes/checkpoint.md`.
 - **Preflight & Deduplication:** Run `manage_subagents(action="list")`. Max 1 live auditor per role, bounded waves of 3–5.
 - **Investigation Routing (/grill-me):** Ask user: (1) Express Lead lookup or (2) Deep council across specialists.
 - **DAG & Sign-Off:** Build dependency graph (`blocked_by`); confirm plan before Act Mode.
 
 ### Phase 3: Act & Capability-Routed Execution (Contour B)
 - **Capability Routing:** 1–3 files: Lead edits directly (`edit_file`/`write_file`). 4+ files: `define_subagent(EnableWriteTools: true)`, `TypeName="self"` in waves of 3–5 (or `/swarm`). Never send `[ACT MODE]` to Read-Only `agents/*.md`.
-- **Model Tiering for Waves:** Механические волны записи (`self` по готовому `Patch Blueprint`) запускать с `Model: "flash"`.
+- **Model Tiering for Waves:** При гибридном профиле механические волны записи (`self` по готовому `Patch Blueprint`) запускать с `Model: "flash"`, при Максимум — `Model: "inherit"`, при Эконом — `Model: "flash"`.
 - **Pool Reuse & Worktree:** Reuse idle workers via `send_message`. Use `Workspace: "branch"` only with `.git`, otherwise `"inherit"`.
 - **Clean Edits:** Use `edit_file`/`write_file`. Zero patch scripts (`patch_*.ps1`, `.bat`).
 - **Contracts & Zero-Hardcode ([`references/configuration-hygiene.md`](references/configuration-hygiene.md)):** `[CONTRACT PROPOSAL]` ➔ `[CONTRACT ACKNOWLEDGED]`. Zero hardcoded IPs/credentials/paths/sleeps; use dynamic config. Hardcode triggers `[QA REJECT]`.

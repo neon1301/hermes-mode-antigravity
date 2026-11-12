@@ -1,4 +1,4 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.0)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.1)
 
 Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead + 13 универсальных специалистов (двухконтурное разделение Read-Only Plan/Audit/Scout и Act/Write с переиспользованием пула, 12 правил флота с триггерной подгрузкой через `PreInvocation`, защитные хуки `PreToolUse`/`Stop`, независимый ревизор Stanislav и UX-критик/разведчик Мозгоеб `@mozgoeb`) + 19 профессиональных скиллов**.
 
@@ -27,7 +27,7 @@
 ## 🛠️ Встроенная библиотека профессиональных скиллов (19 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.0): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.1): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
