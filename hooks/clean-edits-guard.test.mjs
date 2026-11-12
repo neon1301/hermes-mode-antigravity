@@ -18,6 +18,7 @@ const timeoutStmt = ['Timeout', '=', '30000;'].join(' ');
 const jwtTok = ['eyJhbGciOiJIUzI1NiJ9', 'abcdef123456'].join('.');
 const skTok = ['sk-live', 'abcdef1234567890abcd'].join('-');
 const connStr = ['Server=db;', 'Password', '=', 'Sup3rSecret!;'].join('');
+const connStrNoSemi = ['Server=db;', 'Password', '=', 'Sup3rSecret!'].join('');
 
 const cases = [
   // Rule 8 deny cases (including bypass wrappers)
@@ -47,6 +48,7 @@ const cases = [
   { name: 'deny_backtick_sk_token', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/ai.ts', Content: `const k = ${bt(skTok)};` } } } },
   { name: 'deny_token_alnum_literal', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Auth.cs', Content: `var Token = ${q('abc123def456ghi789')};` } } } },
   { name: 'deny_connection_string_password', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Db.cs', Content: `var cs = ${q(connStr)};` } } } },
+  { name: 'deny_connection_string_no_trailing_semicolon', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Db.cs', Content: `var cs = ${q(connStrNoSemi)};` } } } },
 
   // Must ALLOW cases (zero false positives)
   { name: 'allow_forgot_password_ui_text', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/LoginVm.cs', Content: 'Password = "Forgot password?";' } } } },

@@ -28,32 +28,43 @@ const cases = [
       terminationReason: 'NO_TOOL_CALL',
       transcriptPath: writeTranscript('t1', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'fix one typo' },
-        { step_index: 1, type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
       ])
     })
   },
   {
-    name: 'allow_hermes_without_source_edits',
+    name: 'allow_hermes_with_scratch_and_artifact_only',
     expected: 'allow',
     run: () => runGate({
       conversationId: 'c2',
-      terminationReason: 'NO_TOOL_CALL',
+      terminationReason: 'model_stop',
+      artifactDirectoryPath: 'C:\\Users\\demo\\.gemini\\antigravity\\brain\\abc',
       transcriptPath: writeTranscript('t2', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes check architecture' },
-        { step_index: 1, type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'README.md' } }] }
+        {
+          step_index: 1,
+          source: 'MODEL',
+          type: 'PLANNER_RESPONSE',
+          tool_calls: [
+            { name: 'write_file', args: { Path: 'README.md' } },
+            { name: 'write_file', args: { Path: 'C:\\Users\\demo\\.gemini\\antigravity\\brain\\abc\\scratch\\probe.py' } },
+            { name: 'write_file', args: { Path: '.hermes/probe.ts' } }
+          ]
+        }
       ])
     })
   },
   {
-    name: 'continue_2_files_missing_qa_pass',
+    name: 'continue_2_files_missing_qa_pass_on_model_stop',
     expected: 'continue',
     run: () => runGate({
       conversationId: 'c3',
-      terminationReason: 'NO_TOOL_CALL',
+      terminationReason: 'model_stop',
       transcriptPath: writeTranscript('t3', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix backend' },
         {
           step_index: 1,
+          source: 'MODEL',
           type: 'PLANNER_RESPONSE',
           tool_calls: [
             { name: 'edit_file', args: { Path: 'src/a.ts' } },
@@ -64,22 +75,45 @@ const cases = [
     })
   },
   {
-    name: 'allow_2_files_with_qa_pass_only',
-    expected: 'allow',
+    name: 'reject_self_signed_lead_prose_and_thinking',
+    expected: 'continue',
     run: () => runGate({
-      conversationId: 'c4',
+      conversationId: 'c_selfsign',
       terminationReason: 'NO_TOOL_CALL',
-      transcriptPath: writeTranscript('t4', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@dmitry fix' },
+      transcriptPath: writeTranscript('t_selfsign', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix backend' },
         {
           step_index: 1,
+          source: 'MODEL',
           type: 'PLANNER_RESPONSE',
-          content: '[QA PASS]',
+          thinking: '[QA PASS] [COMPLIANCE PASS]',
+          content: 'Проверил сам. [QA PASS] [COMPLIANCE PASS]',
           tool_calls: [
             { name: 'edit_file', args: { Path: 'src/a.ts' } },
             { name: 'edit_file', args: { Path: 'src/b.ts' } }
           ]
         }
+      ])
+    })
+  },
+  {
+    name: 'allow_2_files_with_system_message_qa_pass',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c4',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t4', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@dmitry fix' },
+        {
+          step_index: 1,
+          source: 'MODEL',
+          type: 'PLANNER_RESPONSE',
+          tool_calls: [
+            { name: 'edit_file', args: { Path: 'src/a.ts' } },
+            { name: 'edit_file', args: { Path: 'src/b.ts' } }
+          ]
+        },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   },
@@ -93,20 +127,21 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes refactor module' },
         {
           step_index: 1,
+          source: 'MODEL',
           type: 'PLANNER_RESPONSE',
-          content: '[QA PASS]',
           tool_calls: [
             { name: 'edit_file', args: { Path: 'src/1.ts' } },
             { name: 'edit_file', args: { Path: 'src/2.ts' } },
             { name: 'edit_file', args: { Path: 'src/3.ts' } },
             { name: 'edit_file', args: { Path: 'src/4.ts' } }
           ]
-        }
+        },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   },
   {
-    name: 'allow_4_files_with_both_passes',
+    name: 'allow_4_files_with_both_system_passes',
     expected: 'allow',
     run: () => runGate({
       conversationId: 'c6',
@@ -115,15 +150,29 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes refactor module' },
         {
           step_index: 1,
+          source: 'MODEL',
           type: 'PLANNER_RESPONSE',
-          content: '[QA PASS] and [COMPLIANCE PASS]',
           tool_calls: [
             { name: 'edit_file', args: { Path: 'src/1.ts' } },
             { name: 'edit_file', args: { Path: 'src/2.ts' } },
             { name: 'edit_file', args: { Path: 'src/3.ts' } },
             { name: 'edit_file', args: { Path: 'src/4.ts' } }
           ]
-        }
+        },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="stanislav">[COMPLIANCE PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
+  },
+  {
+    name: 'allow_abnormal_termination_reasons',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_err',
+      terminationReason: 'max_steps_exceeded',
+      transcriptPath: writeTranscript('t_err', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/x.cs' } }] }
       ])
     })
   },
@@ -133,9 +182,9 @@ const cases = [
     run: () => {
       const tp = writeTranscript('t7', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit' },
-        { step_index: 1, type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/x.cs' } }] }
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/x.cs' } }] }
       ]);
-      const p = { conversationId: `cap-${Date.now()}`, terminationReason: 'NO_TOOL_CALL', transcriptPath: tp };
+      const p = { conversationId: `cap-${Date.now()}`, terminationReason: 'model_stop', transcriptPath: tp };
       const r1 = runGate(p);
       const r2 = runGate(p);
       const r3 = runGate(p);

@@ -4,6 +4,21 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const MAX_RETURNS = 2;
+const MAX_TAIL_BYTES = 8 * 1024 * 1024;
+const HEAD_SCAN_BYTES = 64 * 1024;
+
+const ABNORMAL_REASONS = new Set([
+  'error',
+  'max_steps_exceeded',
+  'max_invocations',
+  'max_forced_invocations',
+  'max_token_budget_exceeded',
+  'canceled',
+  'cancelled',
+  'user_canceled',
+  'user_cancelled',
+  'terminal_custom_hook'
+]);
 
 const WRITE_TOOL_NAMES = new Set([
   'write_file',
@@ -14,6 +29,7 @@ const WRITE_TOOL_NAMES = new Set([
 ]);
 
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
+const SCRATCH_OR_META_PATH_RE = /(?:^|[\\/])(?:\.hermes|scratch)[\\/]/i;
 const HERMES_TRIGGER_RE = /(?:^|\s)(?:\/hermes\b|@(?:dmitry|elena|mozgoeb|мозгоеб|viktor|alexey|ruslan|artem|mikhail|sergey|igor|anna|denis|stanislav)\b)|hermes-fleet[\\/](?:skills[\\/]hermes|rules[\\/]AGENTS\.md)/i;
 const HERMES_AGENTS = new Set([
   'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
@@ -36,9 +52,33 @@ function blockStop(reason) {
   process.stdout.write(JSON.stringify({ decision: 'continue', reason }));
 }
 
-function extractSteps(transcriptText) {
+function readTranscriptSlices(filePath) {
+  const stat = fs.statSync(filePath);
+  if (stat.size <= MAX_TAIL_BYTES) {
+    return { headText: '', tailText: fs.readFileSync(filePath, 'utf-8') };
+  }
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const headBuf = Buffer.alloc(HEAD_SCAN_BYTES);
+    const headRead = fs.readSync(fd, headBuf, 0, HEAD_SCAN_BYTES, 0);
+    const headText = headBuf.toString('utf-8', 0, headRead);
+
+    const startOffset = stat.size - MAX_TAIL_BYTES;
+    const tailBuf = Buffer.alloc(MAX_TAIL_BYTES);
+    const tailRead = fs.readSync(fd, tailBuf, 0, MAX_TAIL_BYTES, startOffset);
+    let tailText = tailBuf.toString('utf-8', 0, tailRead);
+    // Drop partial first JSONL line after mid-file seek
+    const firstNl = tailText.indexOf('\n');
+    if (firstNl >= 0) tailText = tailText.slice(firstNl + 1);
+    return { headText, tailText };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function parseJsonl(text) {
   const steps = [];
-  for (const line of transcriptText.split(/\r?\n/)) {
+  for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
@@ -58,6 +98,18 @@ function collectToolCalls(step) {
   if (Array.isArray(step?.tool_calls)) return step.tool_calls;
   if (step?.toolCall) return [step.toolCall];
   return [];
+}
+
+function isIgnoredArtifactOrScratch(targetPath, artifactDir) {
+  if (SCRATCH_OR_META_PATH_RE.test(targetPath)) return true;
+  if (artifactDir) {
+    const normTarget = path.resolve(targetPath).toLowerCase();
+    const normArtifact = path.resolve(artifactDir).toLowerCase();
+    if (normTarget === normArtifact || normTarget.startsWith(normArtifact + path.sep)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function getCounterFile(convId, turnMarker) {
@@ -97,7 +149,8 @@ try {
   process.exit(0);
 }
 
-if (payload?.terminationReason && payload.terminationReason !== 'NO_TOOL_CALL') {
+const termReason = String(payload?.terminationReason || '').trim().toLowerCase();
+if (termReason && ABNORMAL_REASONS.has(termReason)) {
   allow();
   process.exit(0);
 }
@@ -108,20 +161,22 @@ if (!transcriptPath || !fs.existsSync(transcriptPath)) {
   process.exit(0);
 }
 
-let steps;
+let headText = '';
+let tailText = '';
 try {
-  steps = extractSteps(fs.readFileSync(transcriptPath, 'utf-8'));
+  ({ headText, tailText } = readTranscriptSlices(transcriptPath));
 } catch {
   allow();
   process.exit(0);
 }
 
+const steps = parseJsonl(tailText);
 if (steps.length === 0) {
   allow();
   process.exit(0);
 }
 
-let hermesActive = false;
+let hermesActive = HERMES_TRIGGER_RE.test(String(payload?.lastUserInput || '')) || HERMES_TRIGGER_RE.test(headText);
 let lastUserIdx = -1;
 
 for (let i = 0; i < steps.length; i++) {
@@ -145,22 +200,26 @@ if (!hermesActive) {
   process.exit(0);
 }
 
+const artifactDir = String(payload?.artifactDirectoryPath || '');
 const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
 const editedSourceFiles = new Set();
 let hasQaPass = false;
 let hasCompliancePass = false;
 
 for (const s of turnSteps) {
-  const text = `${s?.content || ''}\n${s?.thinking || ''}`;
-  if (/\[QA PASS\]/.test(text)) hasQaPass = true;
-  if (/\[COMPLIANCE PASS\]/.test(text)) hasCompliancePass = true;
+  // Only accept verdicts from incoming system/subagent deliveries, never from MODEL thinking/self-signed prose
+  if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
+    const sysText = String(s?.content || '');
+    if (/\[QA PASS\]/.test(sysText)) hasQaPass = true;
+    if (/\[COMPLIANCE PASS\]/.test(sysText)) hasCompliancePass = true;
+  }
 
   for (const tc of collectToolCalls(s)) {
     const name = String(tc?.name || '').toLowerCase();
     const args = tc?.args || {};
     if (WRITE_TOOL_NAMES.has(name)) {
       const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
-      if (SOURCE_CODE_EXT_RE.test(targetPath)) {
+      if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrScratch(targetPath, artifactDir)) {
         editedSourceFiles.add(path.normalize(targetPath));
       }
     }
