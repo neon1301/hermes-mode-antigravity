@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -70,16 +72,51 @@ const cases = [
   { name: 'allow_test_file_ip', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'tests/Client.test.ts', Content: `const host = ${q(loopIp)};` } } } },
   { name: 'allow_markdown_doc', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'README.md', Content: `Example ${ip} and ${sleepCall}` } } } },
   { name: 'allow_clean_ts', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/client.ts', Content: 'const host = process.env.HOST ?? "localhost";' } } } },
-  { name: 'allow_dotnet_test', expected: 'allow', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'dotnet test --no-build' } } } }
+  { name: 'allow_dotnet_test', expected: 'allow', payload: { toolCall: { name: 'run_command', args: { CommandLine: 'dotnet test --no-build' } } } },
+
+  // Env/config fallback defaults are not hardcode (literal is overridable)
+  { name: 'allow_env_fallback_loopback_ts', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/config.ts', Content: `export const host = process.env.HOST ?? ${q(loopIp)};` } } } },
+  { name: 'allow_env_or_fallback_js', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/config.js', Content: `const host = process.env.HOST || ${q(loopIp)};` } } } },
+  { name: 'allow_python_getenv_default', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/settings.py', Content: `HOST = os.getenv(${q('HOST')}, ${q(ip)})` } } } },
+  { name: 'allow_python_getenv_or_default', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/settings.py', Content: `HOST = os.getenv(${q('HOST')}) or ${q(loopIp)}` } } } },
+  { name: 'allow_csharp_getvalue_default', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Startup.cs', Content: `var host = config.GetValue<string>(${q('Plc:Host')}, ${q(ip)});` } } } },
+  { name: 'deny_env_fallback_secret_still_leaks', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/ai.ts', Content: `const k = process.env.OPENAI_KEY ?? ${q(skTok)};` } } } },
+  { name: 'deny_ip_next_to_unrelated_fallback', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Client.ts', Content: `const name = process.env.NAME ?? ${q('svc')}; const url = ${q('http://' + ip + '/api')};` } } } },
+
+  // Activation: Rules 8/9 apply only in Hermes Mode
+  { name: 'allow_non_hermes_sed_i', expected: 'allow', hermes: false, payload: { toolCall: { name: 'run_command', args: { CommandLine: 'sed -i s/a/b/g src/app.ts' } } } },
+  { name: 'allow_non_hermes_hardcoded_ip', expected: 'allow', hermes: false, payload: { toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: `var url = ${q('http://' + ip + ':8080/api')};` } } } },
+  { name: 'allow_mid_sentence_hermes_mention', expected: 'allow', hermes: false, payload: { lastUserInput: 'почему правило активно без вызова /hermes ?', toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
+  { name: 'allow_hermes_only_in_metadata', expected: 'allow', hermes: false, payload: { lastUserInput: `<USER_REQUEST>\nчто такое режим hermes?\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n/hermes is a [Slash Command]: hermes-fleet/skills/hermes/SKILL.md\n</ADDITIONAL_METADATA>`, toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
+  { name: 'deny_hermes_slash_inside_user_request', expected: 'deny', hermes: false, payload: { lastUserInput: '<USER_REQUEST>\n/hermes fix backend\n</USER_REQUEST>', toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
+  { name: 'deny_hermes_via_at_specialist', expected: 'deny', hermes: false, payload: { lastUserInput: '@dmitry поправь API', toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
+  { name: 'deny_hermes_via_transcript_history', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor\n</USER_REQUEST>' }, { step_index: 1, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'продолжай' }], payload: { lastUserInput: 'продолжай', toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } },
+  { name: 'allow_transcript_without_hermes', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'fix a typo' }], payload: { lastUserInput: 'fix a typo', toolCall: { name: 'run_command', args: { CommandLine: 'git apply fix.diff' } } } }
 ];
 
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-guard-test-'));
+
+function buildInput(c, index) {
+  const input = c.hermes === false ? { ...c.payload } : { lastUserInput: '/hermes test', ...c.payload };
+  if (c.transcript) {
+    const p = path.join(tmpDir, `t${index}.jsonl`);
+    fs.writeFileSync(p, c.transcript.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+    input.transcriptPath = p;
+  }
+  return input;
+}
+
 let failed = 0;
-for (const c of cases) {
-  const out = execFileSync('node', [hookPath], { input: JSON.stringify(c.payload), encoding: 'utf-8' });
-  const parsed = JSON.parse(out);
-  const ok = parsed.decision === c.expected;
-  if (!ok) failed++;
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${parsed.decision}`);
+try {
+  cases.forEach((c, index) => {
+    const out = execFileSync('node', [hookPath], { input: JSON.stringify(buildInput(c, index)), encoding: 'utf-8' });
+    const parsed = JSON.parse(out);
+    const ok = parsed.decision === c.expected;
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${parsed.decision}`);
+  });
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 console.log(`GUARD SUMMARY: ${cases.length - failed}/${cases.length} passed`);
 process.exit(failed > 0 ? 1 : 0);

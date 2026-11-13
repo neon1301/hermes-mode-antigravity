@@ -6,7 +6,7 @@ This document defines the inspection criteria and enforcement mechanisms used by
 
 ## 🎯 1. The Role of the Fleet Auditor
 While **Viktor (QA & AppSec)** focuses on runtime correctness (tests, memory leaks, concurrency, OWASP/AppSec verification), **Stanislav (Compliance)** focuses on **rules, discipline, architectural integrity, and skill compliance**:
-* Did the agents follow all **12 Hermes Fleet Rules** (`rules/AGENTS.md`)?
+* Did the agents follow all **12 Hermes Fleet Rules** (`fleet-protocol.md`)?
 * Did they follow the mandatory protocols across all **19 specialist skills** (`skills/compliance-policy-as-code/SKILL.md`)?
 * Did they cut corners (hardcoded values, ad-hoc patch scripts, unreviewed contracts, duplicate/orphaned subagents)?
 

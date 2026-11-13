@@ -2,6 +2,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {
+  collectToolCalls,
+  detectHermesInSteps,
+  isHermesTrigger,
+  isRealUserStep,
+  parseJsonl,
+  readTranscriptSlices
+} from './hermes-trigger.mjs';
 
 const MAX_RETURNS = 2;
 const MAX_TAIL_BYTES = 8 * 1024 * 1024;
@@ -30,11 +38,6 @@ const WRITE_TOOL_NAMES = new Set([
 
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
-const HERMES_TRIGGER_RE = /(?:^|\s)(?:\/hermes(?=$|[\s.,:;!?)"'])|@(?:dmitry|elena|mozgoeb|мозгоеб|viktor|alexey|ruslan|artem|mikhail|sergey|igor|anna|denis|stanislav)(?=$|[\s.,:;!?)"']))|режим\s+hermes|hermes\s+mode|hermes-fleet[\\/](?:skills[\\/]hermes|rules[\\/]AGENTS\.md)/i;
-const HERMES_AGENTS = new Set([
-  'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
-  'igor', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'
-]);
 
 function readStdin() {
   try {
@@ -50,75 +53,6 @@ function allow() {
 
 function blockStop(reason) {
   process.stdout.write(JSON.stringify({ decision: 'continue', reason }));
-}
-
-function readTranscriptSlices(filePath) {
-  const stat = fs.statSync(filePath);
-  if (stat.size <= MAX_TAIL_BYTES) {
-    return { headText: '', tailText: fs.readFileSync(filePath, 'utf-8') };
-  }
-  const fd = fs.openSync(filePath, 'r');
-  try {
-    const headBuf = Buffer.alloc(HEAD_SCAN_BYTES);
-    const headRead = fs.readSync(fd, headBuf, 0, HEAD_SCAN_BYTES, 0);
-    let headText = headBuf.toString('utf-8', 0, headRead);
-    const lastHeadNl = headText.lastIndexOf('\n');
-    if (lastHeadNl >= 0) headText = headText.slice(0, lastHeadNl + 1);
-
-    const startOffset = stat.size - MAX_TAIL_BYTES;
-    const tailBuf = Buffer.alloc(MAX_TAIL_BYTES);
-    const tailRead = fs.readSync(fd, tailBuf, 0, MAX_TAIL_BYTES, startOffset);
-    let tailText = tailBuf.toString('utf-8', 0, tailRead);
-    // Drop partial first JSONL line after mid-file seek unless doing so empties a complete final line
-    const firstNl = tailText.indexOf('\n');
-    if (firstNl >= 0) {
-      const remainder = tailText.slice(firstNl + 1);
-      if (remainder.trim().length > 0) tailText = remainder;
-    }
-    return { headText, tailText };
-  } finally {
-    fs.closeSync(fd);
-  }
-}
-
-function parseJsonl(text) {
-  const steps = [];
-  for (const line of text.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      steps.push(JSON.parse(trimmed));
-    } catch {
-      // Ignore partial/malformed lines (fail-safe)
-    }
-  }
-  return steps;
-}
-
-function isRealUserStep(step) {
-  return step?.type === 'USER_INPUT' && (!step.source || step.source === 'USER_EXPLICIT');
-}
-
-function collectToolCalls(step) {
-  if (Array.isArray(step?.tool_calls)) return step.tool_calls;
-  if (step?.toolCall) return [step.toolCall];
-  return [];
-}
-
-function detectHermesInSteps(stepList) {
-  for (const s of stepList) {
-    if (isRealUserStep(s) && HERMES_TRIGGER_RE.test(String(s?.content || ''))) {
-      return true;
-    }
-    for (const tc of collectToolCalls(s)) {
-      const name = String(tc?.name || '').toLowerCase();
-      const args = tc?.args || {};
-      if (name === 'invoke_subagent' && HERMES_AGENTS.has(String(args.TypeName || '').toLowerCase())) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 function isIgnoredArtifactOrMeta(targetPath, artifactDir) {
@@ -199,7 +133,10 @@ if (!transcriptPath || !fs.existsSync(transcriptPath)) {
 let headText = '';
 let tailText = '';
 try {
-  ({ headText, tailText } = readTranscriptSlices(transcriptPath));
+  ({ headText, tailText } = readTranscriptSlices(transcriptPath, {
+    maxTailBytes: MAX_TAIL_BYTES,
+    headScanBytes: HEAD_SCAN_BYTES
+  }));
 } catch {
   allow();
   process.exit(0);
@@ -212,7 +149,7 @@ if (steps.length === 0) {
 }
 
 let hermesActive =
-  HERMES_TRIGGER_RE.test(String(payload?.lastUserInput || '')) ||
+  isHermesTrigger(payload?.lastUserInput) ||
   (headText ? detectHermesInSteps(parseJsonl(headText)) : false);
 let lastUserIdx = -1;
 

@@ -1,4 +1,4 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.4)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.5)
 
 Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Мозгоеба») + 13 универсальных специалистов (двухконтурное разделение Read-Only Plan/Audit/Scout и Act/Write с переиспользованием пула, 12 правил флота с триггерной подгрузкой через `PreInvocation`, защитные хуки `PreToolUse`/`Stop`, независимый ревизор Stanislav и 360° UX-критик/скаут мировых трендов Мозгоеб `@mozgoeb`) + 19 профессиональных скиллов**.
 
@@ -27,7 +27,7 @@
 ## 🛠️ Встроенная библиотека профессиональных скиллов (19 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.4): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.5): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
@@ -61,6 +61,8 @@
 | **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |
 | **/hermes standup** | 📋 Стендап-синхронизация команды с фиксацией в `.hermes/standups.md` |
 | **@имя [запрос]** | Прямой вызов конкретного специалиста (`@mozgoeb` / `@мозгоеб`, `@elena`, `@stanislav`, `@alexey`, `@dmitry`, `@viktor`, `@ruslan` и др.) |
+
+> **Когда Hermes включается.** Только по явному запросу: сообщение начинается с `/hermes`, просьба «включи режим Hermes» или обращение `@имя`. Упоминание `/hermes` в середине вопроса режим не включает. Вне режима плагин ничего не добавляет в контекст (always-on правила нет), а хуки Clean Edits / Zero-Hardcode / QA Gate пропускают всё без проверок.
 
 ---
 

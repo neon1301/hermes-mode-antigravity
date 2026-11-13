@@ -326,6 +326,35 @@ const cases = [
     })
   },
   {
+    name: 'allow_mid_sentence_slash_mention_with_skill_metadata',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_mid_sentence',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_mid_sentence', [
+        {
+          step_index: 0,
+          source: 'USER_EXPLICIT',
+          type: 'USER_INPUT',
+          content: '<USER_REQUEST>\nпочему правило активно без вызова /hermes ?\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n/hermes is a [Slash Command]: C:/Users/u/.gemini/config/plugins/hermes-fleet/skills/hermes/SKILL.md\n</ADDITIONAL_METADATA>'
+        },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
+      ])
+    })
+  },
+  {
+    name: 'continue_slash_hermes_inside_user_request_wrapper',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_wrapped_slash',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_wrapped_slash', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes fix backend\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\ntime\n</ADDITIONAL_METADATA>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/a.ts' } }] }
+      ])
+    })
+  },
+  {
     name: 'reject_write_worker_self_subagent_reporting_qa_pass',
     expected: 'continue',
     run: () => runGate({

@@ -1,10 +1,29 @@
 import fs from 'node:fs';
+import { detectHermesInSteps, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
+
+const MAX_TAIL_BYTES = 4 * 1024 * 1024;
+const HEAD_SCAN_BYTES = 64 * 1024;
 
 function readStdin() {
   try {
     return fs.readFileSync(0, 'utf-8');
   } catch {
     return '';
+  }
+}
+
+function isHermesActive(payload) {
+  if (isHermesTrigger(payload?.lastUserInput)) return true;
+  const transcriptPath = payload?.transcriptPath;
+  if (!transcriptPath || !fs.existsSync(transcriptPath)) return false;
+  try {
+    const { headText, tailText } = readTranscriptSlices(transcriptPath, {
+      maxTailBytes: MAX_TAIL_BYTES,
+      headScanBytes: HEAD_SCAN_BYTES
+    });
+    return detectHermesInSteps([...parseJsonl(headText), ...parseJsonl(tailText)]);
+  } catch {
+    return false;
   }
 }
 
@@ -45,6 +64,12 @@ try {
 
 const toolName = String(payload?.toolCall?.name || '').toLowerCase();
 const args = payload?.toolCall?.args || {};
+
+// Rules 8/9 are Hermes Fleet policy: outside Hermes Mode the agent works as a standard agent.
+if (!isHermesActive(payload)) {
+  allow();
+  process.exit(0);
+}
 
 const FILE_WRITE_TOOLS = new Set([
   'write_file',
@@ -101,10 +126,21 @@ function hasHardcodedSecret(text) {
   return false;
 }
 
+// Env/config-overridable defaults: `process.env.HOST ?? "127.0.0.1"`, `os.getenv("HOST") or "..."`,
+// `os.getenv("HOST", "...")`, `config.GetValue("Host", "...")`. The literal is only a fallback, not a hardcode.
+const FALLBACK_LITERAL_RE = /(?:\?\?|\|\||\bor\b)\s*(["'`])[^"'`\n]*\1/g;
+const DEFAULT_ARG_CALL_RE = /\b(?:os\.getenv|os\.environ\.get|getenv|Environment\.GetEnvironmentVariable|GetValue(?:OrDefault)?(?:<[^>\n]*>)?|config\.get|settings\.get)\s*\(\s*(["'`])[^"'`\n]*\1\s*,\s*(["'`])[^"'`\n]*\2/g;
+
+function stripEnvFallbacks(text) {
+  return text
+    .replace(FALLBACK_LITERAL_RE, '?? ""')
+    .replace(DEFAULT_ARG_CALL_RE, (call) => call.replace(/,\s*(["'`])[^"'`\n]*\1$/, ', ""'));
+}
+
 const HARDCODE_RULES = [
   {
     name: 'Private/Loopback IPv4 literal',
-    test: (t) => /(?:["'`]|:\/\/|@)(?:127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})/.test(t)
+    test: (t) => /(?:["'`]|:\/\/|@)(?:127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})/.test(stripEnvFallbacks(t))
   },
   {
     name: 'Absolute Windows/Unix filesystem path',

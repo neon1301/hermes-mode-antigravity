@@ -1,7 +1,7 @@
 # 🛡️ ECC QA & Security Review Heuristics (Viktor's Standard)
 
 This document defines the strict inspection criteria used by **Viktor (Lead QA & Security Reviewer)**.
-Every PR or task submitted for review MUST be audited against all **7 vectors** (the 6 technical vectors below plus **Vector 7: Zero-Hardcode Compliance** per `AGENTS.md` Rule 9).
+Every PR or task submitted for review MUST be audited against all **7 vectors** (the 6 technical vectors below plus **Vector 7: Zero-Hardcode Compliance** per `fleet-protocol.md` Rule 9).
 
 > [!IMPORTANT]
 > Full QA verification & testing standards live in **`skills/qa-test-automation/SKILL.md`** (alongside **`skills/security-audit/SKILL.md`**), with modules in [references/tdd-debugging-anti-patterns.md](../../qa-test-automation/references/tdd-debugging-anti-patterns.md) (Iron Law TDD, Systematic Root-Cause Debugging, Test Anti-Patterns & CRAP triage) and [references/property-e2e-concurrency.md](../../qa-test-automation/references/property-e2e-concurrency.md) (Property-Based Invariants, flaky-free Playwright/E2E locators, concurrency & leak stress testing).

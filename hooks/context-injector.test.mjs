@@ -74,6 +74,36 @@ const cases = [
     })
   },
   {
+    name: 'skip_mid_sentence_slash_mention_with_skill_metadata',
+    check: (res) => !res.injectSteps,
+    run: () => runInjector({
+      lastUserInput: 'правило не должно было попасть без вызова /hermes',
+      transcriptPath: writeTranscript('mid_sentence', [
+        {
+          step_index: 0,
+          source: 'USER_EXPLICIT',
+          type: 'USER_INPUT',
+          content: '<USER_REQUEST>\nправило не должно было попасть без вызова /hermes \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n/hermes is a [Slash Command]: C:/Users/u/.gemini/config/plugins/hermes-fleet/skills/hermes/SKILL.md\n</ADDITIONAL_METADATA>'
+        }
+      ])
+    })
+  },
+  {
+    name: 'skip_question_about_hermes_mode',
+    check: (res) => !res.injectSteps,
+    run: () => runInjector({ lastUserInput: 'что такое режим hermes и hermes mode?' })
+  },
+  {
+    name: 'inject_on_slash_hermes_inside_user_request_wrapper',
+    check: (res) => Array.isArray(res.injectSteps) && res.injectSteps.length === 1,
+    run: () => runInjector({
+      lastUserInput: '',
+      transcriptPath: writeTranscript('wrapped_slash', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes audit\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\ntime\n</ADDITIONAL_METADATA>' }
+      ])
+    })
+  },
+  {
     name: 'dedup_skip_when_protocol_already_in_transcript',
     check: (res) => !res.injectSteps,
     run: () => runInjector({
