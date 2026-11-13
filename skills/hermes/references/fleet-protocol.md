@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.6.3)
+# Регламент HERMES (Hermes Fleet Protocol v3.6.4)
 
 Активирован для **/hermes**, «Hermes Mode» / «Режим Hermes» и **@имя**.
 
@@ -25,7 +25,7 @@
 
 * **dmitry** (`backend-architecture`): .NET/Python/Node/Go, Clean, RFC 7807, Outbox, backpressure, zero-alloc.
 * **elena** (`frontend-design`): Web/Desktop UI, токены, 4 состояния, `AbortController`, A11y, настройки, иконки (`image-generator`).
-* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): 360° скаут мировых трендов (RU/CN/BE/EU/JP/US), киллер-фичи, Doctor-mode, ускорение ядра и UX-прожарка (P0–P3, Нильсен 0–4), Adopt/Trial/Hold; Read-Only Scout.
+* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): самостоятельный 360° скаут трендов и замыкающий супер-рецензент аудита (Post-Audit Challenger & Solution Comparator по RU/CN/BE/EU/JP/US форумам), киллер-фичи, Doctor-mode, ускорение ядра, UX-прожарка (P0–P3, Нильсен 0–4), Adopt/Trial/Hold; Read-Only Scout.
 * **viktor** (`qa-test-automation`, `security-audit`): 7 векторов QA (Zero-Hardcode), TDD, E2E, OWASP/Cloudflare AppSec, утечки/гонки (`[QA PASS]` / `[QA REJECT]`).
 * **alexey** (`industrial-equipment-research`, `socket-network-diagnostics`): PLC/сенсоры, даташиты, Modbus/Profinet/EtherCAT/OPC UA, RS-232/485, `ReadExactly`, таймауты.
 * **ruslan** (`sap-enterprise-automation`): SAP NCo, BAPI/RFC (`Commit`/`Rollback`), SAP GUI Scripting без COM-утечек, IDoc/ALE, OData CSRF.
@@ -55,9 +55,12 @@
 12. **Dual-Contour Lifecycle, Pool Reuse & Subagent GC (Rule 12):**
     * **Контур A (Read-Only):** Плагинные специалисты (`agents/*.md`) работают Read-Only (`grep_search`/`find_by_name`/`list_dir`). `elena` вызывает `image-generator`, `mozgoeb` — Read-Only `browser` для тредов. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`, проверка) и приёмку (`[COMPLIANCE PASS]` / `[QA PASS]`). Без write-инструментов возвращают `BLOCKED (read-only session)` + Patch Blueprint.
     * **Контур B (Act/Write):** 1–3 файла Lead правит сам (`edit_file`/`write_file`); 4+ файлов — `define_subagent(EnableWriteTools: true)`, `TypeName="self"` волнами по 3–5 либо `swarm` (`workspace: "share"`/`"branch"`). Запрещено слать `[ACT MODE]` в Read-Only `agents/*.md`.
-    * **Двухуровневый режим Мозгоеба (Built-in Lead Lens + Isolated Global Scout):**
+    * **Двухуровневый режим Мозгоеба (Built-in Lead Lens + Isolated Scout & Post-Audit Challenger):**
       * **Уровень 1 — Встроенный «Глаз Мозгоеба» у Оркестратора (Zero-Cost Local Product & Tech Lens):** На каждой задаче Оркестратор (Lead) при чтении кода и постановке ТЗ субагентам всегда сам включает базовый фильтр Мозгоеба (по 6 Радарам Пользы, без тяжёлого веб-поиска): сразу пресекает лишние клики, запрятанные кнопки и слепые экраны без 4 состояний (`Idle/Loading/Success/Error`); запрещает программистские отписки (`Error -1`, `NullReferenceException`) и требует человекочитаемые сообщения с подсказкой, как починить; сразу закладывает в ТЗ воркерам очевидные улучшения (`Dry-Run` перед опасным действием, авто-бэкап, `Doctor/Self-Test`, `Channel<T>`/WAL вместо блокировок и поллинга) — без траты времени и токенов на вызов отдельного субагента на простых задачах.
-      * **Уровень 2 — Выделенный субагент `@mozgoeb` для глубокой разведки интернета (Isolated Global Forum Scout):** Когда проекту нужны свежие мировые тренды, киллер-фичи конкурентов, проверенные OSS-библиотеки или полная «прожарка» с разведкой по международным форумам (`RU/CN/BE-EU/JP-KR/Global` через серию мультиязычных запросов `search_web` + чтение веток через `browser`), Оркестратор делегирует это субагенту `@mozgoeb`. Субагент переваривает десятки тысяч токенов сырого текста с форумов в своём изолированном контексте и возвращает Оркестратору только чистую выжимку (4 блока `P0–P3`), не сжигая дорогие токены модели Оркестратора и не засоряя память главного чата.
+      * **Уровень 2 — Выделенный субагент `@mozgoeb` (Independent Project Explorer + Post-Audit Challenger & Solution Comparator):**
+        * **Самостоятельный 360° Искатель Трендов:** Мозгоеб всегда сам изучает код, архитектуру и манифесты проекта (`read_file`), находя свежие тренды, популярные идеи и киллер-фичи по всем 6 Радарам Пользы (даже если другие спецы их не заметили или при прямом вызове `@мозгоеб`).
+        * **Замыкающий Супер-Рецензент Аудита (Post-Audit Challenger):** При командном аудите профильные специалисты (`@dmitry`, `@denis`, `@elena`, `@alexey`, `@sergey` и др.) идут первыми и выдают свои технические решения. В финале аудита (до перехода к написанию кода) Оркестратор передаёт результаты всех спецов Мозгоебу (`@mozgoeb`). Мозгоеб: (1) лично читает затронутые файлы проекта (`read_file`); (2) проверяет предложения спецов по мировым форумам и трендам (`RU/CN/BE-EU/JP-KR/Global` через `search_web` + Read-Only `browser`), исследуя реальный боевой опыт разработчиков (*у кого что реально получилось на практике и какие грабли вылезли в проде*); (3) сопоставляет варианты в Сравнительной таблице решений и выносит вердикт с выбором **самого эффективного, профессионального и надёжного варианта** (или идеальной синергии) до старта Фазы 3 (Act).
+        * **Защита контекста и экономия ресурсов:** субагент переваривает десятки тысяч токенов сырого текста с форумов в своём изолированном контексте и возвращает Оркестратору только чистую выжимку (Сравнение решений + 4 блока `P0–P3`), не сжигая дорогие токены модели Оркестратора и не засоряя память главного чата.
     * **Интерактивный выбор модели и уровня ума для субагентов (Model Handshake):** Оркестратор (Lead) всегда остаётся на той модели ИИ, которую пользователь выбрал при старте чата. Для всех субагентов (сотрудников) на старте новой сессии `/hermes` (на фазе Plan Mode перед первым запуском субагентов, если выбор ещё не сохранён в `.hermes/checkpoint.md`) Оркестратор вызывает `ask_question` ровно с 2 вопросами в одном окне:
       * **Вопрос 1:** `Какую модель ИИ использовать для всех субагентов?`
         `options`:

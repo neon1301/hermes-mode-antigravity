@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.3) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.4) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.3)
+# Hermes Master Orchestration Engine (v3.6.4)
 
 When this skill is activated, you operate as **👑 Lead (Hermes Master Orchestrator)**. Full team protocol and rules are defined in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -19,7 +19,7 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 
 ### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
 - **Contour A (Read-Only):** Specialists (`agents/*.md`) produce findings and **Patch Blueprints** (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
-- **Двухуровневый Мозгоеб (Встроенная линза Lead + Выделенный Скаут `@mozgoeb`):** Lead всегда сам включает базовый фильтр Мозгоеба при проектировании архитектуры и составлении ТЗ (устраняет лишние клики, требует 4 состояния UI `Idle/Loading/Success/Error`, запрещает сырые ошибки с требованием подсказок, закладывает `Dry-Run`, авто-бэкап, `Doctor/Self-Test` и `Channel<T>`/WAL без лишних вызовов). Для глубокой разведки свежих трендов, киллер-фич, OSS и UX-прожарки по мировым форумам (RU/CN/BE/EU/JP/Global) Lead вызывает субагента `@mozgoeb` в изолированном окне (экономия токенов и защита главного контекста).
+- **Двухуровневый Мозгоеб (Встроенная линза Lead + Выделенный Скаут и Post-Audit Challenger `@mozgoeb`):** Lead всегда сам включает базовый фильтр Мозгоеба при проектировании архитектуры и составлении ТЗ (устраняет лишние клики, требует 4 состояния UI `Idle/Loading/Success/Error`, запрещает сырые ошибки с требованием подсказок, закладывает `Dry-Run`, авто-бэкап, `Doctor/Self-Test` и `Channel<T>`/WAL без лишних вызовов). При командном аудите профильные специалисты (`@dmitry`, `@denis`, `@elena`, `@alexey`, `@sergey` и др.) идут первыми; **в финале аудита (до перехода к написанию кода)** запускается **`@mozgoeb` (Post-Audit Challenger & Best-Solution Comparator)**: он сам читает затронутые файлы проекта (`read_file`), проверяет предложения спецов по мировым форумам и трендам (`RU/CN/BE/EU/JP/Global` через `search_web` + Read-Only `browser`), изучает боевой опыт разработчиков (*у кого что реально получилось на практике и какие вылезли грабли*), сопоставляет решения в Сравнительной таблице и выносит вердикт с выбором **самого эффективного и профессионального варианта** до старта Фазы 3 (Act). Также `@mozgoeb` самостоятельно исследует кодовую базу и находит свежие тренды по всем 6 Радарам Пользы.
 - **Интерактивный выбор модели и уровня ума субагентов (Model Handshake):** Оркестратор (Lead) остаётся на модели пользователя. До первого запуска субагентов (если выбор не сохранён в `.hermes/checkpoint.md`) Оркестратор запрашивает через `ask_question` 2 вопроса: **Модель ИИ** (`Gemini 3.8 Flash`, `Gemini 4 Hydrogen`, `Gemini 4 Argon`, `Claude Sonnet 5.5`, `Claude Opus 5.5`, `GPT-OSS 120B`) и **Уровень ума** (`Medium`, `High`, `Low`). Выбранная конфигурация фиксируется на всю сессию для всех субагентов и сохраняется в `.hermes/checkpoint.md`.
 - **Preflight & Deduplication:** Run `manage_subagents(action="list")`. Max 1 live auditor per role, bounded waves of 3–5.
 - **Investigation Routing (/grill-me):** Ask user: (1) Express Lead lookup or (2) Deep council across specialists.
