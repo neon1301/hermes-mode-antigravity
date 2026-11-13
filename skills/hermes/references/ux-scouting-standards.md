@@ -4,11 +4,27 @@ Quick orchestration reference for **Lead** when engaging **Мозгоеб (`@moz
 
 ---
 
-## 1. When to Invoke `@mozgoeb`
-- User asks for fresh ideas, killer features, speedups, self-healing, smart automation, or international dev experience for ANY module of the project (backend, database, industrial/PLC/hardware, AI/CLI, or desktop/web UI).
-- User says UI feels clunky, ugly, confusing, dead/frozen, asks for a brutal **UX roast («прожарку»)**, or asks *"how do global communities/forums solve this, what working improvement methods exist, & what modern libraries upgrade us?"*
-- Before major feature planning, refactoring, or UI redesigns, to expose hidden clicks, cognitive overload, weak microcopy, blurry icons, silent/unanimated flows, and mine RU/CN/BE/EU/JP/Global dev forums for proven solutions.
-- Never force `@mozgoeb` on trivial blind typo fixes unless broader product, engineering, or UX scouting is requested.
+## 1. When to Invoke @mozgoeb vs Built-in Lead Lens (Двухуровневая архитектура)
+
+Hermes Fleet v3.6.3 использует **гибридную двухуровневую модель**: продуктовая и инженерная планка Мозгоеба встроена в базовое мышление Оркестратора, а тяжёлая разведка вынесена в изолированного субагента.
+
+### Уровень 1: Встроенный «Глаз Мозгоеба» у Оркестратора (Zero-Cost Local Product & Tech Lens)
+Оркестратор (Lead) включает линзу Мозгоеба **всегда и автоматически на каждой задаче** при чтении кода, проектировании и постановке ТЗ воркерам (без затрат токенов и времени на вызов субагента):
+- **Эргономика UI без слепых пятен:** сразу требует 4 состояния для любого асинхронного блока (`Idle / Loading / Success / Error`); режет лишние клики (Click Depth ≤ 2 для частых действий); вытаскивает запрятанные действия на первый экран; блокирует мутные и немые зависания без индикации прогресса.
+- **Человекочитаемые ошибки:** категорически запрещает программистские отписки (`Error -1`, `NullReferenceException`, сухие HTTP-коды); требует понятные пользователю сообщения с готовым ответом «что произошло и как это исправить».
+- **Инженерные инварианты прямо в ТЗ воркерам:**
+  - `Dry-Run` режим предпросмотра перед деструктивными/опасными действиями (удаление, массовое обновление, перезапись конфигурации).
+  - Автоматический бэкап перед миграциями и изменением файлов настроек.
+  - `Doctor / Self-Test`: проверка портов, зависимостей и доступов при старте.
+  - Неблокирующие паттерны (`Channel<T>`, SQLite WAL, реактивные события) вместо блокирующего поллинга и `Sleep`.
+- *Результат Уровня 1:* высокое качество архитектуры и UX на типовых задачах с нулевым расходом токенов на отдельного субагента.
+
+### Уровень 2: Выделенный субагент `@mozgoeb` для глубокой разведки интернета (Isolated Global Forum Scout)
+Оркестратор делегирует задачу субагенту `@mozgoeb` в отдельном изолированном контексте, когда:
+- **Запрос пользователя:** пользователь явно просит свежие идеи, киллер-фичи, мировую практику, альтернативные подходы конкурентов или тотальную UX-«прожарку» проекта (`Roast Mode`).
+- **Разведка мировых форумов и сообществ:** требуется мультиязычный поиск решений по международным хабам (`RU`: Habr/RSDN, `CN`: V2EX/Juejin, `BE/EU`: Tweakers/FOSDEM/sps-forum, `JP/KR`: Zenn/Qiita, `Global`: GitHub Discussions/HN/Reddit) через серию поисковых запросов `search_web` и чтение тредов через Read-Only `browser`.
+- **Подбор и фильтрация OSS-библиотек:** поиск актуальных пакетов взамен самописных костылей с 5-пунктовым фильтром (лицензия `MIT`/`Apache-2.0`, свежесть коммитов, отсутствие уязвимостей, TFM/Stack fit) и вердиктом `[ADOPT / TRIAL / HOLD]`.
+- **Защита контекста и экономия ресурсов:** субагент переваривает десятки тысяч токенов сырых постов и обсуждений в своём окне и возвращает Оркестратору только чистую выжимку по 4 блокам `P0–P3`. Главный чат и модель Lead остаются чистыми и сфокусированными.
 
 ---
 

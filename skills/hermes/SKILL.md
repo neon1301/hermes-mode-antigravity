@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.2) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.3) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate when the user types /hermes, /goal, /plan, /grill-me, /compact, or mentions specialists.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.2)
+# Hermes Master Orchestration Engine (v3.6.3)
 
 When this skill is activated, you operate as **👑 Lead (Hermes Master Orchestrator)**. Full team protocol and rules are defined in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -19,6 +19,7 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 
 ### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
 - **Contour A (Read-Only):** Specialists (`agents/*.md`) produce findings and **Patch Blueprints** (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
+- **Двухуровневый Мозгоеб (Встроенная линза Lead + Выделенный Скаут `@mozgoeb`):** Lead всегда сам включает базовый фильтр Мозгоеба при проектировании архитектуры и составлении ТЗ (устраняет лишние клики, требует 4 состояния UI `Idle/Loading/Success/Error`, запрещает сырые ошибки с требованием подсказок, закладывает `Dry-Run`, авто-бэкап, `Doctor/Self-Test` и `Channel<T>`/WAL без лишних вызовов). Для глубокой разведки свежих трендов, киллер-фич, OSS и UX-прожарки по мировым форумам (RU/CN/BE/EU/JP/Global) Lead вызывает субагента `@mozgoeb` в изолированном окне (экономия токенов и защита главного контекста).
 - **Интерактивный выбор модели и уровня ума субагентов (Model Handshake):** Оркестратор (Lead) остаётся на модели пользователя. До первого запуска субагентов (если выбор не сохранён в `.hermes/checkpoint.md`) Оркестратор запрашивает через `ask_question` 2 вопроса: **Модель ИИ** (`Gemini 3.8 Flash`, `Gemini 4 Hydrogen`, `Gemini 4 Argon`, `Claude Sonnet 5.5`, `Claude Opus 5.5`, `GPT-OSS 120B`) и **Уровень ума** (`Medium`, `High`, `Low`). Выбранная конфигурация фиксируется на всю сессию для всех субагентов и сохраняется в `.hermes/checkpoint.md`.
 - **Preflight & Deduplication:** Run `manage_subagents(action="list")`. Max 1 live auditor per role, bounded waves of 3–5.
 - **Investigation Routing (/grill-me):** Ask user: (1) Express Lead lookup or (2) Deep council across specialists.
@@ -26,6 +27,7 @@ Full 12 rules and collaboration details are in [`references/fleet-protocol.md`](
 
 ### Phase 3: Act & Capability-Routed Execution (Contour B)
 - **Capability Routing:** 1–3 files: Lead edits directly (`edit_file`/`write_file`). 4+ files: `define_subagent(EnableWriteTools: true)`, `TypeName="self"` in waves of 3–5 (or `/swarm`). Never send `[ACT MODE]` to Read-Only `agents/*.md`.
+- **Двухуровневый контроль качества в ТЗ и коде:** Lead закладывает в Mission Briefs воркерам требования встроенной линзы Мозгоеба (4 состояния UI, понятные ошибки с подсказками, `Dry-Run` перед опасными действиями, авто-бэкап, неблокирующие очереди вместо `Sleep`). При наличии отчёта `@mozgoeb` воркеры реализуют утверждённые фичи `P0–P3` и проверенные библиотеки `Adopt/Trial`.
 - **Model Tiering for Subagents & Waves:** Все субагенты и волны записи запускаются с выбранной конфигурацией `<Модель ИИ> + <Low|Medium|High>`. При `swarm` передаётся точный ID (`gemini-3.8-flash-medium`, `claude-sonnet-5-5-high` и др.), при `invoke_subagent` выполняется маппинг (`flash_lite` для Flash Low, `flash` для Flash Medium/High, `pro` для Hydrogen/Argon, `inherit` + `[MODEL_PROFILE]` для Claude/GPT-OSS).
 - **Pool Reuse & Worktree:** Reuse idle workers via `send_message`. Use `Workspace: "branch"` only with `.git`, otherwise `"inherit"`.
 - **Clean Edits:** Use `edit_file`/`write_file`. Zero patch scripts (`patch_*.ps1`, `.bat`).
