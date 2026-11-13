@@ -1,33 +1,36 @@
 # 🎨 ECC Frontend & UI/UX Standards (Elena's Standard)
 
-This document defines frontend architecture standards applied by **Elena (Senior Frontend & UI Engineer)**.
-
-> [!IMPORTANT]
-> Pair with **`skills/frontend-design/SKILL.md`** ([frontend-design](../../frontend-design/SKILL.md)) for visual aesthetic direction, typography, palette tokens (4–6 tokens), and anti-AI-slop design standards.
+Frontend architecture and lifecycle engineering invariants applied by **Elena (Senior Frontend Lead)**. Pair with `skills/frontend-design/SKILL.md` for visual tokens and aesthetics.
 
 ---
 
 ## 1. The 4-State UI Contract
-Every component loading asynchronous data must explicitly support all four states:
-1. **Idle:** Before action is triggered.
-2. **Loading / Pending:** Non-blocking loading state (skeleton, spinner, disabled buttons).
-3. **Success:** Rendering clean data, including an empty collection state (Empty State UX).
-4. **Error:** User-friendly error message with actionable retry mechanism.
+Every async component must explicitly implement all four states:
+1. **Idle:** Baseline state before action is triggered.
+2. **Loading / Pending:** Non-blocking skeleton/shimmer (disabled submit, no frozen UI).
+3. **Success:** Render clean data, including explicit Empty State UX.
+4. **Error:** User-friendly message explaining cause + actionable retry.
 
-## 2. Resource Disposal & Memory Hygiene
-- **Component Teardown:** Clean up all window event listeners, intervals (`clearInterval`), timers (`clearTimeout`), and ResizeObservers when unmounting.
-- **Abort Ongoing Requests:** Pass `AbortController.signal` to in-flight HTTP requests and cancel them if the component unmounts before response arrives.
+## 2. Resource Disposal & Request Cancellation
+- **Teardown Hygiene:** Dispose GDI+ pens/brushes/fonts, UI `Timer`s, `ResizeObserver`, and DOM listeners in `Dispose()` / unmount.
+- **Request Cancellation:** Pass `AbortController.signal` / `CancellationToken` to in-flight requests; abort on unmount/close to eliminate leaks.
 
-## 3. State Management & Predictability
-- Single source of truth for UI state. Avoid duplicating state derived from props or parent state.
-- Prevent layout shifts (Cumulative Layout Shift, CLS) by setting explicit dimensions or skeleton placeholders for dynamic content.
+## 3. Desktop Anti-Flicker & Assets
+- Enable `DoubleBuffered = true` and `WS_EX_COMPOSITED = 0x02000000` on custom-painted controls.
+- Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use **`image-generator`** subagent for custom logos and artwork.
 
-## 4. Accessibility (A11y) & Input Validation
-- Keyboard accessibility: all interactive elements must be focusable and operable via Enter/Space/Escape.
-- Inline form validation: validate inputs on change/blur with clear human-readable error messages.
-- High-contrast color compliance and accessible aria attributes (`aria-expanded`, `aria-busy`, etc.).
+## 4. Popup & Dropdown State Machine Checklist (Trap 2)
+Prevent outside-click vs toggle button race conditions:
+- **Outside-Click Race Guard:** Exclude toggle bounds from outside-click handler (`!toggleBtn.Bounds.Contains(Cursor.Position)` / `!toggleRef.contains(e.target)`) or enforce a reopen cooldown (`TickCount64 - lastDeactivateTick > 180ms`).
+- **Trace All 4 Transitions:**
+  `Closed -> Click Toggle (Opens) -> Click Inside (Stays Open) -> Click Outside (Closes) -> Click Toggle Again (Re-opens!)`.
 
-## 5. Desktop GUI, Vector Icons & Purposeful Motion (`WinForms`/`WPF` + `Мозгоеб`/`image-generator`)
-- **Desktop Hygiene:** Enable `DoubleBuffered` on custom-painted panels/grids, dispose every GDI+ `Pen`/`Brush`/`Font` and animation `Timer` deterministically in `Dispose()`, and verify clean scaling at 100%–200% DPI.
-- **Crisp Icons & Brand Assets:** Avoid upscaled blurry PNGs or mismatched glyphs; pair crisp SVGs / `Svg.NET` / `Segoe Fluent Icons` with **`image-generator`** briefs for custom logos or empty-state artwork.
-- **UX Critique & Roast Handoff:** Pair with **Мозгоеб (`mozgoeb`, `product-ux-scouting`)** via [`ux-scouting-standards.md`](ux-scouting-standards.md) to eliminate buried clicks, fix `P0–P3` Nielsen/cognitive bottlenecks, add purposeful feedback animations (`prefers-reduced-motion` on Web), and adopt vetted modern UI widgets.
+## 5. Hover Anti-Flicker Checklist (Trap 3)
+Prevent show/hide thrashing when cursor moves over child controls:
+- **Containment Check:** Verify `ClientRectangle.Contains(PointToClient(Cursor.Position))` before handling mouse-leave.
+- **Debounce:** Add a 60–100ms debounce timer before hiding on hover-out.
+- **Batch Layout:** Wrap visual updates in `SuspendLayout()` / `ResumeLayout()`.
+
+## 6. Project-Wide Scrollbar Sweep Checklist (Traps 1 & 4)
+- **100% Sweep (`N of N`):** Grep all scroll containers (`AutoScroll`, `ScrollBar`, `DataGridView`, `FlowLayoutPanel`, `TreeView`, `ListBox`, `overflow-y`, `::-webkit-scrollbar`). Apply custom styling to 100% of occurrences via shared theme helpers.
+- **Requirements Audit (`REQ-1..REQ-N`):** Verify every user UI complaint is resolved with zero regressions on existing controls.
