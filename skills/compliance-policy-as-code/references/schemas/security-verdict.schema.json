@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SecurityVerdict",
+  "type": "object",
+  "required": ["status", "signature", "diffHash", "conversationId", "reviewedAt", "unresolvedHighCritical"],
+  "properties": {
+    "status": { "type": "string", "enum": ["PASS", "REJECT"] },
+    "signature": { "type": "string" },
+    "diffHash": { "type": "string" },
+    "conversationId": { "type": "string" },
+    "turnMarker": { "type": "integer" },
+    "reviewedAt": { "type": "string" },
+    "unresolvedHighCritical": { "type": "integer", "minimum": 0, "maximum": 0 }
+  }
+}

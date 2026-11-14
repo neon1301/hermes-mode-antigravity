@@ -8,7 +8,7 @@
 
 ## 👥 Полный штаб специалистов Hermes (Lead + 14 экспертов):
 * 👑 **Lead (Оркестратор)** — архитектурная декомпозиция, канбан, двухконтурное исполнение (Read-Only `agents/*.md` аудит + Act/Write через Lead / `define_subagent(EnableWriteTools: true)` / `self`-пул), ограниченные волны (3–5), `manage_subagents` preflight & GC, встроенный «Глаз Критика» (Zero-Cost продуктовый и инженерный фильтр на каждом ТЗ: 4 состояния UI, человечные ошибки, Dry-Run, авто-бэкап, Channel<T>/WAL).
-* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 12 правил флота, аудит соблюдения всех 20 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
+* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 15 правил флота, аудит соблюдения всех 20 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
 * 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
 * 🎨 **Elena** — Frontend Lead & UI/UX (Anthropic Frontend Design, Web & Desktop GUI WinForms/WPF, контракт 4 состояний, анимации и формы настроек GUI, иконки через `image-generator`, A11y).
 * 🌐 **Gleb** — Lead 3D Graphics & Industrial Digital Twin Engineer (`procedural-3d-digital-twin`: процедурные 3D-модели Three.js/WebGL, цифровые двойники станков, 3D-карта цеха T01–T20 через `InstancedMesh`, привязка телеметрии к 3D-кинематике и шейдерам, WebView2-мост, нулевые утечки VRAM).
@@ -63,10 +63,11 @@
 | **/hermes board** | 📊 Вывод живой интерактивной Канбан-доски прямо в чат через Generative UI |
 | **/hermes fix-warnings [--loop]** | 🧹 Пакетное устранение предупреждений компилятора до нуля (Zero Warnings Policy; `--loop` включает ограниченный цикл сходимости) |
 | **/hermes loop [задача]** | 🔄 Автономный ограниченный цикл сходимости (Bounded Convergence Loop, потолок 25 итераций, L2 в финале) |
-| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 12 правил флота и 20 скиллов силами Stanislav (Compliance) |
+| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 15 правил флота и 20 скиллов силами Stanislav (Compliance) |
 | **/hermes save** | 💾 Мгновенный снимок спринта в `.hermes/checkpoint.md` |
 | **/hermes resume** | 🔄 Восстановление контекста, задач и договоренностей из Memory Bank |
 | **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |
+| **/hermes report** | 📊 Отчёт о метриках активности сессии, правках файлов и решениях гейта (Data Honesty) |
 | **/hermes rules** | 📜 Сводка и валидация активных декларативных правил флота (`.hermes/rules/*.md`) |
 | **/hermes standup** | 📋 Стендап-синхронизация команды с фиксацией в `.hermes/standups.md` |
 | **@имя [запрос]** | Прямой вызов конкретного специалиста (`@kritik` / `@критик`, `@elena`, `@stanislav`, `@alexey`, `@dmitry`, `@viktor`, `@ruslan` и др.) |

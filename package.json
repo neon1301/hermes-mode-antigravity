@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs && node hooks/rule-engine.test.mjs",
+    "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs && node hooks/rule-engine.test.mjs && node hooks/session-report.test.mjs && node hooks/eval-harness.test.mjs && node skills/compliance-policy-as-code/scripts/contract-validator.test.mjs",
     "test:consistency": "node hooks/consistency.test.mjs",
     "test:injector": "node hooks/context-injector.test.mjs",
     "test:guard": "node hooks/clean-edits-guard.test.mjs",
     "test:gate": "node hooks/qa-gate.test.mjs",
-    "test:rules": "node hooks/rule-engine.test.mjs"
+    "test:rules": "node hooks/rule-engine.test.mjs",
+    "test:report": "node hooks/session-report.test.mjs",
+    "test:eval": "node hooks/eval-harness.test.mjs",
+    "test:contracts": "node skills/compliance-policy-as-code/scripts/contract-validator.test.mjs"
   },
   "keywords": [
     "antigravity",

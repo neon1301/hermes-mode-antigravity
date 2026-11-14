@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ContractProposal",
+  "type": "object",
+  "required": ["proposalId", "sender", "recipient", "status", "endpoints"],
+  "properties": {
+    "proposalId": { "type": "string" },
+    "sender": { "type": "string" },
+    "recipient": { "type": "string" },
+    "status": { "type": "string", "enum": ["PROPOSED", "ACKNOWLEDGED", "REJECTED"] },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "method"],
+        "properties": {
+          "path": { "type": "string" },
+          "method": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "WS"] },
+          "requestDto": { "type": "string" },
+          "responseDto": { "type": "string" }
+        }
+      }
+    }
+  }
+}

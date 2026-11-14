@@ -5,7 +5,7 @@ description: Automated architectural fitness functions, Policy as Code (PaC), Se
 
 # Architectural Compliance & Policy as Code Skill
 
-This skill codifies the governance framework used by **Stanislav (Chief Fleet Auditor & Protocol Compliance Officer)**. It transforms the 12 Hermes Fleet Rules and specialist skill guidelines into executable **Architectural Fitness Functions**, **Policy as Code (PaC)** patterns, and requirement completeness checks.
+This skill codifies the governance framework used by **Stanislav (Chief Fleet Auditor & Protocol Compliance Officer)**. It transforms the 15 Hermes Fleet Rules and specialist skill guidelines into executable **Architectural Fitness Functions**, **Policy as Code (PaC)** patterns, and requirement completeness checks.
 
 ---
 
@@ -115,5 +115,5 @@ On macro-task completion, audit, or PR review, Stanislav writes `.hermes/complia
 
 ## 🚨 6. Audit Verdict Protocol
 
-1. 🟢 **`[COMPLIANCE PASS]`**: All 12 Fleet Rules, active stack fitness functions, and `REQ-1..REQ-N` items satisfied.
+1. 🟢 **`[COMPLIANCE PASS]`**: All 15 Fleet Rules, active stack fitness functions, and `REQ-1..REQ-N` items satisfied.
 2. 🔴 **`[RULE VIOLATION: Нарушено Правило №X]`**: Immediate stop-work order specifying offending agent, rule number, exact file/line, and mandatory remediation directive.

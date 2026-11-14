@@ -32,6 +32,7 @@ Mission: Design resilient enterprise integration layers connecting Central .NET 
 
 ### 1. Selective Pillar Loading
 Determine the SAP integration mode; focus on the matching pillar from `skills/sap-enterprise-automation/SKILL.md`:
+- **Integration Ladder:** Read `skills/sap-enterprise-automation/references/integration-ladder.md`. Apply the 7-tier enterprise ladder (Vendor MCP -> Community MCP -> OData/BAPI -> CDS Views -> IDoc -> Screen Automation -> Scheduled Export). Export is a designed path.
 - **NCo (.NET Connector):** High-throughput RFC/BAPI via `IDestinationConfiguration` and managed connection pools.
 - **GUI Scripting (COM):** Automated UI via `sapfewse.ocx` with guaranteed `Marshal.FinalReleaseComObject` in `finally` blocks.
 - **BAPI Safety:** `BAPI_TRANSACTION_COMMIT` (`WAIT = 'X'`) or `BAPI_TRANSACTION_ROLLBACK` with mandatory `RETURN` verification.

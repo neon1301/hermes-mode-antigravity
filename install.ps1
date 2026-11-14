@@ -82,6 +82,12 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
     node (Join-Path $targetDir "hooks\rule-engine.test.mjs")
     if ($LASTEXITCODE -ne 0) { throw "rule-engine.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\session-report.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "session-report.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\eval-harness.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "eval-harness.test.mjs failed" }
+    node (Join-Path $targetDir "skills\compliance-policy-as-code\scripts\contract-validator.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "contract-validator.test.mjs failed" }
 }
 
 Write-Host "`nHermes Fleet v3.7.0 installed successfully!" -ForegroundColor Green

@@ -38,8 +38,13 @@ await test('skills_count_20', () => {
 await test('no_stale_counters_in_docs', () => {
   const filesToCheck = [
     'README.md',
+    'plugin.json',
+    'skills/hermes/SKILL.md',
     'skills/hermes/scripts/monitor.mjs',
-    'skills/hermes/references/compliance-audit-standards.md'
+    'skills/hermes/references/fleet-protocol.md',
+    'skills/hermes/references/compliance-audit-standards.md',
+    'skills/compliance-policy-as-code/SKILL.md',
+    'agents/stanislav.md'
   ];
   for (const rel of filesToCheck) {
     const p = path.join(rootDir, rel);
@@ -51,6 +56,14 @@ await test('no_stale_counters_in_docs', () => {
     if (/Lead\s*\+\s*13\b/i.test(content)) {
       throw new Error(`Found outdated counter 'Lead + 13' in ${rel}`);
     }
+    if (/\b12\s+(?:правил|rules)\b/i.test(content)) {
+      throw new Error(`Found outdated counter '12 правил / 12 rules' in ${rel}`);
+    }
+  }
+
+  const fleetProto = fs.readFileSync(path.join(rootDir, 'skills', 'hermes', 'references', 'fleet-protocol.md'), 'utf-8');
+  if (!fleetProto.includes('15 правил флота Hermes') && !fleetProto.includes('Правило 15')) {
+    throw new Error('fleet-protocol.md must declare 15 rules of Hermes Fleet');
   }
 });
 
@@ -229,7 +242,7 @@ await test('wave2_artifacts_and_adr_integrity', () => {
 
 // 12. Verify specialized agent cards size budget (<= 5 KB)
 await test('specialized_agent_cards_size_budget', () => {
-  const agentsToCheck = ['viktor.md', 'dmitry.md', 'anna.md'];
+  const agentsToCheck = ['alexey.md', 'ruslan.md', 'stanislav.md', 'viktor.md', 'dmitry.md', 'anna.md'];
   for (const file of agentsToCheck) {
     const p = path.join(rootDir, 'agents', file);
     const size = fs.statSync(p).size;
@@ -237,6 +250,47 @@ await test('specialized_agent_cards_size_budget', () => {
       throw new Error(`Agent card agents/${file} (${size} bytes) exceeds 5 KB budget`);
     }
   }
+});
+
+// 13. Verify Wave 3 integration ladders, schemas, validator, session reporter & eval harness
+await test('wave3_artifacts_and_contracts_integrity', () => {
+  const ladders = [
+    path.join(rootDir, 'skills', 'industrial-equipment-research', 'references', 'integration-ladder.md'),
+    path.join(rootDir, 'skills', 'sap-enterprise-automation', 'references', 'integration-ladder.md')
+  ];
+  for (const p of ladders) {
+    if (!fs.existsSync(p)) throw new Error(`Missing integration ladder: ${path.relative(rootDir, p)}`);
+    const txt = fs.readFileSync(p, 'utf-8');
+    if (!txt.includes('Vendor MCP') || !txt.includes('Scheduled CSV/JSON Export')) {
+      throw new Error(`Integration ladder incomplete in ${path.relative(rootDir, p)}`);
+    }
+  }
+
+  const schemas = [
+    'contract-proposal.schema.json',
+    'patch-blueprint.schema.json',
+    'security-verdict.schema.json',
+    'qa-verdict.schema.json'
+  ];
+  const schemaDir = path.join(rootDir, 'skills', 'compliance-policy-as-code', 'references', 'schemas');
+  for (const s of schemas) {
+    const p = path.join(schemaDir, s);
+    if (!fs.existsSync(p)) throw new Error(`Missing schema: ${s}`);
+    try {
+      JSON.parse(fs.readFileSync(p, 'utf-8'));
+    } catch (e) {
+      throw new Error(`Invalid JSON in schema ${s}: ${e.message}`);
+    }
+  }
+
+  const validatorPath = path.join(rootDir, 'skills', 'compliance-policy-as-code', 'scripts', 'contract-validator.mjs');
+  if (!fs.existsSync(validatorPath)) throw new Error('Missing contract-validator.mjs');
+
+  const reportPath = path.join(rootDir, 'hooks', 'session-report.mjs');
+  if (!fs.existsSync(reportPath)) throw new Error('Missing session-report.mjs');
+
+  const evalPath = path.join(rootDir, 'hooks', 'eval-harness.test.mjs');
+  if (!fs.existsSync(evalPath)) throw new Error('Missing eval-harness.test.mjs');
 });
 
 console.log(`CONSISTENCY SUMMARY: ${totalTests - failed}/${totalTests} passed`);

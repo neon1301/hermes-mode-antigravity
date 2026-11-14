@@ -133,7 +133,7 @@ const server = http.createServer((req, res) => {
     <div class="panel">
       <h2>Hermes Fleet (Lead + 14)</h2>
       <div class="worker-card"><div class="worker-name">&#128081; lead (Оркестратор)</div><div class="worker-role">Декомпозиция, волны 3–5, Build Gate, Subagent GC</div></div>
-      <div class="worker-card"><div class="worker-name">&#9878;&#65039; stanislav</div><div class="worker-role">Chief Fleet Auditor (12 правил, 20 скиллов, Read-Only)</div></div>
+      <div class="worker-card"><div class="worker-name">&#9878;&#65039; stanislav</div><div class="worker-role">Chief Fleet Auditor (15 правил, 20 скиллов, Read-Only)</div></div>
       <div class="worker-card"><div class="worker-name">&#128293; kritik (Критик)</div><div class="worker-role">UX Critic, Product Roast &amp; Forum/Methods Scout (Read-Only)</div></div>
       <div class="worker-card"><div class="worker-name">&#128737;&#65039; viktor</div><div class="worker-role">Lead QA &amp; AppSec (7-векторный QA, TDD, OWASP, DevSecOps)</div></div>
       <div class="worker-card"><div class="worker-name">&#128187; dmitry</div><div class="worker-role">Multi-Stack Backend (Clean Arch, API, Outbox, .NET/Py/Node/Go)</div></div>

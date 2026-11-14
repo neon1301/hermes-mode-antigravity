@@ -9,12 +9,13 @@
   },
   "homepage": "https://github.com/neon1301/hermes-mode-antigravity",
   "repository": "https://github.com/neon1301/hermes-mode-antigravity",
-  "description": "Мультиагентный комплекс HERMES Enterprise (v3.7.0): Lead с встроенным глазом Критика, 14 специалистов (включая @gleb — 3D/Digital Twin, @kritik с 360° мировым скаутингом трендов и замыкающим аудитом решений, и @stanislav), 20 скиллов, 12 правил по триггеру (PreInvocation), защита Rule 8/9/Security L1-L2 и Model Tier Policy as Code (PreToolUse) и Stop QA/Compliance-шлюз.",
+  "description": "Мультиагентный комплекс HERMES Enterprise (v3.7.0): Lead с встроенным глазом Критика, 14 специалистов (включая @gleb — 3D/Digital Twin, @kritik с 360° мировым скаутингом трендов и замыкающим аудитом решений, и @stanislav), 20 скиллов, 15 правил по триггеру (PreInvocation), защита Rule 8/9/Security L1-L2 и Model Tier Policy as Code (PreToolUse) и Stop QA/Compliance-шлюз.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "/hermes декомпозируй проект и запусти команду в работу",
     "/hermes feature спроектируй и реализуй новую функциональность по 7 фазам",
     "/hermes fix-warnings --loop устрани все warnings компилятора в цикле сходимости",
+    "/hermes report сгенерируй отчёт о метриках активности сессии и решениях гейта",
     "@kritik прожарь программу: что неудобно пользователю, какие фишки просят на форумах и какие рабочие методы и библиотеки реально улучшат проект?",
     "@stanislav проведи ревизию кода на соответствие правилам флота и архитектурным фитнес-функциям"
   ]

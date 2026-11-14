@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchBlueprint",
+  "type": "object",
+  "required": ["reqId", "author", "edits"],
+  "properties": {
+    "reqId": { "type": "string" },
+    "author": { "type": "string" },
+    "rootCause": { "type": "string" },
+    "edits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "target", "replacement"],
+        "properties": {
+          "path": { "type": "string" },
+          "startLine": { "type": "integer", "minimum": 1 },
+          "endLine": { "type": "integer", "minimum": 1 },
+          "target": { "type": "string" },
+          "replacement": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -6,13 +6,13 @@ This document defines the inspection criteria and enforcement mechanisms used by
 
 ## 🎯 1. The Role of the Fleet Auditor
 While **Viktor (QA & AppSec)** focuses on runtime correctness (tests, memory leaks, concurrency, OWASP/AppSec verification), **Stanislav (Compliance)** focuses on **rules, discipline, architectural integrity, and skill compliance**:
-* Did the agents follow all **12 Hermes Fleet Rules** (`fleet-protocol.md`)?
+* Did the agents follow all **15 Hermes Fleet Rules** (`fleet-protocol.md`)?
 * Did they follow the mandatory protocols across all **20 specialist skills** (`skills/compliance-policy-as-code/SKILL.md`)?
 * Did they cut corners (hardcoded values, ad-hoc patch scripts, unreviewed contracts, duplicate/orphaned subagents)?
 
 ```mermaid
 flowchart TD
-    Lead["👑 Orchestrator & Specialists\n(Executing Code & Proposals)"] --> Auditor["⚖️ Stanislav (Fleet Compliance)\nАудит 12 правил и 20 скиллов: Хардкод, Скрипты, Контракты, Субагенты"]
+    Lead["👑 Orchestrator & Specialists\n(Executing Code & Proposals)"] --> Auditor["⚖️ Stanislav (Fleet Compliance)\nАудит 15 правил и 20 скиллов: Хардкод, Скрипты, Контракты, Субагенты"]
     Auditor -->|Нарушение найдено| Reject["🔴 [RULE VIOLATION]\nБлокировка задачи и возврат на переделку"]
     Auditor -->|Все правила соблюдены| QA["🛡️ Viktor (7-Vector QA & AppSec)\nТесты, память, безопасность, Zero-Hardcode"]
     QA -->|Проверка пройдена| Pass["🟢 [QA PASS] -> Релиз"]
@@ -33,6 +33,9 @@ Stanislav audits every task against 7 strict compliance points:
 | **5** | **Investigation Routing (Rule 10)** | Orchestrator asking user: Express vs. Deep Council on business logic queries. | Orchestrator guessing or investigating without asking user ➔ 🔴 Violation. |
 | **6** | **All-20-Skills Adherence (`compliance-policy-as-code`)** | Adherence to active specialist skill mandates (`backend-architecture`, `high-load-db-tuning`, AI/RAG/Context/Fine-Tuning, `security-audit`, `qa-test-automation`, `code-refactoring-modernization`, `hardware-protocol-simulation`, `technical-documentation-adr`, `frontend-design`, `product-ux-scouting`, `sap-enterprise-automation`, `procedural-3d-digital-twin`, REA). | Skipping mandatory skill patterns or guards ➔ 🔴 Violation. |
 | **7** | **Subagent Routing, Pool Reuse & GC (Rule 12)** | Proper split between Read-Only Auditors (`agents/*.md`) and Write Workers (`Lead`/`self`/`EnableWriteTools: true`), bounded waves (3–5), disjoint ownership, and `manage_subagents(action="kill")` cleanup. | Re-sending `[ACT MODE]` edits to read-only auditors, duplicate role spawning, unbounded waves, or zombie subagent pileups ➔ 🔴 Violation. |
+| **8** | **Data Honesty (Rule 13)** | Verifying that unreadable/missing values are marked as 'N/A' rather than coerced to 0, and that every metric cites its source. | Reporting fabricated numbers or masking missing data as zero ➔ 🔴 Violation. |
+| **9** | **Report Freshness (Rule 14)** | Checking reports for generation timestamp (ISO-8601) and prominent warning banners on stale exports. | Stale export data presented without prominent freshness warning ➔ 🔴 Violation. |
+| **10** | **System of Record Protection (Rule 15)** | Enforcing Read-Only operations on external machinery/SoR systems and mandatory operator confirmation (`ask_question`) for control writes (excluding repo edits). | Unauthorized writes to external production control systems ➔ 🔴 Violation. |
 
 ---
 
