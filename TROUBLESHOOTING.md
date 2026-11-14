@@ -46,21 +46,57 @@ This guide explains the most common guard and gate notices, why they occur, and 
 
 ---
 
-### 6. `GitHub Actions CI Billing Lock`
+### 6. `GitHub Actions CI Billing Lock & Local CI`
 * **Message:** `The job was not started because your account is locked due to a billing issue`
-* **Why it happens:** GitHub Actions runs are paused at the account level when free-tier action minutes or storage quota limits need a payment profile re-verification.
-* **Resolution:** Update billing/payment details in GitHub Account Settings (`Settings -> Billing & plans -> Spending limits`), or run test suites locally (`npm test` or `powershell -ExecutionPolicy Bypass -File .\install.ps1`). All tests run 100% locally with zero external dependencies.
+* **Why it happens:** GitHub Actions runs may be paused at the account level when free-tier action minutes, storage quotas, or expired payment authorizations trigger a billing lock, even on public repositories where standard runners are otherwise free.
+* **Resolution:** 
+  1. Inspect `Settings -> Billing and plans -> Payment information / Overview` on GitHub. Ensure active products are on GitHub Free ($0.00) and any past-due invoices are resolved.
+  2. Use the **Local CI Gate**: Run `./verify.ps1` (Windows) or `./verify.sh` (macOS/Linux).
+  3. Pre-push automation: Run `git config core.hooksPath .githooks` to automatically block broken commits before pushing.
 
 ---
 
-### 7. `Gate Log Isolation & Size Management (.hermes/gate-log.jsonl)`
+### 7. `Token Economy Gate: Self-Signing Protection & Fail-Closed Rationale`
+* **Context & Threat Model:** In Hermes, after source edits, Lead must ask the user whether to run full QA (`[QA PASS]` via Viktor) or proceed under token economy. If the gate blindly trusted any step containing `Created At:` / `Completed At:`, the Lead model could forge these headers in prose and bypass QA without user consent (self-signing regression).
+* **Empirical Evidence (Live Antigravity Transcript):**
+  From session transcript `transcript.jsonl` (Steps 367–368):
+  ```json
+  // Step 367: Planner tool call
+  {
+    "step_index": 367,
+    "source": "MODEL",
+    "type": "PLANNER_RESPONSE",
+    "status": "DONE",
+    "tool_calls": [{ "name": "ask_question", "args": { ... } }]
+  }
+
+  // Step 368: Tool response step in Antigravity harness
+  {
+    "step_index": 368,
+    "source": "MODEL",
+    "type": "GENERIC",
+    "status": "DONE",
+    "created_at": "2026-11-14T13:35:27Z",
+    "content": "Created At: 2026-11-14T18:35:27+05:00\nCompleted At: 2026-11-14T18:37:28+05:00\nA1: (Recommended) Gemini 3.8 Flash\nA2: High"
+  }
+  ```
+  *Analysis:* The live harness generates `source: "MODEL"`, `type: "GENERIC"`, and `status: "DONE"`, but currently omits `tool_call_id` binding on the step itself.
+* **Fail-Closed Contract:**
+  1. Automated harness tool outputs are accepted ONLY if `status === 'DONE'` AND `tool_call_id` strictly matches the `ask_question` call ID.
+  2. Steps with `source: 'MODEL'` lacking verified harness metadata (`status: 'DONE'` and matched `tool_call_id`) are NEVER accepted as user skip decisions.
+  3. If the platform omits `tool_call_id`, the gate enforces **FAIL-CLOSED** (requiring full QA review or explicit user input). It does NOT fallback to fragile text heuristics.
+  4. Explicit user input (`source: 'USER_EXPLICIT'` or `'USER'`, e.g., user typing `A1: (Recommended) Без проверки` or clicking an interactive choice) is always accepted.
+
+---
+
+### 8. `Gate Log Isolation & Size Management (.hermes/gate-log.jsonl)`
 * **Behavior:** Decision audit logs (`clean-edits-guard` and `qa-gate`) are written **only** when Hermes is active in the session. Normal user chats never generate `.hermes/`.
 * **Rotation:** When `gate-log.jsonl` exceeds **512 KB**, it automatically rotates to `gate-log.1.jsonl`.
 * **Git Cleanliness:** The entire `.hermes/` directory is in `.gitignore` to prevent committing logs, checkpoints, or profiles to the repo.
 
 ---
 
-### 8. `E2E Smoke Verification Checklist (12 Points)`
+### 9. `E2E Smoke Verification Checklist (12 Points)`
 1. **Trigger:** Start a new chat with `/hermes` or `@dmitry`.
 2. **Phase 0 Handshake:** Verify `ask_question` appears with model + tier options.
 3. **High Tier Enforcement:** Select `Gemini 3.8 Flash (High)` -> verify `.hermes/profile.json` has `tier: "high"`.

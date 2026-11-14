@@ -1,4 +1,4 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.11)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.12)
 
 Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 20 профессиональных скиллов**.
 
@@ -28,7 +28,7 @@
 ## 🛠️ Встроенная библиотека профессиональных скиллов (20 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.11): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.12): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
@@ -65,6 +65,34 @@
 | **@имя [запрос]** | Прямой вызов конкретного специалиста (`@kritik` / `@критик`, `@elena`, `@stanislav`, `@alexey`, `@dmitry`, `@viktor`, `@ruslan` и др.) |
 
 > **Когда Hermes включается.** Только по явному запросу: сообщение начинается с `/hermes`, просьба «включи режим Hermes» или обращение `@имя`. Упоминание `/hermes` в середине вопроса режим не включает. Вне режима плагин ничего не добавляет в контекст (always-on правила нет), а хуки Clean Edits / Zero-Hardcode / QA Gate пропускают всё без проверок.
+
+---
+
+## 🛡️ Локальный CI без биллинга (Local Pre-Push CI)
+
+Для публичных репозиториев на GitHub стандартные раннеры бесплатны и не имеют лимита минут. Ошибка «account is locked due to a billing issue» относится исключительно к блокировкам профиля оплаты аккаунта (например, прошлые подписки или неоплаченные услуги), а не к коду или лимитам минут.
+
+Чтобы не зависеть от облачных сервисов и гарантировать 100% зелёный код перед пушем, в Hermes встроен **автономный локальный CI-гейт**:
+
+1. **Ручной запуск валидации (проверка Node >= 20, манифестов и всех 4 тест-сьютов):**
+   * **Windows (PowerShell):**
+     ```powershell
+     .\verify.ps1
+     ```
+   * **macOS / Linux / Git Bash:**
+     ```bash
+     ./verify.sh
+     ```
+   * **Универсально через npm:**
+     ```bash
+     npm test
+     ```
+
+2. **Автоматическая защита перед `git push` (Git Pre-Push Hook):**
+   ```bash
+   git config core.hooksPath .githooks
+   ```
+   *(Также активируется автоматически при `npm run prepare`)*. При любой попытке `git push` хук `.githooks/pre-push` запускает локальный гейт: если хотя бы один тест упал — пуш немедленно блокируется, защищая ветку `main`.
 
 ---
 

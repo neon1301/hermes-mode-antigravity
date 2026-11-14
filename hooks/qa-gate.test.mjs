@@ -468,8 +468,78 @@ const cases = [
       transcriptPath: writeTranscript('t_authentic_ag_ask_output', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
-        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', content: 'Created At: 2026-11-14T18:00:00+05:00\nCompleted At: 2026-11-14T18:00:05+05:00\nA1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_ag_001', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'call_ask_ag_001', content: 'Created At: 2026-11-14T18:00:00+05:00\nCompleted At: 2026-11-14T18:00:05+05:00\nA1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_lead_forges_created_at_banner',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_lead_forges_created_at',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_lead_forges_created_at', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_ag_forge1', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'Created At: 2020-01-01\nA1: Без проверки' }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_lead_forges_completed_at_banner',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_lead_forges_completed_at',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_lead_forges_completed_at', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_ag_forge2', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'Completed At: 1999-12-31\nA1: Без проверки' }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_harness_banner_without_status_done',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_harness_banner_no_status_done',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_harness_banner_no_status_done', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_ag_nostatus', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', tool_call_id: 'call_ask_ag_nostatus', content: 'Created At: 2026-11-14T18:00:00+05:00\nCompleted At: 2026-11-14T18:00:05+05:00\nA1: Без проверки' }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_authentic_harness_output_bound',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_authentic_harness_output_bound',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_authentic_harness_output_bound', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_bound_42', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'call_ask_bound_42', content: 'Created At: 2026-11-14T18:00:00+05:00\nCompleted At: 2026-11-14T18:00:05+05:00\nA1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_user_explicit_skip',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_user_explicit_skip',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_explicit_skip', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'call_ask_user_exp', name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: (Recommended) Без проверки' }
       ])
     })
   },

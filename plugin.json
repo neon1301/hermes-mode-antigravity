@@ -1,7 +1,7 @@
 {
   "name": "hermes-fleet",
   "displayName": "Hermes Fleet Enterprise",
-  "version": "3.6.11",
+  "version": "3.6.12",
   "category": "Development",
   "author": {
     "name": "neon1301",
@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/neon1301/hermes-mode-antigravity",
   "repository": "https://github.com/neon1301/hermes-mode-antigravity",
-  "description": "Мультиагентный комплекс HERMES Enterprise (v3.6.11): Lead с встроенным глазом Критика, 14 специалистов (включая @gleb — 3D/Digital Twin, @kritik с 360° мировым скаутингом трендов и замыкающим аудитом решений, и @stanislav), 20 скиллов, 12 правил по триггеру (PreInvocation), защита Rule 8/9 и Model Tier Policy as Code (PreToolUse) и Stop QA/Compliance-шлюз.",
+  "description": "Мультиагентный комплекс HERMES Enterprise (v3.6.12): Lead с встроенным глазом Критика, 14 специалистов (включая @gleb — 3D/Digital Twin, @kritik с 360° мировым скаутингом трендов и замыкающим аудитом решений, и @stanislav), 20 скиллов, 12 правил по триггеру (PreInvocation), защита Rule 8/9 и Model Tier Policy as Code (PreToolUse) и Stop QA/Compliance-шлюз.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "/hermes декомпозируй проект и запусти команду в работу",

@@ -1,10 +1,21 @@
-#!/bin/sh
-echo "🏛️ [HERMES PRE-PUSH GATE] Running full test suite before push..."
-npm test
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  echo "❌ [HERMES PRE-PUSH GATE] Tests failed! Git push aborted to protect main."
+#!/usr/bin/env bash
+# Hermes Pre-Push Hook: run Local CI before allowing push
+echo "🏛️ [HERMES PRE-PUSH GATE] Delegating to verify.sh..."
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ -f "$SCRIPT_DIR/verify.sh" ]; then
+  bash "$SCRIPT_DIR/verify.sh"
+  RESULT=$?
+else
+  echo "❌ [HERMES PRE-PUSH GATE] verify.sh not found!"
   exit 1
 fi
-echo "✅ [HERMES PRE-PUSH GATE] All tests passed! Proceeding with push."
+
+if [ $RESULT -ne 0 ]; then
+  echo "❌ [HERMES PRE-PUSH GATE] Local CI failed! Git push aborted to protect main."
+  exit 1
+fi
+
+echo "✅ [HERMES PRE-PUSH GATE] Local CI passed! Proceeding with push."
 exit 0

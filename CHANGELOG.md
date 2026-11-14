@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.6.12] - 2026-11-14
+
+### Security & Hardening
+- **Self-Signing Elimination in QA Gate (REQ-1):** Closed the self-signing vulnerability where forged `Created At:` / `Completed At:` execution banners in `MODEL` prose allowed Lead to bypass QA. Enforced mandatory harness metadata checks (`status === 'DONE'` AND `tool_call_id` strictly bound to the `ask_question` call ID). Sourceless steps and model prose steps without validated harness binding are strictly rejected.
+- **Fail-Closed Contract for Tool Outputs (REQ-1 & REQ-2):** Grounded by empirical analysis of live Antigravity transcripts (Steps 367–368), where platform tool results provide `status: 'DONE'` but omit `tool_call_id`. The gate enforces a strict Fail-Closed policy requiring full QA review or explicit user input (`USER_EXPLICIT`), refusing fragile text heuristics. Fully documented in `TROUBLESHOOTING.md`.
+
+### Added
+- **Local Pre-Push CI Gate (REQ-3 & REQ-4):** Added standalone cross-platform validation scripts `verify.ps1` (PowerShell) and `verify.sh` (Bash/macOS/Linux) checking Node runtime (>= 20), validating `plugin.json` and `hooks.json` manifests, and executing all 4 test suites. Integrated into `.githooks/pre-push` to automatically block broken commits before push without dependency on cloud runners.
+- **Documentation & Billing Guidance (REQ-4):** Added "Локальный CI без биллинга" section to `README.md` and updated `TROUBLESHOOTING.md` explaining that GitHub Actions on public repositories are 100% free and clarifying how to diagnose account-level billing flags versus running offline local CI.
+- **Installer Version Sync & CI Assertions (REQ-5):** Synchronized `install.ps1` and `install.sh` versions to `v3.6.12` and added automated version consistency tests in `consistency.test.mjs`.
+
+---
+
 ## [3.6.11] - 2026-11-14
 
 ### Added

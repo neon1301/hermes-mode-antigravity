@@ -90,6 +90,20 @@ await test('version_alignment', () => {
   if (!hermesSkill.includes(`(v${plugin.version})`)) {
     throw new Error(`skills/hermes/SKILL.md header does not contain current version (v${plugin.version})`);
   }
+  const installPs1Path = path.join(rootDir, 'install.ps1');
+  if (fs.existsSync(installPs1Path)) {
+    const installPs1 = fs.readFileSync(installPs1Path, 'utf-8');
+    if (!installPs1.includes(`(v${plugin.version})`)) {
+      throw new Error(`install.ps1 header does not contain current version (v${plugin.version})`);
+    }
+  }
+  const installShPath = path.join(rootDir, 'install.sh');
+  if (fs.existsSync(installShPath)) {
+    const installSh = fs.readFileSync(installShPath, 'utf-8');
+    if (!installSh.includes(`(v${plugin.version})`)) {
+      throw new Error(`install.sh header does not contain current version (v${plugin.version})`);
+    }
+  }
 });
 
 // 6. Verify license alignment across LICENSE and package.json

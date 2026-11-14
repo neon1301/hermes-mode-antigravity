@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.10)
+# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.12)
 set -euo pipefail
 
 echo "=========================================="
-echo "  Hermes Fleet v3.6.10 Installer for Antigravity"
+echo "  Hermes Fleet v3.6.12 Installer for Antigravity"
 echo "=========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,6 +35,10 @@ ITEMS=(
   "README.md"
   "CHANGELOG.md"
   "TROUBLESHOOTING.md"
+  "verify.ps1"
+  "verify.sh"
+  "install.ps1"
+  "install.sh"
   "hooks"
   "assets"
   "skills"
@@ -58,7 +62,7 @@ node "${TARGET_DIR}/hooks/qa-gate.test.mjs"
 
 echo ""
 echo "=========================================="
-echo "Hermes Fleet v3.6.10 installed successfully!"
+echo "Hermes Fleet v3.6.12 installed successfully!"
 echo "1. Open a new chat in Google Antigravity."
 echo "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav"
 echo "=========================================="

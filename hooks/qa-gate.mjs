@@ -312,8 +312,8 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     }
   }
 
-  // Only accept user choice from real user input, bound system tool outputs, or authentic Antigravity harness execution banners
-  // (strictly rejecting Lead model prose, thinking, and unverified sourceless steps)
+  // Only accept user choice from real user input, bound system tool outputs, or authentic harness execution outputs
+  // with mandatory status: 'DONE' and tool_call_id binding to ask_question (strictly rejecting Lead model prose, forged banners, and sourceless steps)
   if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx) {
     const isDirectNext = stepIdx === postEditAskIdx + 1;
     const sContent = String(s?.content || '');
@@ -323,12 +323,17 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     // 1. Explicit user input
     const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
 
-    // 2. System tool output explicitly bound to ask_question
+    // 2. Harness metadata: status === 'DONE' and tool_call_id matching ask_question
     const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-    const stepToolName = String(s?.tool_name || s?.toolName || s?.name || '').toLowerCase();
-    const isBoundToAskTool =
-      (postEditAskToolCallId && stepToolCallId === postEditAskToolCallId) ||
-      stepToolName === 'ask_question';
+    const isBoundToAskTool = Boolean(
+      postEditAskToolCallId &&
+      stepToolCallId &&
+      stepToolCallId === postEditAskToolCallId
+    );
+    const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
+    const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+
+    // 3. System tool output explicitly bound to ask_question
     const isSystemToolOutput =
       s?.source === 'SYSTEM' &&
       isBoundToAskTool &&
@@ -336,13 +341,15 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       !s?.sender &&
       !/<SYSTEM_MESSAGE/i.test(sContent);
 
-    // 3. Authentic Antigravity harness tool execution output (immediately follows ask_question with execution banner)
-    const isAntigravityToolOutput =
+    // 4. Authentic harness execution output: requires status DONE AND explicit binding to ask_question AND execution banner
+    const isAuthenticHarnessOutput =
       isDirectNext &&
       isGenericOrTool &&
-      /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+      hasStatusDone &&
+      isBoundToAskTool &&
+      hasHarnessBanner;
 
-    if (isUserSource || isSystemToolOutput || isAntigravityToolOutput) {
+    if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
       postEditAskAnswer += '\n' + sContent;
     }
   }
