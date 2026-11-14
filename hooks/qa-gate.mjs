@@ -261,6 +261,7 @@ let hasCompliancePass = false;
 let lastWriteIdx = -1;
 let postEditAskIdx = -1;
 let postEditAskAnswer = '';
+let postEditAskToolCallId = '';
 
 const nonAuditorSubagentIds = new Set();
 let pendingNonAuditorCount = 0;
@@ -311,14 +312,20 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     }
   }
 
-  // Only accept user choice from real user input or tool execution results, NEVER from MODEL prose/thinking (self-signing protection)
+  // Only accept user choice from real user input or tool execution results bound to ask_question, NEVER from MODEL prose/thinking or sourceless steps (self-signing protection)
   if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx) {
     const isFromModel = s?.source === 'MODEL';
     if (!isFromModel) {
       const stepType = String(s?.type || '').toUpperCase();
-      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER' || stepType === 'USER_INPUT';
+      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
+      const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+      const stepToolName = String(s?.tool_name || s?.toolName || s?.name || '').toLowerCase();
+      const isBoundToAskTool =
+        (postEditAskToolCallId && stepToolCallId === postEditAskToolCallId) ||
+        stepToolName === 'ask_question';
       const isToolOutput =
-        (s?.source === 'SYSTEM' || !s?.source) &&
+        s?.source === 'SYSTEM' &&
+        isBoundToAskTool &&
         (stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT') &&
         !s?.sender &&
         !/<SYSTEM_MESSAGE/i.test(String(s?.content || ''));
@@ -334,6 +341,7 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     if (name === 'ask_question' && lastWriteIdx >= 0) {
       postEditAskIdx = stepIdx;
       postEditAskAnswer = '';
+      postEditAskToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
     }
     if (WRITE_TOOL_NAMES.has(name)) {
       const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
@@ -368,8 +376,8 @@ const counterFile = getCounterFile(convId, turnMarker);
 
 // Token economy skip requires explicit option selection or positive intent anchored to option/line start.
 // Casual words like "нет", "не нужно", "достаточно", "no" or negations like "don't skip", "нельзя пропустить",
-// "не оставляй без проверки" MUST NOT bypass verification.
-const NEGATION_SKIP_RE = /(?:не|нельзя|никогда|don'?t|do\s+not|never)\b[^.\n]{0,35}(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск)/i;
+// "не оставляй без проверки", "без проверки не оставляй" MUST NOT bypass verification.
+const NEGATION_SKIP_RE = /(?:(?:не|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск))|(?:(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:не|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё]))/i;
 const POSITIVE_SKIP_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:без\s+проверки|skip\b|пропустить\s+проверк[уае]?)/i;
 
 const hasNegationOfSkip = NEGATION_SKIP_RE.test(postEditAskAnswer);
