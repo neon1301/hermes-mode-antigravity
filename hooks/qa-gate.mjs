@@ -40,6 +40,44 @@ const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hp
 const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
 
+const DOMAIN_ROUTING_RULES = [
+  {
+    agents: ['@elena (дизайн/окна)', '@mozgoeb (пост-проверка UX)'],
+    keys: ['elena', 'mozgoeb'],
+    re: /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
+  },
+  {
+    agents: ['@denis (БД/индексы/WAL)'],
+    keys: ['denis'],
+    re: /(?:Database|DbContext|Repository|Migration|Sqlite|Postgres|Mssql|SqlConnection|SqliteConnection|PRAGMA\s+journal_mode|BEGIN\s+IMMEDIATE|SELECT\s+.+\s+FROM)/i
+  },
+  {
+    agents: ['@alexey (протоколы/сокеты)', '@igor (эмуляция/стресс-тест)'],
+    keys: ['alexey', 'igor'],
+    re: /(?:Socket|TcpClient|UdpClient|NetworkStream|ReadExactly|Modbus|OpcUa|Profinet|SerialPort|Plc)/i
+  },
+  {
+    agents: ['@ruslan (SAP/BAPI/COM)'],
+    keys: ['ruslan'],
+    re: /(?:RfcDestination|IRfcFunction|BAPI_|IDoc|FinalReleaseComObject|SapGui)/i
+  },
+  {
+    agents: ['@mikhail (AI/RAG/LLM)'],
+    keys: ['mikhail'],
+    re: /(?:Embedding|Qdrant|PgVector|CrossEncoder|Langfuse|vLLM|Whisper|Docling|Promptfoo)/i
+  },
+  {
+    agents: ['@artem (реверс/бинарные фреймы)'],
+    keys: ['artem'],
+    re: /(?:BinaryPrimitives|Crc16|Crc32|Endian|Disasm|EvidenceLedger)/i
+  },
+  {
+    agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],
+    keys: ['dmitry', 'elena'],
+    re: /(?:Controller|Endpoint|Outbox|Idempotency|ProblemDetails|appsettings|IOptions|Channel<)/i
+  }
+];
+
 function readStdin() {
   try {
     return fs.readFileSync(0, 'utf-8');
@@ -173,6 +211,8 @@ const artifactDir = String(payload?.artifactDirectoryPath || '');
 const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
 const editedSourceFiles = new Set();
 const editedUiFiles = new Set();
+const invokedSpecialists = new Set();
+const touchedSnapshots = [];
 let hasQaPass = false;
 let hasUxPass = false;
 let hasCompliancePass = false;
@@ -186,6 +226,7 @@ for (const s of turnSteps) {
     const args = tc?.args || {};
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
+      if (typeName) invokedSpecialists.add(typeName);
       if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'mozgoeb') {
         pendingNonAuditorCount++;
       }
@@ -232,6 +273,8 @@ for (const s of turnSteps) {
       if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
         const normPath = path.normalize(targetPath);
         editedSourceFiles.add(normPath);
+        const snippet = String(args.Content || args.Replacement || args.CodeContent || '').slice(0, 2000);
+        touchedSnapshots.push(`${targetPath}\n${snippet}`);
         if (UI_SOURCE_FILE_RE.test(targetPath)) {
           editedUiFiles.add(normPath);
         }
@@ -274,6 +317,24 @@ if (attempt >= MAX_RETURNS) {
 }
 
 writeCounter(counterFile, attempt + 1);
+
+const combinedTouched = touchedSnapshots.join('\n');
+const recommendedTeam = new Set();
+for (const rule of DOMAIN_ROUTING_RULES) {
+  if (rule.re.test(combinedTouched)) {
+    const missingKey = rule.keys.some((k) => !invokedSpecialists.has(k));
+    if (missingKey) {
+      for (const label of rule.agents) recommendedTeam.add(label);
+    }
+  }
+}
+if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('mozgoeb')) {
+  recommendedTeam.add('@elena / @mozgoeb (оцените: не нужно ли после изменений кода переделать окна/дизайн?)');
+}
+const teamHint = recommendedTeam.size > 0
+  ? ` Подключите профильных специалистов по затронутым узлам: ${[...recommendedTeam].join(', ')}.`
+  : '';
+
 blockStop(
-  `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Перед завершением получите ${missing.join(' и ')}.`
+  `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Перед завершением получите ${missing.join(' и ')}.${teamHint}`
 );

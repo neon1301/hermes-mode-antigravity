@@ -52,20 +52,23 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ---
 
-## 👥 Specialist Routing Matrix (13 Experts ➔ 19 Skills)
+## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (13 Experts ➔ 19 Skills)
 
-| Specialist | Owning Skill(s) | Primary Trigger Scope |
-| :--- | :--- | :--- |
-| **⚖️ stanislav** | [`compliance-policy-as-code`](../compliance-policy-as-code/SKILL.md) | Fleet Rules (1-12), Zero-Hardcode, `REQ` Completeness, `[COMPLIANCE PASS]` |
-| **💻 dmitry** | [`backend-architecture`](../backend-architecture/SKILL.md) | Backend APIs (.NET/Python/Node/Go), Clean Arch, Outbox, RFC 7807 |
-| **🗄️ denis** | [`high-load-db-tuning`](../high-load-db-tuning/SKILL.md) | SQLite WAL/BEGIN IMMEDIATE, PostgreSQL, MSSQL RCSI, query tuning |
-| **🎨 elena** | [`frontend-design`](../frontend-design/SKILL.md) | UI design tokens, 4 states, A11y, `AbortController`, GUI settings |
-| **🔥 mozgoeb** | [`product-ux-scouting`](../product-ux-scouting/SKILL.md) | 360° trend scout (RU/CN/EU/JP/Global), killer features, UX roast (P0-P3) |
-| **🛡️ viktor** | [`qa-test-automation`](../qa-test-automation/SKILL.md), [`security-audit`](../security-audit/SKILL.md) | 7-Vector QA, TDD, AppSec audit, Anti-Regression Gate (`[QA PASS]`) |
-| **🧠 mikhail** | [`ai-rag-engineering`](../ai-rag-engineering/SKILL.md), [`agent-context-memory-engineering`](../agent-context-memory-engineering/SKILL.md), [`llm-finetuning-multimodal-ops`](../llm-finetuning-multimodal-ops/SKILL.md) | Hybrid RAG, vector DBs, memory architectures, prompt safety, LoRA |
-| **🧹 sergey** | [`code-refactoring-modernization`](../code-refactoring-modernization/SKILL.md) | Legacy refactoring, CRAP-score, >300-400 lines decomposition, tests |
-| **⚙️ alexey** | [`industrial-equipment-research`](../industrial-equipment-research/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | Hardware research, PLC, Modbus/OPC UA, `ReadExactly`, errata |
-| **🏭 igor** | [`hardware-protocol-simulation`](../hardware-protocol-simulation/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | Protocol simulators, socket mocks, packet fuzzing, `--seed` FSM |
-| **📝 anna** | [`technical-documentation-adr`](../technical-documentation-adr/SKILL.md), [`c4-architecture-mermaid`](../c4-architecture-mermaid/SKILL.md) | Grounded docs, Diataxis, `ADR-NNNN`, OpenAPI, C4/Mermaid specs |
-| **📊 ruslan** | [`sap-enterprise-automation`](../sap-enterprise-automation/SKILL.md) | SAP NCo, BAPI commit/rollback, GUI Scripting COM release, IDoc |
-| **🔍 artem** | [`reverse-engineer-anything`](../reverse-engineer-anything/SKILL.md) | Binary reversing, CIL, packet disassembly, Evidence Ledger |
+> [!IMPORTANT]
+> **No Solo Corner-Cutting:** The rule *"1–3 files Lead writes directly"* applies ONLY to physical file writing in Contour B. Lead MUST still dispatch the relevant domain specialists below to design and verify changes — and after ANY backend/DB/socket change, check whether **`@elena`** and **`@mozgoeb`** are needed to update or redesign the windows!
+
+| Specialist | Owning Skill(s) | When to Launch BEFORE / DURING Work | Chain-Reaction Check AFTER Work (Post-Edit) |
+| :--- | :--- | :--- | :--- |
+| **⚖️ stanislav** | [`compliance-policy-as-code`](../compliance-policy-as-code/SKILL.md) | Architecture rules, contract arbitration | Mandatory `[COMPLIANCE PASS]` on 4+ files or rule checks |
+| **💻 dmitry** | [`backend-architecture`](../backend-architecture/SKILL.md) | Backend APIs (.NET/Py/Node/Go), Config, Outbox | Check if new settings/statuses require **`@elena`** + **`@mozgoeb`** in windows! |
+| **🗄️ denis** | [`high-load-db-tuning`](../high-load-db-tuning/SKILL.md) | SQLite WAL, Postgres, MSSQL, queries, migrations | Verify query plans & lock safety after schema/query edits |
+| **🎨 elena** | [`frontend-design`](../frontend-design/SKILL.md) | Windows, forms, UI tokens, 4 states, scrollbars, popups | Redesign/update windows whenever backend/config/UX changes impact UI |
+| **🔥 mozgoeb** | [`product-ux-scouting`](../product-ux-scouting/SKILL.md) | 360° scout + Phase 2 Post-Audit Challenger | **Mandatory `[UX PASS]` after window/UI edits** + check if windows need rework |
+| **🛡️ viktor** | [`qa-test-automation`](../qa-test-automation/SKILL.md), [`security-audit`](../security-audit/SKILL.md) | TDD reproducer, security & edge-case boundaries | **Mandatory `[QA PASS]`** (`REQ-1..REQ-N` + `N of N` sweep + UI race check) |
+| **🧠 mikhail** | [`ai-rag-engineering`](../ai-rag-engineering/SKILL.md), [`agent-context-memory-engineering`](../agent-context-memory-engineering/SKILL.md), [`llm-finetuning-multimodal-ops`](../llm-finetuning-multimodal-ops/SKILL.md) | Hybrid RAG, vector DBs, context/memory, LoRA, vLLM | Verify evals & prompt-injection safety after AI pipeline edits |
+| **🧹 sergey** | [`code-refactoring-modernization`](../code-refactoring-modernization/SKILL.md) | God-classes >300–400 lines, cyclic deps, dead code | Split any file that grew >300–400 lines during feature work |
+| **⚙️ alexey** | [`industrial-equipment-research`](../industrial-equipment-research/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | PLC, Modbus/OPC UA, sockets, `ReadExactly`, timeouts | Pair with **`@igor`** (simulator stress test) & **`@elena`** (UI status indicator) |
+| **🏭 igor** | [`hardware-protocol-simulation`](../hardware-protocol-simulation/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | Stateful PLC/socket mocks, `--seed` fault injection | Run disconnect/fragmentation/CRC fuzz tests after protocol edits |
+| **📝 anna** | [`technical-documentation-adr`](../technical-documentation-adr/SKILL.md), [`c4-architecture-mermaid`](../c4-architecture-mermaid/SKILL.md) | Architecture docs, OpenAPI, binary protocol sheets | Update ADRs, C4/Mermaid diagrams & runbooks after structural changes |
+| **📊 ruslan** | [`sap-enterprise-automation`](../sap-enterprise-automation/SKILL.md) | SAP NCo, BAPI Commit/Rollback, GUI Scripting, IDoc | Verify zero COM leaks (`FinalReleaseComObject`) after SAP edits |
+| **🔍 artem** | [`reverse-engineer-anything`](../reverse-engineer-anything/SKILL.md) | Binary protocols, CIL/ASAR decompilation, CRC | Verify byte-level frame layout & Evidence Ledger against mocks |

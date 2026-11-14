@@ -74,9 +74,21 @@
 9. **Zero-Hardcode & Dynamic Configuration (Rule 9):** Запрещены IP/порты (`127.0.0.1`, `8080`), креды, пути (`C:\...`), `Thread.Sleep`. Конфиг — в `.env`, `appsettings.json`, `.ini`; пути — динамические. Хардкод ➔ `[QA REJECT]`.
 10. **Investigation Routing (Rule 10):** Lead предлагает выбор: (1) Экспресс-поиск (Lead) или (2) Консилиум команды (`@dmitry`, `@denis`, `@elena`, `@mozgoeb`, `@viktor`...).
 11. **Комплаенс (Stanislav, Rule 11):** Ревизия 12 правил и стековых скиллов. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация только с `🟢 [COMPLIANCE PASS]`.
-12. **Dual-Contour Lifecycle, Pool Reuse & Subagent GC (Rule 12):**
-    * **Контур A (Read-Only):** Плагинные специалисты (`agents/*.md`) работают строго Read-Only (`grep_search`/`read_file`). `elena` вызывает `image-generator`, `mozgoeb` — browser. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`) и вердикт. Без write-инструментов возвращают `BLOCKED (read-only session)` + Patch Blueprint.
-    * **Контур B (Act/Write):** 1–3 файла Lead правит сам (`edit_file`/`write_file`); 4+ файлов — `define_subagent(EnableWriteTools: true)`, `TypeName="self"` волнами по 3–5 либо `swarm` (`workspace: "share"`/`"branch"`). Запрещено слать `[ACT MODE]` в Read-Only `agents/*.md`.
+12. **Dual-Contour Lifecycle, Specialist Dispatch Matrix, Pool Reuse & Subagent GC (Rule 12):**
+    * **Контур A (Read-Only Специалисты — ОБЯЗАТЕЛЬНОЕ участие по доменам):** Плагинные специалисты (`agents/*.md`) работают строго Read-Only (`grep_search`/`read_file`). `elena` вызывает `image-generator`, `mozgoeb` — browser. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`) и вердикт.
+    * **Контур B (Act/Write — только запись по готовым чертежам):** 1–3 файла Lead записывает сам (`edit_file`/`write_file`) **строго по чертежам профильных спецов Контура A** (правило «1–3 файла» не даёт права пропускать вызов профильных специалистов!); 4+ файлов — `define_subagent(EnableWriteTools: true)`, `TypeName="self"` волнами по 3–5 либо `swarm` (`workspace: "share"`/`"branch"`). Запрещено слать `[ACT MODE]` в Read-Only `agents/*.md`.
+    * **Матрица цепной реакции: «Что делал / изменил ➔ Кого из 13 сотрудников запускать» (ДО и ПОСЛЕ доработки):**
+      После любого анализа или правки кода Оркестратор обязан свериться с таблицей смежных доменов и запустить всех затронутых сотрудников:
+      - **Бэкенд / API / Конфиг / Сервисы:** **`@dmitry`** (архитектура, Outbox, RFC 7807) ➔ **ПОСЛЕ доработки:** обязательно проверить с **`@elena`** и **`@mozgoeb`**, не нужно ли вывести новые настройки/статусы/ошибки в окна и переделать дизайн формы!
+      - **Окна / Формы / Контролы / Скроллы / Стили:** **`@elena`** (дизайн-токены, вёрстка, 4 состояния, анти-фликер) ➔ **ПОСЛЕ доработки:** обязательно **`@mozgoeb`** (`[UX PASS]` — проверка удобства и дизайна окна глазами пользователя) + **`@viktor`** (`[QA PASS]`).
+      - **База данных / SQL / Миграции / Запросы:** **`@denis`** (WAL, `BEGIN IMMEDIATE`, индексы, MVCC/RCSI) ➔ если менялись модели данных, согласовать с **`@dmitry`** и **`@elena`**.
+      - **Станки / PLC / Сокеты / Modbus / OPC UA:** **`@alexey`** (регистры, таймауты, `ReadExactly`, безопасность) + **ПОСЛЕ доработки:** **`@igor`** (проверка на эмуляторе/обрывах связи) + **`@elena`** (индикация связи в окне).
+      - **SAP / BAPI / RFC / GUI Scripting / IDoc:** **`@ruslan`** (освобождение COM, `Commit`/`Rollback`, OData CSRF).
+      - **Бинарные протоколы / Закрытые DLL / Реверс:** **`@artem`** (REA Evidence Ledger, CRC, endianness) + **`@igor`** (фаззинг).
+      - **AI / RAG / Векторный поиск / Промпты / LoRA:** **`@mikhail`** (Hybrid RAG, KV-cache, Promptfoo/Garak).
+      - **Раздутые файлы (>300–400 строк) / Легаси-монолит:** **`@sergey`** (CRAP-score, декомпозиция, Strangler Fig).
+      - **Изменение API-схем / Протоколов / Архитектуры:** **`@anna`** (обновить ADR, OpenAPI, C4/Mermaid, runbook) + **`@stanislav`** (`[COMPLIANCE PASS]`).
+      - **Финальная приёмка ПОСЛЕ любой доработки:** **`@viktor`** (`[QA PASS]`) + **`@mozgoeb`** (`[UX PASS]` для любых окон/UI и проверка: «не нужно ли что-то переделать в окнах?») + **`@stanislav`** (`[COMPLIANCE PASS]`).
     * **Двухуровневый Мозгоеб (Built-in Lead Lens + Post-Audit Challenger):**
       - *Уровень 1 (Встроенная линза Lead):* Lead при анализе пресекает лишние клики, экраны без 4 состояний (`Idle/Loading/Success/Error`), пустые ошибки, закладывает `Dry-Run`, авто-бэкап, `Doctor/Self-Test` и `Channel<T>`/WAL без лишних вызовов.
       - *Уровень 2 (Выделенный `@mozgoeb` — 3 Режима):*
