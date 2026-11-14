@@ -8,10 +8,15 @@ import fs from 'node:fs';
 
 export const HERMES_AGENTS = new Set([
   'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
-  'gleb', 'igor', 'kritik', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'
+  'gleb', 'igor', 'kritik', 'mikhail', 'ruslan', 'sergey', 'stanislav', 'viktor'
 ]);
 
-const MENTION_NAMES = [...HERMES_AGENTS, 'критик', 'мозгоеб', 'глеб'].join('|');
+export const HERMES_AGENT_ALIASES = {
+  mozgoeb: 'kritik',
+  мозгоеб: 'kritik'
+};
+
+const MENTION_NAMES = [...HERMES_AGENTS, ...Object.keys(HERMES_AGENT_ALIASES), 'критик', 'мозгоеб', 'глеб'].join('|');
 const WORD_END = `(?=$|[\\s.,:;!?)"'])`;
 
 const SLASH_COMMAND_RE = new RegExp(`(?:^|\\n)[ \\t]*\\/hermes${WORD_END}`, 'i');
@@ -48,7 +53,7 @@ export function collectToolCalls(step) {
 export function isHermesSubagentCall(toolCall) {
   const name = String(toolCall?.name || '').toLowerCase();
   const typeName = String(toolCall?.args?.TypeName || toolCall?.args?.typeName || '').toLowerCase();
-  return name === 'invoke_subagent' && HERMES_AGENTS.has(typeName);
+  return name === 'invoke_subagent' && (HERMES_AGENTS.has(typeName) || Boolean(HERMES_AGENT_ALIASES[typeName]));
 }
 
 export function detectHermesInSteps(steps, options = {}) {

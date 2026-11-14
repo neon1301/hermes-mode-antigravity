@@ -43,6 +43,28 @@ This skill guides **🌐 Gleb** (Lead 3D Graphics & Industrial Digital Twin Engi
 1. **Massive Fleet Optimization via `InstancedMesh`:**
    - When rendering dozens of machines (e.g. loom fleet `T01–T20`), NEVER duplicate standalone mesh trees.
    - Use `InstancedMesh` for repeated modular bases. Set per-instance matrices (`setMatrixAt`) and status colors (`setColorAt`), followed by `instanceMatrix.needsUpdate = true` and `instanceColor.needsUpdate = true`.
+   - **⚠️ Per-Instance Emissive Alarms (`setColorAt` vs Section 2 Emissive Pulse):**
+     `InstancedMesh.setColorAt(i, color)` modulates base diffuse/albedo (`vColor`), NOT `emissive`. To drive the pulsing alarm states from Section 2 (`ALARM / E_STOP` flashing alert `#ff2200`) per individual machine without re-rendering or affecting the whole fleet, attach an `instanceEmissive` attribute via `material.onBeforeCompile`:
+     ```javascript
+     const instanceEmissive = new Float32Array(machineCount * 3);
+     geometry.setAttribute('instanceEmissive', new THREE.InstancedBufferAttribute(instanceEmissive, 3));
+     material.onBeforeCompile = (shader) => {
+       shader.vertexShader = 'attribute vec3 instanceEmissive;\nvarying vec3 vInstanceEmissive;\n' + shader.vertexShader.replace(
+         '#include <color_vertex>',
+         '#include <color_vertex>\nvInstanceEmissive = instanceEmissive;'
+       );
+       shader.fragmentShader = 'varying vec3 vInstanceEmissive;\n' + shader.fragmentShader.replace(
+         'vec3 totalEmissiveRadiance = emissive;',
+         'vec3 totalEmissiveRadiance = emissive + vInstanceEmissive;'
+       );
+     };
+     // To pulse machine i in animation loop:
+     function setMachineAlarmPulse(i, pulseIntensity) {
+       const attr = geometry.getAttribute('instanceEmissive');
+       attr.setXYZ(i, 1.0 * pulseIntensity, 0.1 * pulseIntensity, 0.0);
+       attr.needsUpdate = true;
+     }
+     ```
 2. **Dual-Mode Industrial Camera:**
    - **Isometric Mode:** `OrthographicCamera` for architectural plant layouts and shop floor bird-eye views.
    - **Inspect Mode:** `PerspectiveCamera` with bounded `OrbitControls` (`maxPolarAngle: Math.PI / 2.05` to prevent looking under floor).

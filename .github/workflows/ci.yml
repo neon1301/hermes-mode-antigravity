@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-and-validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,8 +31,8 @@ jobs:
             }
             const agents = fs.readdirSync('agents').filter(f => f.endsWith('.md'));
             const skills = fs.readdirSync('skills').filter(f => fs.existsSync('skills/' + f + '/SKILL.md'));
-            if (agents.length !== 13) throw new Error('Expected 13 agents, got ' + agents.length);
-            if (skills.length !== 19) throw new Error('Expected 19 skills, got ' + skills.length);
+            if (agents.length !== 14) throw new Error('Expected 14 agents, got ' + agents.length);
+            if (skills.length !== 20) throw new Error('Expected 20 skills, got ' + skills.length);
             console.log('Manifest & structure check passed:', { version: plugin.version, agents: agents.length, skills: skills.length });
           "
 

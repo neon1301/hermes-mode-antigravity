@@ -74,7 +74,7 @@ const DOMAIN_ROUTING_RULES = [
   {
     agents: ['@gleb (3D/Digital Twin/WebGL)'],
     keys: ['gleb'],
-    re: /(?:Three|WebGL|DigitalTwin|WebView2|Shader|Canvas|InstancedMesh|OrbitControls|create.*Model)/i
+    re: /(?:Three(?:\.js)?|WebGL|DigitalTwin|WebView2|InstancedMesh|OrbitControls)/i
   },
   {
     agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],

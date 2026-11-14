@@ -215,6 +215,12 @@ if (toolName === 'run_command') {
 
 if (toolName === 'invoke_subagent') {
   const subType = String(args.TypeName || args.typeName || '').toLowerCase();
+  if (subType === 'mozgoeb' || subType === 'мозгоеб') {
+    deny(
+      'Hermes Fleet: специалист @mozgoeb переименован в @kritik. Файл agents/mozgoeb.md удалён. Вызовите invoke_subagent с TypeName: "kritik".'
+    );
+    process.exit(0);
+  }
   if (HERMES_AGENTS.has(subType) || subType === 'self') {
     const reqModel = String(args.Model || args.model || 'inherit').toLowerCase().replace(/["']/g, '');
     const hostModel = String(payload?.modelName || '').toLowerCase();

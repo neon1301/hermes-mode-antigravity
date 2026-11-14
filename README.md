@@ -6,7 +6,7 @@
 
 ---
 
-## 👥 Полный штаб специалистов Hermes (14 экспертов):
+## 👥 Полный штаб специалистов Hermes (Lead + 14 экспертов):
 * 👑 **Lead (Оркестратор)** — архитектурная декомпозиция, канбан, двухконтурное исполнение (Read-Only `agents/*.md` аудит + Act/Write через Lead / `define_subagent(EnableWriteTools: true)` / `self`-пул), ограниченные волны (3–5), `manage_subagents` preflight & GC, встроенный «Глаз Критика» (Zero-Cost продуктовый и инженерный фильтр на каждом ТЗ: 4 состояния UI, человечные ошибки, Dry-Run, авто-бэкап, Channel<T>/WAL).
 * ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 12 правил флота, аудит соблюдения всех 20 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
 * 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
@@ -57,7 +57,7 @@
 | **/hermes [задача]** | Запуск оркестратора, декомпозиция цели и координация специалистов |
 | **/hermes board** | 📊 Вывод живой интерактивной Канбан-доски прямо в чат через Generative UI |
 | **/hermes fix-warnings** | 🧹 Пакетное устранение предупреждений компилятора до нуля (Zero Warnings Policy) |
-| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 12 правил флота и 19 скиллов силами Stanislav (Compliance) |
+| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 12 правил флота и 20 скиллов силами Stanislav (Compliance) |
 | **/hermes save** | 💾 Мгновенный снимок спринта в `.hermes/checkpoint.md` |
 | **/hermes resume** | 🔄 Восстановление контекста, задач и договоренностей из Memory Bank |
 | **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |
