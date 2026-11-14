@@ -36,15 +36,15 @@ const WRITE_TOOL_NAMES = new Set([
   'multi_replace_file_content'
 ]);
 
-const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
-const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
+const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$/i;
+const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
 
 const DOMAIN_ROUTING_RULES = [
   {
     agents: ['@elena (дизайн/окна)', '@kritik (пост-проверка UX)'],
     keys: ['elena', 'kritik'],
-    re: /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
+    re: /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
   },
   {
     agents: ['@denis (БД/индексы/WAL)'],
@@ -311,8 +311,21 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     }
   }
 
-  if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx && String(s?.type || '').toUpperCase() === 'GENERIC') {
-    postEditAskAnswer += '\n' + String(s?.content || '');
+  // Only accept user choice from real user input or tool execution results, NEVER from MODEL prose/thinking (self-signing protection)
+  if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx) {
+    const isFromModel = s?.source === 'MODEL';
+    if (!isFromModel) {
+      const stepType = String(s?.type || '').toUpperCase();
+      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER' || stepType === 'USER_INPUT';
+      const isToolOutput =
+        (s?.source === 'SYSTEM' || !s?.source) &&
+        (stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT') &&
+        !s?.sender &&
+        !/<SYSTEM_MESSAGE/i.test(String(s?.content || ''));
+      if (isUserSource || isToolOutput) {
+        postEditAskAnswer += '\n' + String(s?.content || '');
+      }
+    }
   }
 
   for (const tc of collectToolCalls(s)) {
@@ -353,11 +366,15 @@ const convId = String(payload?.conversationId || transcriptPath);
 const turnMarker = steps[lastUserIdx]?.step_index ?? lastUserIdx;
 const counterFile = getCounterFile(convId, turnMarker);
 
-// Token economy skip is strictly narrowed to explicit intent ("без проверки", "skip", "пропустить проверку").
-// Casual words like "нет", "не нужно", "достаточно", "no" do not skip verification to prevent accidental bypass.
-const isEconomySkipRequested =
-  postEditAskIdx > lastWriteIdx &&
-  /(?:без\s+проверки|skip\b|пропустить\s+проверк)/i.test(postEditAskAnswer);
+// Token economy skip requires explicit option selection or positive intent anchored to option/line start.
+// Casual words like "нет", "не нужно", "достаточно", "no" or negations like "don't skip", "нельзя пропустить",
+// "не оставляй без проверки" MUST NOT bypass verification.
+const NEGATION_SKIP_RE = /(?:не|нельзя|никогда|don'?t|do\s+not|never)\b[^.\n]{0,35}(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск)/i;
+const POSITIVE_SKIP_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:без\s+проверки|skip\b|пропустить\s+проверк[уае]?)/i;
+
+const hasNegationOfSkip = NEGATION_SKIP_RE.test(postEditAskAnswer);
+const hasPositiveSkip = POSITIVE_SKIP_RE.test(postEditAskAnswer);
+const isEconomySkipRequested = postEditAskIdx > lastWriteIdx && hasPositiveSkip && !hasNegationOfSkip;
 
 // In economy mode: allow immediately if no UI files were edited or if UX PASS is already granted.
 // If UI files were modified, UX review by Kritik is strictly required even in economy mode to prevent broken layouts.
@@ -367,13 +384,16 @@ if (isEconomySkipRequested && (editedUiFiles.size === 0 || hasUxPass)) {
   process.exit(0);
 }
 
+const POSITIVE_ONLY_UX_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:запустить\s+)?(?:только\s+(?:критик|kritik|ux|окн|дизайн)|only\s+ux)/i;
+const POSITIVE_ONLY_QA_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:запустить\s+)?(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i;
+
 const onlyUxRequested =
-  (postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer)) ||
+  (postEditAskIdx > lastWriteIdx && POSITIVE_ONLY_UX_RE.test(postEditAskAnswer)) ||
   (isEconomySkipRequested && editedUiFiles.size > 0);
 const onlyQaRequested =
   !isEconomySkipRequested &&
   postEditAskIdx > lastWriteIdx &&
-  /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
+  POSITIVE_ONLY_QA_RE.test(postEditAskAnswer);
 
 const needQa = !onlyUxRequested && !isEconomySkipRequested;
 const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;

@@ -82,6 +82,14 @@ await test('version_alignment', () => {
   if (!plugin.description.includes(`(v${plugin.version})`)) {
     throw new Error(`plugin.json description does not contain current version (v${plugin.version})`);
   }
+  const fleetProtocol = fs.readFileSync(path.join(rootDir, 'skills', 'hermes', 'references', 'fleet-protocol.md'), 'utf-8');
+  if (!fleetProtocol.includes(`Protocol v${plugin.version}`)) {
+    throw new Error(`fleet-protocol.md header does not contain current version (Protocol v${plugin.version})`);
+  }
+  const hermesSkill = fs.readFileSync(path.join(rootDir, 'skills', 'hermes', 'SKILL.md'), 'utf-8');
+  if (!hermesSkill.includes(`(v${plugin.version})`)) {
+    throw new Error(`skills/hermes/SKILL.md header does not contain current version (v${plugin.version})`);
+  }
 });
 
 // 6. Verify license alignment across LICENSE and package.json

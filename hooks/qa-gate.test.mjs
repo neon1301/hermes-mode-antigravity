@@ -427,6 +427,20 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'reject_self_signed_lead_faking_user_economy_answer',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_lead_faked_economy_answer',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_lead_faked_economy_answer', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
         { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
       ])
     })
@@ -441,7 +455,7 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix small typo in form' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
       ])
     })
   },
@@ -455,7 +469,7 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak form layout' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' },
         { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
@@ -470,7 +484,7 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update service logic' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: достаточно' }
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: достаточно' }
       ])
     })
   },
@@ -484,7 +498,7 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update service logic' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: no' }
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: no' }
       ])
     })
   },
@@ -498,8 +512,88 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak window padding' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: Запустить только Критика + Елену (проверить окна и дизайн)' },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'A1: Запустить только Критика + Елену (проверить окна и дизайн)' },
         { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_negates_skip_in_english',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_negate_skip_en',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_negate_skip_en', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: "Don't skip the review, run full QA please" }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_negates_skip_nelzya_propustit',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_negate_nelzya_propustit',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_negate_nelzya_propustit', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'Нельзя пропустить проверку, запусти полный аудит' }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_negates_skip_ne_ostavlyay_bez_proverki',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_negate_ne_ostavlyay',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_negate_ne_ostavlyay', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'USER_EXPLICIT', type: 'GENERIC', content: 'Не оставляй без проверки — мне нужен аудит' }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_css_file_edited_without_ux_pass',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_css_missing_ux',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_css_missing_ux', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update styling' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/styles/main.css' } }] }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_html_file_edited_without_ux_pass',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_html_missing_ux',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_html_missing_ux', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update index page' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'wwwroot/index.html' } }] }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_css_file_has_both_qa_and_ux_passes',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_css_with_passes',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_css_with_passes', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update styling' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/styles/main.css' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   }

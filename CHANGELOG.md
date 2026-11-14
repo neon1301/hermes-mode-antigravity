@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.6.11] - 2026-11-14
+
+### Added
+- **CSS/HTML Layout Protection (D/E):** Added `css|scss|sass|less|html|htm` to `SOURCE_CODE_EXT_RE`, `UI_SOURCE_FILE_RE`, and `clean-edits-guard.mjs`, ensuring styling and markup modifications cannot bypass the QA Gate and strictly require Kritik's `[UX PASS]`. Added unit tests for pure CSS and HTML edits.
+- **Negation-Guarded Economy Skip (A/B/C):** Added `NEGATION_SKIP_RE` forbidding economy skip on negated expressions (`don't skip`, `нельзя пропустить`, `не оставляй без проверки`). Anchored positive skip matcher `POSITIVE_SKIP_RE` to line/option starts to eliminate accidental substring matches on free-text user requests.
+- **Anti-Spoofing & Self-Signing Protection for User Choices (3):** Hardened `qa-gate.mjs` to accept `ask_question` answers strictly from user-sourced steps (`USER_EXPLICIT`) or legitimate tool outputs (`SYSTEM`), strictly rejecting any model-sourced (`MODEL`) prose or fabricated responses. Added negative regression test `reject_self_signed_lead_faking_user_economy_answer`.
+- **Protocol Documentation Version Alignment & CI Guard:** Synchronized `skills/hermes/references/fleet-protocol.md` header to `v3.6.11` and added automated version alignment assertions for `fleet-protocol.md` and `skills/hermes/SKILL.md` in `consistency.test.mjs`.
+
+---
+
 ## [3.6.10] - 2026-11-14
 
 ### Added

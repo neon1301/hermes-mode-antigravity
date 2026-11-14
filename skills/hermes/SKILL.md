@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.10) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.11) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.10)
+# Hermes Master Orchestration Engine (v3.6.11)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
