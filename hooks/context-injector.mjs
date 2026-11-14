@@ -6,6 +6,12 @@ import { detectHermesInSteps, isHermesTrigger, parseJsonl, readTranscriptSlices 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
 const PROTOCOL_MARKER = '<!-- HERMES_PROTOCOL_LOADED -->';
+const COMPACT_MARKER = '<!-- HERMES_COMPACT_SUGGESTED -->';
+const COMPACT_STEP_THRESHOLD = Number(process.env.HERMES_COMPACT_STEP_THRESHOLD || 60);
+const COMPACT_BYTE_THRESHOLD = Number(process.env.HERMES_COMPACT_BYTE_THRESHOLD || 350 * 1024);
+const COMPACT_COOLDOWN_STEPS = 25;
+const MAX_INSTINCTS = Number(process.env.HERMES_MAX_INSTINCTS || 8);
+const MIN_INSTINCT_CONFIDENCE = Number(process.env.HERMES_INSTINCT_MIN_CONFIDENCE || 0.7);
 // A single @specialist call does not need the full 15 KB fleet protocol (token budget).
 const TRIGGER_OPTIONS = { includeMentions: false };
 
@@ -23,7 +29,61 @@ function allowEmpty() {
 
 function inspectTranscript(steps) {
   const alreadyInjected = steps.some((s) => String(s?.content || '').includes(PROTOCOL_MARKER));
-  return { hermesActive: detectHermesInSteps(steps, TRIGGER_OPTIONS), alreadyInjected };
+  const recentSteps = steps.slice(-COMPACT_COOLDOWN_STEPS);
+  const compactRecentlySuggested = recentSteps.some((s) => String(s?.content || '').includes(COMPACT_MARKER));
+  return {
+    hermesActive: detectHermesInSteps(steps, TRIGGER_OPTIONS),
+    alreadyInjected,
+    compactRecentlySuggested,
+    stepCount: steps.length
+  };
+}
+
+function loadProjectInstincts(workspaceDir) {
+  if (!workspaceDir) return '';
+  const hermesDir = path.join(workspaceDir, '.hermes');
+  const lines = [];
+
+  const jsonPath = path.join(hermesDir, 'instincts.json');
+  if (fs.existsSync(jsonPath)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.instincts) ? parsed.instincts : []);
+      const valid = list
+        .filter((item) => item && typeof item.rule === 'string' && item.rule.trim().length > 0)
+        .map((item) => ({
+          domain: String(item.domain || 'general').trim(),
+          trigger: String(item.trigger || '').trim(),
+          rule: String(item.rule).trim(),
+          confidence: typeof item.confidence === 'number' ? item.confidence : 0.9
+        }))
+        .filter((item) => item.confidence >= MIN_INSTINCT_CONFIDENCE)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, MAX_INSTINCTS);
+
+      for (const inst of valid) {
+        const prefix = inst.trigger ? `[${inst.domain}] Когда ${inst.trigger}: ` : `[${inst.domain}] `;
+        lines.push(`- **${prefix}**${inst.rule} *(conf: ${inst.confidence.toFixed(2)})*`);
+      }
+    } catch {
+      // Ignore malformed instincts.json
+    }
+  }
+
+  const mdPath = path.join(hermesDir, 'instincts.md');
+  if (fs.existsSync(mdPath)) {
+    try {
+      const mdText = fs.readFileSync(mdPath, 'utf-8').trim().slice(0, 1500);
+      if (mdText.length > 0) {
+        lines.push(mdText);
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  if (lines.length === 0) return '';
+  return `\n\n---\n## 🧠 Выученные инстинкты проекта (.hermes/instincts — применяй автоматически без напоминаний!)\n${lines.join('\n')}`;
 }
 
 function resolveWorkspaceDir(payload) {
@@ -59,10 +119,14 @@ try {
 
 let hermesActive = isHermesTrigger(payload?.lastUserInput, TRIGGER_OPTIONS);
 let alreadyInjected = false;
+let compactRecentlySuggested = false;
+let stepCount = 0;
+let transcriptBytes = 0;
 
 const transcriptPath = payload?.transcriptPath;
 if (transcriptPath && fs.existsSync(transcriptPath)) {
   try {
+    transcriptBytes = fs.statSync(transcriptPath).size;
     const { headText, tailText } = readTranscriptSlices(transcriptPath, {
       maxTailBytes: MAX_TAIL_BYTES,
       headScanBytes: HEAD_SCAN_BYTES
@@ -70,12 +134,36 @@ if (transcriptPath && fs.existsSync(transcriptPath)) {
     const info = inspectTranscript([...parseJsonl(headText), ...parseJsonl(tailText)]);
     hermesActive = hermesActive || info.hermesActive;
     alreadyInjected = info.alreadyInjected;
+    compactRecentlySuggested = info.compactRecentlySuggested;
+    stepCount = info.stepCount;
   } catch {
     // Ignore transcript read failures
   }
 }
 
-if (!hermesActive || alreadyInjected) {
+if (!hermesActive) {
+  allowEmpty();
+  process.exit(0);
+}
+
+if (alreadyInjected) {
+  if (
+    !compactRecentlySuggested &&
+    (stepCount >= COMPACT_STEP_THRESHOLD || transcriptBytes >= COMPACT_BYTE_THRESHOLD)
+  ) {
+    const kb = Math.max(1, Math.round(transcriptBytes / 1024));
+    const compactMsg = `${COMPACT_MARKER}\n⚠️ **Контроль бюджета контекста (Hermes Strategic Compact):** В текущем чате накопилось уже ${stepCount} шагов (~${kb} КБ лога). Чтобы модель не теряла точность и не тратила лишние токены на перечитывание длинной истории, после завершения текущего шага обновите \`.hermes/checkpoint.md\` и порекомендуйте пользователю выполнить команду \`/compact\`!`;
+    process.stdout.write(JSON.stringify({
+      injectSteps: [
+        {
+          systemMessage: {
+            systemMessage: compactMsg
+          }
+        }
+      ]
+    }));
+    process.exit(0);
+  }
   allowEmpty();
   process.exit(0);
 }
@@ -112,6 +200,11 @@ try {
       } catch {
         // Ignore checkpoint read failures
       }
+    }
+
+    const instinctsBlock = loadProjectInstincts(workspaceDir);
+    if (instinctsBlock) {
+      content += instinctsBlock;
     }
   }
 

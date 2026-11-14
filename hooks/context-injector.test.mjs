@@ -130,6 +130,66 @@ const cases = [
         lastUserInput: '/hermes start'
       });
     }
+  },
+  {
+    name: 'inject_project_instincts_filtered_by_confidence',
+    check: (res) => {
+      const msg = String(res.injectSteps?.[0]?.systemMessage?.systemMessage || '');
+      return msg.includes('Выученные инстинкты проекта')
+        && msg.includes('Always use Color.FromArgb(20, 26, 38) for sidebar')
+        && !msg.includes('Low confidence draft rule');
+    },
+    run: () => {
+      const instDir = path.join(tmpDir, 'proj_instincts', '.hermes');
+      fs.mkdirSync(instDir, { recursive: true });
+      fs.writeFileSync(path.join(instDir, 'instincts.json'), JSON.stringify([
+        { id: 'ui-sidebar', domain: 'ui', trigger: 'styling TreeView or sidebar', rule: 'Always use Color.FromArgb(20, 26, 38) for sidebar', confidence: 0.95 },
+        { id: 'draft', domain: 'misc', trigger: 'testing', rule: 'Low confidence draft rule', confidence: 0.4 }
+      ]), 'utf-8');
+      return runInjector({
+        cwd: path.join(tmpDir, 'proj_instincts'),
+        lastUserInput: '/hermes style treeview'
+      });
+    }
+  },
+  {
+    name: 'suggest_strategic_compact_when_transcript_exceeds_step_threshold',
+    check: (res) => {
+      const msg = String(res.injectSteps?.[0]?.systemMessage?.systemMessage || '');
+      return msg.includes('<!-- HERMES_COMPACT_SUGGESTED -->') && msg.includes('/compact');
+    },
+    run: () => {
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes build' },
+        { step_index: 1, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<!-- HERMES_PROTOCOL_LOADED -->\n# Full rules...' }
+      ];
+      for (let i = 2; i < 62; i++) {
+        steps.push({ step_index: i, source: 'MODEL', type: 'PLANNER_RESPONSE', content: `step ${i}` });
+      }
+      return runInjector({
+        lastUserInput: 'продолжай',
+        transcriptPath: writeTranscript('long_session', steps)
+      });
+    }
+  },
+  {
+    name: 'skip_strategic_compact_during_cooldown',
+    check: (res) => !res.injectSteps,
+    run: () => {
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes build' },
+        { step_index: 1, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<!-- HERMES_PROTOCOL_LOADED -->\n# Full rules...' }
+      ];
+      for (let i = 2; i < 60; i++) {
+        steps.push({ step_index: i, source: 'MODEL', type: 'PLANNER_RESPONSE', content: `step ${i}` });
+      }
+      steps.push({ step_index: 60, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<!-- HERMES_COMPACT_SUGGESTED -->\nSuggested recently' });
+      steps.push({ step_index: 61, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'ok' });
+      return runInjector({
+        lastUserInput: 'ok',
+        transcriptPath: writeTranscript('cooldown_session', steps)
+      });
+    }
   }
 ];
 
