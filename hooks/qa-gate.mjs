@@ -312,26 +312,38 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     }
   }
 
-  // Only accept user choice from real user input or tool execution results bound to ask_question, NEVER from MODEL prose/thinking or sourceless steps (self-signing protection)
+  // Only accept user choice from real user input, bound system tool outputs, or authentic Antigravity harness execution banners
+  // (strictly rejecting Lead model prose, thinking, and unverified sourceless steps)
   if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx) {
-    const isFromModel = s?.source === 'MODEL';
-    if (!isFromModel) {
-      const stepType = String(s?.type || '').toUpperCase();
-      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
-      const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-      const stepToolName = String(s?.tool_name || s?.toolName || s?.name || '').toLowerCase();
-      const isBoundToAskTool =
-        (postEditAskToolCallId && stepToolCallId === postEditAskToolCallId) ||
-        stepToolName === 'ask_question';
-      const isToolOutput =
-        s?.source === 'SYSTEM' &&
-        isBoundToAskTool &&
-        (stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT') &&
-        !s?.sender &&
-        !/<SYSTEM_MESSAGE/i.test(String(s?.content || ''));
-      if (isUserSource || isToolOutput) {
-        postEditAskAnswer += '\n' + String(s?.content || '');
-      }
+    const isDirectNext = stepIdx === postEditAskIdx + 1;
+    const sContent = String(s?.content || '');
+    const stepType = String(s?.type || '').toUpperCase();
+    const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
+
+    // 1. Explicit user input
+    const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
+
+    // 2. System tool output explicitly bound to ask_question
+    const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+    const stepToolName = String(s?.tool_name || s?.toolName || s?.name || '').toLowerCase();
+    const isBoundToAskTool =
+      (postEditAskToolCallId && stepToolCallId === postEditAskToolCallId) ||
+      stepToolName === 'ask_question';
+    const isSystemToolOutput =
+      s?.source === 'SYSTEM' &&
+      isBoundToAskTool &&
+      isGenericOrTool &&
+      !s?.sender &&
+      !/<SYSTEM_MESSAGE/i.test(sContent);
+
+    // 3. Authentic Antigravity harness tool execution output (immediately follows ask_question with execution banner)
+    const isAntigravityToolOutput =
+      isDirectNext &&
+      isGenericOrTool &&
+      /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+
+    if (isUserSource || isSystemToolOutput || isAntigravityToolOutput) {
+      postEditAskAnswer += '\n' + sContent;
     }
   }
 

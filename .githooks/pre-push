@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "🏛️ [HERMES PRE-PUSH GATE] Running full test suite before push..."
+npm test
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo "❌ [HERMES PRE-PUSH GATE] Tests failed! Git push aborted to protect main."
+  exit 1
+fi
+echo "✅ [HERMES PRE-PUSH GATE] All tests passed! Proceeding with push."
+exit 0

@@ -460,6 +460,20 @@ const cases = [
     })
   },
   {
+    name: 'allow_authentic_antigravity_harness_ask_question_output',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_authentic_ag_ask_output',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_authentic_ag_ask_output', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', content: 'Created At: 2026-11-14T18:00:00+05:00\nCompleted At: 2026-11-14T18:00:05+05:00\nA1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
     name: 'block_when_user_skips_review_on_ui_file_without_ux_pass',
     expected: 'continue',
     run: () => runGate({

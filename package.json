@@ -4,6 +4,7 @@
   "description": "Hermes Fleet for Google Antigravity: Multi-Agent Orchestration & Policy as Code",
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs",
     "test:consistency": "node hooks/consistency.test.mjs",
     "test:injector": "node hooks/context-injector.test.mjs",
