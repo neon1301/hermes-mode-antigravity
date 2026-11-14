@@ -23,6 +23,10 @@
 * 📝 **Anna** — Principal Technical Writer & Architecture Documentation Architect (`technical-documentation-adr` + `c4-architecture-mermaid`: grounded truth по коду, Diátaxis, `ADR-NNNN`, OpenAPI, паспорта бинарных протоколов, цеховые runbook).
 * 🗄️ **Denis** — Senior Database Architect & High-Load DBA (SQLite/libSQL, PostgreSQL, MSSQL, MySQL/InnoDB, Redis/MongoDB, ClickHouse/DuckDB: WAL/`BEGIN IMMEDIATE`, MVCC/Vacuum, RCSI, InnoDB Gap Locks, SARGable-индексы, пулы и миграции).
 
+> 💡 **Где находится «мозг» Lead Orchestrator?**  
+> В каталоге `agents/` находятся 14 узкопрофильных специалистов-субагентов (`agents/*.md`).  
+> Сам **Lead Orchestrator** — это **хост-агент Antigravity (родительская сессия чата)**. Его правила, регламент оркестрации и алгоритмы декомпозиции зафиксированы в мастер-скилле [`skills/hermes/SKILL.md`](skills/hermes/SKILL.md) и регламенте [`skills/hermes/references/fleet-protocol.md`](skills/hermes/references/fleet-protocol.md), а активируются автоматически через PreInvocation-хук [`hooks/hermes-context-injector.mjs`](hooks/hermes-context-injector.mjs) при вызове `/hermes` или `@имя`.
+
 ---
 
 ## 🛠️ Встроенная библиотека профессиональных скиллов (20 скиллов):
