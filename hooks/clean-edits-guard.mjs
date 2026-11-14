@@ -273,4 +273,64 @@ if (toolName === 'invoke_subagent') {
   }
 }
 
+if (toolName === 'manage_subagents') {
+  const action = String(args.Action || args.action || '').toLowerCase().replace(/["']/g, '');
+  if (action === 'kill' || action === 'kill_all') {
+    const transcriptPath = payload?.transcriptPath;
+    if (transcriptPath && fs.existsSync(transcriptPath)) {
+      try {
+        const { tailText } = readTranscriptSlices(transcriptPath, {
+          maxTailBytes: MAX_TAIL_BYTES,
+          headScanBytes: 0
+        });
+        const tailSteps = parseJsonl(tailText);
+        let lastUserIdx = -1;
+        for (let i = 0; i < tailSteps.length; i++) {
+          if (isRealUserStep(tailSteps[i])) lastUserIdx = i;
+        }
+        const turnSteps = tailSteps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
+
+        const pendingIds = new Set();
+        let lastDispatchedIdx = -1;
+        let lastReplyIdx = -1;
+        let dispatchedCount = 0;
+        let replyCount = 0;
+
+        for (let i = 0; i < turnSteps.length; i++) {
+          const s = turnSteps[i];
+          for (const tc of collectToolCalls(s)) {
+            const n = String(tc?.name || '').toLowerCase();
+            if (n === 'invoke_subagent' || n === 'send_message') {
+              lastDispatchedIdx = i;
+              dispatchedCount++;
+            }
+          }
+          const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+          const createdMatch = contentStr.match(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+          if (createdMatch) {
+            pendingIds.add(createdMatch[1].toLowerCase());
+          }
+          if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
+            const senderMatch = contentStr.match(/sender=["']?([0-9a-f-]{36})["']?/i);
+            if (senderMatch) {
+              pendingIds.delete(senderMatch[1].toLowerCase());
+              lastReplyIdx = i;
+              replyCount++;
+            }
+          }
+        }
+
+        if (pendingIds.size > 0 || (dispatchedCount > replyCount) || (lastDispatchedIdx > lastReplyIdx)) {
+          deny(
+            'Hermes Rule 12 (Anti-Premature Kill): ЗАПРЕЩЕНО вызывать manage_subagents(kill / kill_all), пока запущенные субагенты ещё работают и не прислали отчёт! После вызова invoke_subagent или send_message НЕМЕДЛЕННО ЗАВЕРШИТЕ СВОЙ ХОД (не вызывайте больше инструментов и НЕ выдумывайте отчёт за сотрудников) — система сама разбудит вас, когда субагенты ответят.'
+          );
+          process.exit(0);
+        }
+      } catch {
+        // Ignore transcript read errors
+      }
+    }
+  }
+}
+
 allow();

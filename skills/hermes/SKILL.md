@@ -52,7 +52,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
   - **Viktor (`@viktor`):** Technical & security verification (`[QA PASS]`, validating all `REQ-1..REQ-N` and `N of N` sweeps).
   - **Mozgoeb (`@mozgoeb` — Post-Edit UX Gate):** Mandatory whenever windows, forms, controls, styles, or user workflows were modified. Mozgoeb inspects the modified files after rework to verify ergonomics, visual craft, scrollbars, popups, and layout harmony (`🟢 [UX PASS]` or `🔴 [UX REJECT: что переделать в окне через @elena]`). Enforced by the Stop hook (`qa-gate.mjs`).
   - **Stanislav (`@stanislav`):** Fleet compliance gate (`[COMPLIANCE PASS]`).
-- **Subagent GC:** Terminate finished workers with `manage_subagents(action="kill")`.
+- **⏸️ Async Subagent Wait Rule (NEVER Kill Active Subagents or Fake Reports):** `invoke_subagent` and `send_message` run asynchronously in the background. Immediately after calling `invoke_subagent` or `send_message`, you MUST **STOP calling tools and end your turn** to wait for the `<SYSTEM_MESSAGE>` reply from every launched specialist. NEVER call `manage_subagents(action="kill" | "kill_all")` before their replies arrive (blocked by `PreToolUse`), and NEVER fabricate/hallucinate `[QA PASS]`, `[UX PASS]`, `[DESIGN PASS]`, or `[BACKEND PASS]` on behalf of subagents! Leave idle Read-Only specialists alive for pool reuse.
 
 ### Phase 5: Autonomous Steering & Commands
 - `/goal` (autonomous loop), `/compact` (prune logs), `/hermes save` (`.hermes/checkpoint.md`) & `/hermes resume`, `/hermes fix-warnings`, `/hermes audit`, `/hermes review`, `/hermes standup`, `/hermes board`.
