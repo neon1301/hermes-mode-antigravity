@@ -87,5 +87,68 @@ await test('license_alignment', () => {
   if (pkg.license !== 'MIT') throw new Error(`package.json license (${pkg.license}) must be MIT`);
 });
 
+// 7. Verify agent frontmatter schema and name uniqueness
+await test('agent_frontmatter_and_unique_names', () => {
+  const agentsDir = path.join(rootDir, 'agents');
+  const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md'));
+  const seenNames = new Set();
+  for (const f of agentFiles) {
+    const raw = fs.readFileSync(path.join(agentsDir, f), 'utf-8');
+    const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!m) throw new Error(`Missing YAML frontmatter in agents/${f}`);
+    const nameMatch = m[1].match(/^name:\s*([^\r\n]+)$/m);
+    if (!nameMatch) throw new Error(`Missing 'name' field in frontmatter of agents/${f}`);
+    const name = nameMatch[1].trim().toLowerCase();
+    const expectedName = f.replace(/\.md$/, '').toLowerCase();
+    if (name !== expectedName) {
+      throw new Error(`Frontmatter name '${name}' does not match filename agents/${f}`);
+    }
+    if (seenNames.has(name)) throw new Error(`Duplicate agent name '${name}' in agents/${f}`);
+    seenNames.add(name);
+  }
+});
+
+// 8. Verify skill frontmatter schema and name uniqueness
+await test('skill_frontmatter_and_unique_names', () => {
+  const skillsDir = path.join(rootDir, 'skills');
+  const skillFolders = fs.readdirSync(skillsDir).filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')));
+  const seenNames = new Set();
+  for (const f of skillFolders) {
+    const raw = fs.readFileSync(path.join(skillsDir, f, 'SKILL.md'), 'utf-8');
+    const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!m) throw new Error(`Missing YAML frontmatter in skills/${f}/SKILL.md`);
+    const nameMatch = m[1].match(/^name:\s*([^\r\n]+)$/m);
+    if (!nameMatch) throw new Error(`Missing 'name' field in frontmatter of skills/${f}/SKILL.md`);
+    const name = nameMatch[1].trim();
+    if (seenNames.has(name)) throw new Error(`Duplicate skill name '${name}' in skills/${f}`);
+    seenNames.add(name);
+  }
+});
+
+// 9. Verify markdown reference links integrity
+await test('markdown_reference_links_integrity', () => {
+  const refFiles = [
+    path.join(rootDir, 'skills', 'hermes', 'SKILL.md'),
+    ...fs.readdirSync(path.join(rootDir, 'skills', 'hermes', 'references'))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => path.join(rootDir, 'skills', 'hermes', 'references', f))
+  ];
+
+  for (const filePath of refFiles) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const dir = path.dirname(filePath);
+    const regex = /\[.*?\]\((?!https?:\/\/|#|mailto:)(.*?)\)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      const target = match[1].split('#')[0].trim();
+      if (!target) continue;
+      const resolved = path.resolve(dir, target);
+      if (!fs.existsSync(resolved)) {
+        throw new Error(`Broken link '${target}' in ${path.relative(rootDir, filePath)}`);
+      }
+    }
+  }
+});
+
 console.log(`CONSISTENCY SUMMARY: ${totalTests - failed}/${totalTests} passed`);
 if (failed > 0) process.exit(1);

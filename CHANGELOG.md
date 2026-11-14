@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.6.10] - 2026-11-14
+
+### Added
+- **YAML Frontmatter & Name Uniqueness Validation:** New automated tests in `consistency.test.mjs` ensuring all 14 agents and 20 skills have valid, non-duplicate frontmatter matching filenames/directories.
+- **Markdown References Integrity Check:** Automated validation verifying that all local relative links in `SKILL.md` and `references/*.md` resolve to existing files on disk.
+- **Fail-Open Resilience for External Models:** Explicit handling and unit tests for `tier=null` when non-Gemini models (Claude Sonnet, GPT-OSS) are active.
+- **E2E Smoke Verification Checklist:** Comprehensive 12-point manual and automated verification procedure in `TROUBLESHOOTING.md`.
+
+### Fixed
+- **Gate Log Session Isolation:** Guarded `logGateDecision` in `clean-edits-guard.mjs` and `qa-gate.mjs` with `isHermesSession` check, preventing accidental `.hermes/gate-log.jsonl` creation in standard user projects.
+- **Automatic Gate Log Rotation:** Enforced 512 KB size limit on `gate-log.jsonl` with automatic rotation to `gate-log.1.jsonl`.
+- **Async Consistency Test Runner:** Replaced synchronous error wrapper on dynamic imports with static ESM imports and top-level awaits, ensuring CI fails reliably on assertion errors.
+- **MIT License & Author Alignment:** Synced `package.json` with root `LICENSE` (`MIT`) and set author to `neon1301`.
+- **Whitelisted Low-Tier Pro Escalation:** Allowed `Model: "pro"` for UI designer `@elena` and complex write workers (`self`) even when Low tier is selected.
+- **Profile Generation in Protocols:** Mandated `.hermes/profile.json` creation in Phase 0 Handshake and Phase 5 `/hermes save` in `SKILL.md` and `fleet-protocol.md`.
+- **CI Counter Deduplication:** Removed duplicate inline checks (`14/20`) from `.github/workflows/ci.yml`, centralizing validation in `consistency.test.mjs`.
+
+---
+
 ## [3.6.9] - 2026-11-14
 
 ### Added
@@ -20,12 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`TROUBLESHOOTING.md`:** Comprehensive handbook for common deny triggers (Rule 8, Rule 9, Rule 12 Handshake/Tier Mismatch, Stop Gate).
 
 ### Fixed
-- Prevented non-Hermes pollution of `.hermes/gate-log.jsonl`: gate logger now guards against writes outside Hermes mode and automatically rotates logs exceeding 512KB.
-- Fixed `consistency.test.mjs` async test execution: replaced sync runner on dynamic imports with top-level awaits and static imports to prevent fictitious PASS results in CI.
-- Aligned `package.json` license to MIT and author to `neon1301`, backed by automated verification in `consistency.test.mjs`.
-- Whitelisted `Model: "pro"` escalation for `@elena` (UI/UX) and write workers (`self`) under Medium and Low tiers.
-- Mandated `.hermes/profile.json` generation in Phase 0 Handshake and Phase 5 `/hermes save` protocols.
-- Deduplicated inline manifest validation in `.github/workflows/ci.yml` to rely on `consistency.test.mjs` as the single source of truth.
 - Unblocked `Model: "inherit"` in `clean-edits-guard.mjs` to preserve Gemini 3.8 Flash (High) reasoning budget.
 - Added dynamic 503 error handling protocol (backoff retry ➔ fallback ➔ escalation) replacing pre-emptive model downgrades.
 - Protected `\bThree(?:\.js)?\b` regex with word boundaries in domain routing rules.
