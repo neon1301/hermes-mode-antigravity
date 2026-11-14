@@ -418,16 +418,73 @@ const cases = [
     })
   },
   {
-    name: 'allow_when_user_declines_post_edit_review_in_ask_question',
+    name: 'allow_when_user_declines_post_edit_review_on_non_ui_file',
     expected: 'allow',
     run: () => runGate({
-      conversationId: 'c_user_skip_review',
+      conversationId: 'c_user_skip_review_non_ui',
       terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t_user_skip_review', [
+      transcriptPath: writeTranscript('t_user_skip_review_non_ui', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug in service' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_skips_review_on_ui_file_without_ux_pass',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_user_skip_ui_no_ux_pass',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_skip_ui_no_ux_pass', [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix small typo in form' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Нет, не нужно (экономия токенов — сборка и тесты уже пройдены)' }
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_user_skips_review_on_ui_file_with_ux_pass',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_user_skip_ui_with_ux_pass',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_skip_ui_with_ux_pass', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak form layout' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)' },
+        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_gives_casual_dostatochno_answer',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_user_casual_dostatochno',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_casual_dostatochno', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update service logic' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: достаточно' }
+      ])
+    })
+  },
+  {
+    name: 'block_when_user_gives_casual_no_answer',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_user_casual_no',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_casual_no', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update service logic' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Services/OrderService.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: no' }
       ])
     })
   },

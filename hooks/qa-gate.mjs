@@ -353,24 +353,31 @@ const convId = String(payload?.conversationId || transcriptPath);
 const turnMarker = steps[lastUserIdx]?.step_index ?? lastUserIdx;
 const counterFile = getCounterFile(convId, turnMarker);
 
-// If the Orchestrator asked the user after edits whether to run verification and the user chose to skip (token economy), allow immediately
-if (
+// Token economy skip is strictly narrowed to explicit intent ("без проверки", "skip", "пропустить проверку").
+// Casual words like "нет", "не нужно", "достаточно", "no" do not skip verification to prevent accidental bypass.
+const isEconomySkipRequested =
   postEditAskIdx > lastWriteIdx &&
-  /(?:нет\b|не\s+нужно|не\s+запускать|экономия|без\s+проверки|достаточно|skip|no\b)/i.test(postEditAskAnswer)
-) {
+  /(?:без\s+проверки|skip\b|пропустить\s+проверк)/i.test(postEditAskAnswer);
+
+// In economy mode: allow immediately if no UI files were edited or if UX PASS is already granted.
+// If UI files were modified, UX review by Kritik is strictly required even in economy mode to prevent broken layouts.
+if (isEconomySkipRequested && (editedUiFiles.size === 0 || hasUxPass)) {
   cleanupCounter(counterFile);
   allow();
   process.exit(0);
 }
 
 const onlyUxRequested =
-  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
+  (postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer)) ||
+  (isEconomySkipRequested && editedUiFiles.size > 0);
 const onlyQaRequested =
-  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
+  !isEconomySkipRequested &&
+  postEditAskIdx > lastWriteIdx &&
+  /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
 
-const needQa = !onlyUxRequested;
+const needQa = !onlyUxRequested && !isEconomySkipRequested;
 const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;
-const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested;
+const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested && !isEconomySkipRequested;
 const missing = [];
 if (needQa && !hasQaPass) missing.push('[QA PASS] (Viktor)');
 if (needUx && !hasUxPass) missing.push('[UX PASS] (Kritik — проверка окон/дизайна после доработки)');
@@ -408,6 +415,8 @@ const teamHint = recommendedTeam.size > 0
   ? ` Подключите профильных специалистов по затронутым узлам: ${[...recommendedTeam].join(', ')}.`
   : '';
 
-blockStop(
-  `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку (${missing.join(', ')}) или завершить без проверки (экономия токенов)?» (Либо если пользователь уже подтвердил проверку — дождитесь ${missing.join(' и ')}).${teamHint}`
-);
+const blockReason = (isEconomySkipRequested && editedUiFiles.size > 0 && !hasUxPass)
+  ? `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): Режим экономии активирован (QA пропущен), но затронуты UI-файлы (${[...editedUiFiles].join(', ')}). Для исключения дефектов дизайна требуется вердикт [UX PASS] от Kritik.`
+  : `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку (${missing.join(', ')}) или завершить без проверки (экономия токенов)?» (Либо если пользователь уже подтвердил проверку — дождитесь ${missing.join(' и ')}).${teamHint}`;
+
+blockStop(blockReason);

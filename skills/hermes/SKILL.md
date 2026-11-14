@@ -50,11 +50,11 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 - **💰 Ask Before Launching Post-Edit Reviewers (Token Economy Gate):** After finishing code edits and passing the local build/tests, **NEVER launch verification subagents automatically!** First call **`ask_question`** to ask the user:
   - **Question:** `Я закончил доработку и проверил сборку. Запустить сотрудников на проверку (Viktor QA, Критик UX, Елена и др.)?`
   - **`options`:**
-    1. `(Recommended) Нет, не нужно (экономия токенов — сборка и тесты уже пройдены)`
+    1. `(Recommended) Без проверки (экономия токенов — сборка и тесты уже пройдены)`
     2. `Да, запустить рекомендуемых сотрудников на проверку`
     3. `Запустить только Критика + Елену (проверить окна и дизайн)`
     4. `Запустить только Виктора (QA и безопасность)`
-  - If the user selects **«Нет, не нужно»**, immediately finish and present the summary (0 subagent tokens spent).
+  - If the user selects **«Без проверки»**, immediately finish for non-UI code (0 subagent tokens spent). If UI files (windows/forms/styles/XAML) were modified, `qa-gate` strictly requires `[UX PASS]` from Kritik even in economy mode to prevent visual/ergonomic defects. Casual replies like "достаточно" or "no" will not bypass verification (explicit "без проверки" or "skip" required).
   - If the user selects **«Да...»**, launch ONLY the requested specialists (`@viktor`, `@kritik`, `@elena`, `@stanislav`) and wait for their reply.
 - **⏸️ Async Subagent Wait Rule (NEVER Kill Active Subagents or Fake Reports):** `invoke_subagent` and `send_message` run asynchronously in the background. Immediately after calling `invoke_subagent` or `send_message`, you MUST **STOP calling tools and end your turn** to wait for the `<SYSTEM_MESSAGE>` reply from every launched specialist. NEVER call `manage_subagents(action="kill" | "kill_all")` before their replies arrive (blocked by `PreToolUse`), and NEVER fabricate/hallucinate `[QA PASS]`, `[UX PASS]`, `[DESIGN PASS]`, or `[BACKEND PASS]` on behalf of subagents! Leave idle Read-Only specialists alive for pool reuse.
 

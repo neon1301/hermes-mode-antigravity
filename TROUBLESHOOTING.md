@@ -42,7 +42,7 @@ This guide explains the most common guard and gate notices, why they occur, and 
 ### 5. `Hermes Gate (Попытка N/2): изменено исходников: X`
 * **Message:** `Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку... или завершить без проверки?»`
 * **Why it happens:** Source code files were modified, and the Stop hook prevents silent exits without either running automated checks or giving the user the option to finish with token economy.
-* **Resolution:** Call `ask_question` asking the user whether to run verification (`[QA PASS]` via Viktor) or complete immediately. If the user chooses token economy (`skip`, `без проверки`), the gate immediately allows termination.
+* **Resolution:** Call `ask_question` asking the user whether to run verification (`[QA PASS]` via Viktor) or complete immediately. If the user chooses token economy (`skip`, `без проверки`), the gate allows termination for non-UI code. For UI files, `[UX PASS]` from Kritik is strictly required even in economy mode to guarantee layout and visual integrity. Casual replies (`достаточно`, `no`) do not bypass verification.
 
 ---
 

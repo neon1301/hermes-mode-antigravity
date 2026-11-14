@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E2E Smoke Verification Checklist:** Comprehensive 12-point manual and automated verification procedure in `TROUBLESHOOTING.md`.
 
 ### Fixed
+- **Narrowed Economy Gate & UI Protection:** Hardened `qa-gate.mjs` token economy skip regex to explicit intent (`без проверки`, `skip`, `пропустить проверку`), blocking casual phrases (`достаточно`, `no`, `нет`). Enforced mandatory `[UX PASS]` from Kritik even in economy mode if UI files were modified.
 - **Gate Log Session Isolation:** Guarded `logGateDecision` in `clean-edits-guard.mjs` and `qa-gate.mjs` with `isHermesSession` check, preventing accidental `.hermes/gate-log.jsonl` creation in standard user projects.
 - **Automatic Gate Log Rotation:** Enforced 512 KB size limit on `gate-log.jsonl` with automatic rotation to `gate-log.1.jsonl`.
 - **Async Consistency Test Runner:** Replaced synchronous error wrapper on dynamic imports with static ESM imports and top-level awaits, ensuring CI fails reliably on assertion errors.
