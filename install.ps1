@@ -72,22 +72,8 @@ foreach ($item in $items) {
 
 if (Get-Command node -ErrorAction SilentlyContinue) {
     Write-Host "`nRunning hook self-tests..." -ForegroundColor Cyan
-    node (Join-Path $targetDir "hooks\consistency.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "consistency.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\context-injector.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "context-injector.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\clean-edits-guard.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "clean-edits-guard.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\qa-gate.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\rule-engine.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "rule-engine.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\session-report.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "session-report.test.mjs failed" }
-    node (Join-Path $targetDir "hooks\eval-harness.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "eval-harness.test.mjs failed" }
-    node (Join-Path $targetDir "skills\compliance-policy-as-code\scripts\contract-validator.test.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "contract-validator.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\test-runner.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "test-runner.mjs failed" }
 }
 
 Write-Host "`nHermes Fleet v3.7.0 installed successfully!" -ForegroundColor Green

@@ -72,7 +72,16 @@ export function generateSessionReport(cwd = process.cwd()) {
     } catch {}
   }
 
-  // 4. Stale Data Warning (Rule 14)
+  // 4. Test Suite Summary (Rule 13 - Machine-verified from .hermes/test-summary.json)
+  let testSummary = null;
+  const testSummaryPath = path.join(hermesDir, 'test-summary.json');
+  if (fs.existsSync(testSummaryPath)) {
+    try {
+      testSummary = JSON.parse(fs.readFileSync(testSummaryPath, 'utf-8'));
+    } catch {}
+  }
+
+  // 5. Stale Data Warning (Rule 14)
   let staleWarning = '';
   if (gateStats.lastEvent !== 'нет данных') {
     const lastEventMs = Date.parse(gateStats.lastEvent);
@@ -80,6 +89,14 @@ export function generateSessionReport(cwd = process.cwd()) {
       staleWarning = '> [!WARNING]\n> Последнее зафиксированное событие в `.hermes/gate-log.jsonl` старше 24 часов. Данные могут быть устаревшими.\n\n';
     }
   }
+
+  const testSummaryRows = testSummary && Array.isArray(testSummary.suites)
+    ? testSummary.suites.map(s => `| **${s.name}** | ${s.passed} | ${s.total} | ${s.passed === s.total ? '✅ PASS' : '❌ FAIL'} |`).join('\n')
+    : '| *нет данных* | - | - | Запустите npm test или verify.ps1/sh |';
+
+  const testSummaryTotalRow = testSummary
+    ? `| **ИТОГО** | **${testSummary.passed}** | **${testSummary.total}** | **${testSummary.passed === testSummary.total ? '✅ ALL PASS' : '❌ FAIL'}** |`
+    : '| **ИТОГО** | *нет данных* | *нет данных* | - |';
 
   const report = [
     `# 📊 Отчёт о сессии Hermes Fleet Enterprise (/hermes report)`,
@@ -97,6 +114,16 @@ export function generateSessionReport(cwd = process.cwd()) {
     `| **Возвратов на доработку (continue)** | ${gateStats.continue} | \`.hermes/gate-log.jsonl\` |`,
     `| **Заблокировано политиками (deny)** | ${gateStats.deny} | \`.hermes/gate-log.jsonl\` |`,
     `| **Последнее событие гейта** | \`${gateStats.lastEvent}\` | \`.hermes/gate-log.jsonl\` |`,
+    ``,
+    `## 🧪 Результаты выполнения тест-сьютов (Rule 13)`,
+    ``,
+    `| Сьют | Пройдено | Всего | Статус |`,
+    `| :--- | :--- | :--- | :--- |`,
+    testSummaryRows,
+    testSummaryTotalRow,
+    ``,
+    `- **Источник метрик (Rule 13):** \`.hermes/test-summary.json\``,
+    `- **Время прогона тестов (Rule 14):** \`${testSummary?.timestamp || 'нет данных'}\``,
     ``,
     `## 📈 Активность инструментов и правки файлов`,
     ``,

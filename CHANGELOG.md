@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.7.0] - 2026-11-14
 
+### Final Release Verification & Grounded Test Accounting (F10–F11)
+- **Mechanical Test Accounting & Automated Summary (F10):** Ported test execution runner to `hooks/test-runner.mjs`. Verified actual clean-edits-guard test count of 93 (92 cases + 1 gate log isolation) and overall total of 276 tests across 8 suites. Automatically generates machine-verified `.hermes/test-summary.json` on every run of `npm test`, `verify.ps1`, `verify.sh`, and `install.ps1/sh`. `hooks/session-report.mjs` and `/hermes report` read metrics exclusively from this file adhering to Rule 13 (Data Honesty). Added consistency assertion in `consistency.test.mjs` verifying that `.hermes/test-summary.json` exists and matches the exact runner suite totals.
+- **Documentation & Path Alignment (F11):** Updated `README.md` Local CI section to reference all 8 test suites (was 5). Confirmed canonical monitor path at `skills/hermes/scripts/monitor.mjs` with 15 rules declaration. Synchronized eval-harness report breakdown to match exact deterministic fixture groupings (36 positive triggers, 24 negative fixtures, 8 structural/option checks = 68 tests).
+
 ### Enterprise Integration, Policy Contracts & Activity Accounting (Wave 3: REQ-7..REQ-11)
 - **7-Step Integration Ladder for Industrial & Enterprise Equipment (REQ-7):** Ported from `enterprise-integration`. Established a 7-tier architectural hierarchy (`Vendor MCP` → `Community MCP` → `Typed API/BAPI Wrapper` → `Read-Only Database View / CDS Views` → `Bridge Service` → `Screen Automation` → `Scheduled CSV/JSON Export`) under the core principle "Export is a designed path". Documented in `skills/industrial-equipment-research/references/integration-ladder.md` and `skills/sap-enterprise-automation/references/integration-ladder.md`. Updated specialist cards `@alexey` and `@ruslan` with pointers while strictly adhering to the `<= 5 KB` size constraint.
 - **Data Honesty, Report Freshness & System of Record Protection (REQ-8):** Added Rules 13, 14, and 15 to the Hermes Fleet Protocol:

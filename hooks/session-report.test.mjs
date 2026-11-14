@@ -33,6 +33,18 @@ test('session_report_generates_markdown_with_freshness_and_zero_token_fabricatio
     JSON.stringify({ editedFilesCount: 2, toolCallsCount: 5, event: 'Stop' })
   ].join('\n') + '\n', 'utf-8');
 
+  const testSummary = path.join(hermesDir, 'test-summary.json');
+  fs.writeFileSync(testSummary, JSON.stringify({
+    timestamp: new Date().toISOString(),
+    suites: [
+      { name: 'consistency', passed: 13, total: 13, status: 'PASS' },
+      { name: 'clean-edits-guard', passed: 93, total: 93, status: 'PASS' }
+    ],
+    passed: 106,
+    total: 106,
+    status: 'PASS'
+  }), 'utf-8');
+
   const report = generateSessionReport(tmpDir);
 
   if (!report.includes('# 📊 Отчёт о сессии Hermes Fleet Enterprise (/hermes report)')) {
@@ -52,6 +64,12 @@ test('session_report_generates_markdown_with_freshness_and_zero_token_fabricatio
   }
   if (!report.includes('| **Возвратов на доработку (continue)** | 1 |')) {
     throw new Error('Gate continue count mismatch');
+  }
+  if (!report.includes('| **clean-edits-guard** | 93 | 93 | ✅ PASS |')) {
+    throw new Error('Test summary report mismatch');
+  }
+  if (!report.includes('| **ИТОГО** | **106** | **106** | **✅ ALL PASS** |')) {
+    throw new Error('Test summary total row mismatch');
   }
 });
 

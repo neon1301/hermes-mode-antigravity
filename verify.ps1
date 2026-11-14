@@ -48,5 +48,10 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+if (-not (Test-Path ".hermes/test-summary.json")) {
+    Write-Error "❌ .hermes/test-summary.json was not generated!"
+    exit 1
+}
+
 Write-Host "[hermes] LOCAL CI PASS" -ForegroundColor Green
 exit 0

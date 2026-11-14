@@ -57,14 +57,7 @@ done
 
 echo ""
 echo "Running hook self-tests..."
-node "${TARGET_DIR}/hooks/consistency.test.mjs"
-node "${TARGET_DIR}/hooks/context-injector.test.mjs"
-node "${TARGET_DIR}/hooks/clean-edits-guard.test.mjs"
-node "${TARGET_DIR}/hooks/qa-gate.test.mjs"
-node "${TARGET_DIR}/hooks/rule-engine.test.mjs"
-node "${TARGET_DIR}/hooks/session-report.test.mjs"
-node "${TARGET_DIR}/hooks/eval-harness.test.mjs"
-node "${TARGET_DIR}/skills/compliance-policy-as-code/scripts/contract-validator.test.mjs"
+node "${TARGET_DIR}/hooks/test-runner.mjs"
 
 echo ""
 echo "=========================================="

@@ -35,5 +35,10 @@ node -e "
 echo "🧪 Running test suites (npm test)..."
 npm test
 
+if [ ! -f ".hermes/test-summary.json" ]; then
+  echo "❌ .hermes/test-summary.json was not generated!" >&2
+  exit 1
+fi
+
 echo "[hermes] LOCAL CI PASS"
 exit 0

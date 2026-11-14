@@ -291,6 +291,44 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
 
   const evalPath = path.join(rootDir, 'hooks', 'eval-harness.test.mjs');
   if (!fs.existsSync(evalPath)) throw new Error('Missing eval-harness.test.mjs');
+
+  const runnerPath = path.join(rootDir, 'hooks', 'test-runner.mjs');
+  if (!fs.existsSync(runnerPath)) throw new Error('Missing test-runner.mjs');
+
+  // Verify test-summary.json consistency (Rule 13 - Mechanical Grounding)
+  const summaryPath = path.join(rootDir, '.hermes', 'test-summary.json');
+  if (!fs.existsSync(summaryPath)) {
+    throw new Error('.hermes/test-summary.json missing! Run npm test or verify.ps1/sh to generate.');
+  }
+  const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+  if (!Array.isArray(summary.suites) || summary.suites.length !== 8) {
+    throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
+  }
+  const expectedBreakdown = {
+    'consistency': 13,
+    'context-injector': 13,
+    'clean-edits-guard': 93,
+    'qa-gate': 58,
+    'rule-engine': 20,
+    'session-report': 2,
+    'eval-harness': 68,
+    'contract-validator': 9
+  };
+  for (const [suiteName, expTotal] of Object.entries(expectedBreakdown)) {
+    const s = summary.suites.find(x => x.name === suiteName);
+    if (!s) throw new Error(`Missing suite '${suiteName}' in test-summary.json`);
+    if (s.total !== expTotal || s.passed !== expTotal) {
+      throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
+    }
+  }
+  if (summary.total !== 276 || summary.passed !== 276) {
+    throw new Error(`test-summary.json expected total=276, passed=276, got total=${summary.total}, passed=${summary.passed}`);
+  }
+  const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
+  const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
+  if (sumTotal !== summary.total || sumPassed !== summary.passed) {
+    throw new Error('Sum of suite totals does not match summary total/passed');
+  }
 });
 
 console.log(`CONSISTENCY SUMMARY: ${totalTests - failed}/${totalTests} passed`);
