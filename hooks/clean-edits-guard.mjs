@@ -266,6 +266,39 @@ if (toolName === 'invoke_subagent') {
             process.exit(0);
           }
         }
+
+        if (HERMES_AGENTS.has(subType)) {
+          const tailSteps = parseJsonl(tailText);
+          let lastUserIdx = -1;
+          for (let i = 0; i < tailSteps.length; i++) {
+            if (isRealUserStep(tailSteps[i])) lastUserIdx = i;
+          }
+          const turnSteps = tailSteps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
+          let lastWriteIdx = -1;
+          let postEditAskIdx = -1;
+          for (let i = 0; i < turnSteps.length; i++) {
+            for (const tc of collectToolCalls(turnSteps[i])) {
+              const tcName = String(tc?.name || '').toLowerCase();
+              const tcArgs = tc?.args || {};
+              if (tcName === 'ask_question' && lastWriteIdx >= 0) {
+                postEditAskIdx = i;
+              }
+              if (FILE_WRITE_TOOLS.has(tcName)) {
+                const p = String(tcArgs.Path || tcArgs.TargetFile || tcArgs.AbsolutePath || tcArgs.path || '');
+                if (SOURCE_CODE_EXT_RE.test(p)) {
+                  lastWriteIdx = i;
+                  postEditAskIdx = -1;
+                }
+              }
+            }
+          }
+          if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx) {
+            deny(
+              'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»'
+            );
+            process.exit(0);
+          }
+        }
       } catch {
         // Ignore transcript read errors
       }

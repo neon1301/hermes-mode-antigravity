@@ -416,6 +416,35 @@ const cases = [
         { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX REJECT] переделать отступы в окне перед [UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
+  },
+  {
+    name: 'allow_when_user_declines_post_edit_review_in_ask_question',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_user_skip_review',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_user_skip_review', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix small typo in form' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: (Recommended) Нет, не нужно (экономия токенов — сборка и тесты уже пройдены)' }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_user_requests_only_mozgoeb_ux_and_ux_pass_arrives',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_only_ux_requested',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_only_ux_requested', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak window padding' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
+        { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: Запустить только Мозгоеба + Елену (проверить окна и дизайн)' },
+        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
   }
 ];
 

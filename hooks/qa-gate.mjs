@@ -216,6 +216,9 @@ const touchedSnapshots = [];
 let hasQaPass = false;
 let hasUxPass = false;
 let hasCompliancePass = false;
+let lastWriteIdx = -1;
+let postEditAskIdx = -1;
+let postEditAskAnswer = '';
 
 const nonAuditorSubagentIds = new Set();
 let pendingNonAuditorCount = 0;
@@ -246,7 +249,8 @@ for (const s of turnSteps) {
 
 const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|UX|COMPLIANCE)\s+PASS\]/gi;
 
-for (const s of turnSteps) {
+for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
+  const s = turnSteps[stepIdx];
   // Only accept verdicts from real incoming subagent deliveries, never from MODEL prose/thinking, outgoing send_message, or Stop-hook self-reminders
   if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
     const sysText = String(s?.content || '');
@@ -265,9 +269,17 @@ for (const s of turnSteps) {
     }
   }
 
+  if (postEditAskIdx >= 0 && stepIdx > postEditAskIdx && String(s?.type || '').toUpperCase() === 'GENERIC') {
+    postEditAskAnswer += '\n' + String(s?.content || '');
+  }
+
   for (const tc of collectToolCalls(s)) {
     const name = String(tc?.name || '').toLowerCase();
     const args = tc?.args || {};
+    if (name === 'ask_question' && lastWriteIdx >= 0) {
+      postEditAskIdx = stepIdx;
+      postEditAskAnswer = '';
+    }
     if (WRITE_TOOL_NAMES.has(name)) {
       const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
       if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
@@ -278,6 +290,9 @@ for (const s of turnSteps) {
         if (UI_SOURCE_FILE_RE.test(targetPath)) {
           editedUiFiles.add(normPath);
         }
+        lastWriteIdx = stepIdx;
+        postEditAskIdx = -1;
+        postEditAskAnswer = '';
         // A new source edit invalidates earlier QA/UX/Compliance approvals in the same turn
         hasQaPass = false;
         hasUxPass = false;
@@ -292,16 +307,32 @@ if (editedSourceFiles.size === 0) {
   process.exit(0);
 }
 
-const needUx = editedUiFiles.size > 0;
-const needCompliance = editedSourceFiles.size >= 4;
-const missing = [];
-if (!hasQaPass) missing.push('[QA PASS] (Viktor)');
-if (needUx && !hasUxPass) missing.push('[UX PASS] (Mozgoeb — проверка окон/дизайна после доработки)');
-if (needCompliance && !hasCompliancePass) missing.push('[COMPLIANCE PASS] (Stanislav)');
-
 const convId = String(payload?.conversationId || transcriptPath);
 const turnMarker = steps[lastUserIdx]?.step_index ?? lastUserIdx;
 const counterFile = getCounterFile(convId, turnMarker);
+
+// If the Orchestrator asked the user after edits whether to run verification and the user chose to skip (token economy), allow immediately
+if (
+  postEditAskIdx > lastWriteIdx &&
+  /(?:нет\b|не\s+нужно|не\s+запускать|экономия|без\s+проверки|достаточно|skip|no\b)/i.test(postEditAskAnswer)
+) {
+  cleanupCounter(counterFile);
+  allow();
+  process.exit(0);
+}
+
+const onlyUxRequested =
+  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:мозгоеб|mozgoeb|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
+const onlyQaRequested =
+  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
+
+const needQa = !onlyUxRequested;
+const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;
+const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested;
+const missing = [];
+if (needQa && !hasQaPass) missing.push('[QA PASS] (Viktor)');
+if (needUx && !hasUxPass) missing.push('[UX PASS] (Mozgoeb — проверка окон/дизайна после доработки)');
+if (needCompliance && !hasCompliancePass) missing.push('[COMPLIANCE PASS] (Stanislav)');
 
 if (missing.length === 0) {
   cleanupCounter(counterFile);
@@ -336,5 +367,5 @@ const teamHint = recommendedTeam.size > 0
   : '';
 
 blockStop(
-  `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Перед завершением получите ${missing.join(' и ')}.${teamHint}`
+  `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку (${missing.join(', ')}) или завершить без проверки (экономия токенов)?» (Либо если пользователь уже подтвердил проверку — дождитесь ${missing.join(' и ')}).${teamHint}`
 );

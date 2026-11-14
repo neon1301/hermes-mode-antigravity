@@ -45,13 +45,17 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 - **Model Profile:** Pass selected model tier to subagents (`flash_lite` for Flash Low; ALWAYS explicit `Model: "flash"` for Flash Med/High — never `"inherit"` on Flash High to avoid `503 No capacity` server errors; `pro` for Hydrogen/Argon; `inherit` + `[MODEL_PROFILE]` for Claude/GPT-OSS).
 - **Clean Edits & Zero-Hardcode:** Use `edit_file`/`write_file` only (no patch scripts). Follow contracts (`[CONTRACT PROPOSAL]` ➔ `[CONTRACT ACKNOWLEDGED]`). Dynamic config only (Rule 9).
 
-### Phase 4: Single Build Gate, Post-Edit UX Review (`@mozgoeb` / `@elena`), QA & Compliance ([`references/git-auto-rollback.md`](references/git-auto-rollback.md))
-- **Single Build Gate:** Workers do not run parallel builds. Lead runs build/tests once per wave. Up to 3 self-healing attempts before auto-revert.
-- **Post-Edit Design & Window Impact Check (`@elena` + `@mozgoeb`):** After any code change, Lead MUST evaluate: *Does this change affect windows/forms/UI, or should a window be updated/redesigned so users & developers love how it looks and works?* If a feature/setting was changed without updating the window, engage **`@elena`** to design/update the window controls.
-- **Triple Quality Barrier (`[QA PASS]` + `[UX PASS]` + `[COMPLIANCE PASS]`):**
-  - **Viktor (`@viktor`):** Technical & security verification (`[QA PASS]`, validating all `REQ-1..REQ-N` and `N of N` sweeps).
-  - **Mozgoeb (`@mozgoeb` — Post-Edit UX Gate):** Mandatory whenever windows, forms, controls, styles, or user workflows were modified. Mozgoeb inspects the modified files after rework to verify ergonomics, visual craft, scrollbars, popups, and layout harmony (`🟢 [UX PASS]` or `🔴 [UX REJECT: что переделать в окне через @elena]`). Enforced by the Stop hook (`qa-gate.mjs`).
-  - **Stanislav (`@stanislav`):** Fleet compliance gate (`[COMPLIANCE PASS]`).
+### Phase 4: Single Build Gate & User-Confirmed Verification (`ask_question` Token Economy Gate)
+- **Single Build Gate:** Workers do not run parallel builds. Lead runs build/tests once per wave (`dotnet build`, `dotnet test`, `pytest`, `tsc`). Up to 3 self-healing attempts before auto-revert.
+- **💰 Ask Before Launching Post-Edit Reviewers (Token Economy Gate):** After finishing code edits and passing the local build/tests, **NEVER launch verification subagents automatically!** First call **`ask_question`** to ask the user:
+  - **Question:** `Я закончил доработку и проверил сборку. Запустить сотрудников на проверку (Viktor QA, Мозгоеб UX, Елена и др.)?`
+  - **`options`:**
+    1. `(Recommended) Нет, не нужно (экономия токенов — сборка и тесты уже пройдены)`
+    2. `Да, запустить рекомендуемых сотрудников на проверку`
+    3. `Запустить только Мозгоеба + Елену (проверить окна и дизайн)`
+    4. `Запустить только Виктора (QA и безопасность)`
+  - If the user selects **«Нет, не нужно»**, immediately finish and present the summary (0 subagent tokens spent).
+  - If the user selects **«Да...»**, launch ONLY the requested specialists (`@viktor`, `@mozgoeb`, `@elena`, `@stanislav`) and wait for their reply.
 - **⏸️ Async Subagent Wait Rule (NEVER Kill Active Subagents or Fake Reports):** `invoke_subagent` and `send_message` run asynchronously in the background. Immediately after calling `invoke_subagent` or `send_message`, you MUST **STOP calling tools and end your turn** to wait for the `<SYSTEM_MESSAGE>` reply from every launched specialist. NEVER call `manage_subagents(action="kill" | "kill_all")` before their replies arrive (blocked by `PreToolUse`), and NEVER fabricate/hallucinate `[QA PASS]`, `[UX PASS]`, `[DESIGN PASS]`, or `[BACKEND PASS]` on behalf of subagents! Leave idle Read-Only specialists alive for pool reuse.
 
 ### Phase 5: Autonomous Steering & Commands
