@@ -42,8 +42,8 @@ const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
 
 const DOMAIN_ROUTING_RULES = [
   {
-    agents: ['@elena (дизайн/окна)', '@mozgoeb (пост-проверка UX)'],
-    keys: ['elena', 'mozgoeb'],
+    agents: ['@elena (дизайн/окна)', '@kritik (пост-проверка UX)'],
+    keys: ['elena', 'kritik'],
     re: /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
   },
   {
@@ -230,7 +230,7 @@ for (const s of turnSteps) {
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
       if (typeName) invokedSpecialists.add(typeName);
-      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'mozgoeb') {
+      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'kritik' && typeName !== 'mozgoeb') {
         pendingNonAuditorCount++;
       }
     }
@@ -322,7 +322,7 @@ if (
 }
 
 const onlyUxRequested =
-  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:мозгоеб|mozgoeb|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
+  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|мозгоеб|mozgoeb|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
 const onlyQaRequested =
   postEditAskIdx > lastWriteIdx && /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
 
@@ -331,7 +331,7 @@ const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;
 const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested;
 const missing = [];
 if (needQa && !hasQaPass) missing.push('[QA PASS] (Viktor)');
-if (needUx && !hasUxPass) missing.push('[UX PASS] (Mozgoeb — проверка окон/дизайна после доработки)');
+if (needUx && !hasUxPass) missing.push('[UX PASS] (Kritik — проверка окон/дизайна после доработки)');
 if (needCompliance && !hasCompliancePass) missing.push('[COMPLIANCE PASS] (Stanislav)');
 
 if (missing.length === 0) {
@@ -359,8 +359,8 @@ for (const rule of DOMAIN_ROUTING_RULES) {
     }
   }
 }
-if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('mozgoeb')) {
-  recommendedTeam.add('@elena / @mozgoeb (оцените: не нужно ли после изменений кода переделать окна/дизайн?)');
+if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('kritik') && !invokedSpecialists.has('mozgoeb')) {
+  recommendedTeam.add('@elena / @kritik (оцените: не нужно ли после изменений кода переделать окна/дизайн?)');
 }
 const teamHint = recommendedTeam.size > 0
   ? ` Подключите профильных специалистов по затронутым узлам: ${[...recommendedTeam].join(', ')}.`

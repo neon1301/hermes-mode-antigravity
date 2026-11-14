@@ -27,7 +27,8 @@ $items = @(
 
 # Items shipped by older versions that must not linger in the target (e.g. always-on rules/AGENTS.md before v3.6.7)
 $staleItems = @(
-    "rules"
+    "rules",
+    "agents\mozgoeb.md"
 )
 
 foreach ($stale in $staleItems) {
@@ -62,5 +63,5 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 
 Write-Host "`nHermes Fleet v3.6.7 installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
-Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @mozgoeb, @viktor, @stanislav" -ForegroundColor Cyan
+Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan

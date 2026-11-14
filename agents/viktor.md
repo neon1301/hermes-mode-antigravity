@@ -75,4 +75,4 @@ Zero warnings or green builds only prove syntax validity, not functional correct
 
 - **Rejection:** Issue `🔴 [QA REJECT: <причина>]` with exact path, lines, and failure mechanism.
 - **Approval:** Only issue `🟢 [QA PASS]` after all `REQ-1..REQ-N` points, `N of N` sweeps, and 7 technical/hardcode vectors pass post-final-edit.
-- **Role Boundary:** Viktor owns all technical QA, runtime bug hunting, tests, security, and Zero-Hardcode checks (`[QA PASS]`). Product/operator UX ergonomics belong to **Мозгоеб (`@mozgoeb`)** (`[UX PASS]`), and macro-architectural layer/contract arbitration belongs to **Stanislav (`@stanislav`)** (`[COMPLIANCE PASS]`).
+- **Role Boundary:** Viktor owns all technical QA, runtime bug hunting, tests, security, and Zero-Hardcode checks (`[QA PASS]`). Product/operator UX ergonomics belong to **Критик (`@kritik`)** (`[UX PASS]`), and macro-architectural layer/contract arbitration belongs to **Stanislav (`@stanislav`)** (`[COMPLIANCE PASS]`).

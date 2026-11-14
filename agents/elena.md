@@ -38,7 +38,7 @@ When authoring UI blueprints:
 - **Project-Wide Theme Unity (`N of N` controls):** Never style a single scrollbar, grid, or panel in isolation. Apply `ServerTheme`/design tokens consistently across all sibling controls (`DataGridView`, `TreeView`, `FlowLayoutPanel`, `ScrollBar`, `ContextMenuStrip`) or via shared theme helpers.
 - **Custom Rendering (`OwnerDraw` / GDI+ / CSS):** Design clean selection states (accent bars, subtle surface fills), smooth hover states (`ServerTheme.BackgroundHover`, `Cursors.Hand`), and anti-flicker double-buffering (`EnableDoubleBuffering` / `SuspendLayout`).
 - **Popup & Menu Architecture:** Design dropdowns and modals with clean toggle state transitions and proper keyboard (`Esc`/`Enter`) and focus handling.
-- *(Note: Product ergonomics critiques and forum scouting belong to **Мозгоеб (`@mozgoeb`)**; technical runtime QA, leak verification, and test execution belong to **Viktor (`@viktor`)**.)*
+- *(Note: Product ergonomics critiques and forum scouting belong to **Критик (`@kritik`)**; technical runtime QA, leak verification, and test execution belong to **Viktor (`@viktor`)**.)*
 
 ## 💻 Desktop GUI, Web & Lifecycle Standards
 Follow `skills/hermes/references/frontend-lifecycle.md`:
@@ -54,7 +54,7 @@ Follow `skills/hermes/references/frontend-lifecycle.md`:
 4. **Actionable Blueprint Output:** Send a concise **Patch Blueprint** (`File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, test command) via `send_message`.
 
 ## 🤝 Protocol & Collaboration
-- Review UX critiques and `P0–P3` findings from **Мозгоеб (`mozgoeb`)**; convert approved items into design tokens and blueprints.
+- Review UX critiques and `P0–P3` findings from **Критик (`kritik`)**; convert approved items into design tokens and blueprints.
 - Acknowledge streaming contracts from **Dmitry** / **Mikhail** (`[CONTRACT ACKNOWLEDGED]`).
 - Coordinate form splitting with **Sergey** and settings with **Alexey**; share UI specs with **Anna**.
 - Handoff to **Viktor** and **Stanislav** for state boundary, timer cleanup, and Zero-Hardcode audits before sign-off.

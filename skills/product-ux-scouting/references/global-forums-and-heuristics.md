@@ -1,6 +1,6 @@
 # 🌍 Global Forums Directory, Ergonomic Laws & 5-Point Vetting Matrix
 
-Authoritative knowledge base for **Мозгоеб (`@mozgoeb`)** and the Hermes Fleet. Covers international dev forums, cognitive/ergonomic laws, Nielsen heuristics, and strict adoption gating.
+Authoritative knowledge base for **Критик (`@kritik`)** and the Hermes Fleet. Covers international dev forums, cognitive/ergonomic laws, Nielsen heuristics, and strict adoption gating.
 
 ---
 

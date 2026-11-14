@@ -61,7 +61,7 @@ const cases = [
     name: 'skip_full_protocol_on_single_specialist_mention',
     check: (res) => !res.injectSteps,
     run: () => runInjector({
-      lastUserInput: '@мозгоеб прожарь интерфейс'
+      lastUserInput: '@критик прожарь интерфейс'
     })
   },
   {

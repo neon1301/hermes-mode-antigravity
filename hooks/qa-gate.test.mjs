@@ -314,13 +314,13 @@ const cases = [
     })
   },
   {
-    name: 'trigger_gate_on_cyrillic_at_mozgoeb',
+    name: 'trigger_gate_on_cyrillic_at_kritik',
     expected: 'continue',
     run: () => runGate({
-      conversationId: 'c_cyrillic_mozgoeb',
+      conversationId: 'c_cyrillic_kritik',
       terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t_cyrillic_mozgoeb', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@мозгоеб поправь и проверь' },
+      transcriptPath: writeTranscript('t_cyrillic_kritik', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@критик поправь и проверь' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/ui.tsx' } }] }
       ])
     })
@@ -377,7 +377,7 @@ const cases = [
     })
   },
   {
-    name: 'continue_when_ui_window_edited_without_mozgoeb_ux_pass',
+    name: 'continue_when_ui_window_edited_without_kritik_ux_pass',
     expected: 'continue',
     run: () => runGate({
       conversationId: 'c_ui_missing_ux_pass',
@@ -390,7 +390,7 @@ const cases = [
     })
   },
   {
-    name: 'allow_when_ui_window_edited_with_qa_pass_and_mozgoeb_ux_pass',
+    name: 'allow_when_ui_window_edited_with_qa_pass_and_kritik_ux_pass',
     expected: 'allow',
     run: () => runGate({
       conversationId: 'c_ui_with_ux_pass',
@@ -399,12 +399,12 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix popup window flicker' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/UI/PopupWindow.cs' } }] },
         { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
-        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX PASS]</SYSTEM_MESSAGE>' }
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   },
   {
-    name: 'continue_when_mozgoeb_returns_ux_reject',
+    name: 'continue_when_kritik_returns_ux_reject',
     expected: 'continue',
     run: () => runGate({
       conversationId: 'c_ui_ux_reject',
@@ -413,7 +413,7 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix settings form' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/SettingsForm.cs' } }] },
         { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
-        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX REJECT] переделать отступы в окне перед [UX PASS]</SYSTEM_MESSAGE>' }
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX REJECT] переделать отступы в окне перед [UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   },
@@ -432,7 +432,7 @@ const cases = [
     })
   },
   {
-    name: 'allow_when_user_requests_only_mozgoeb_ux_and_ux_pass_arrives',
+    name: 'allow_when_user_requests_only_kritik_ux_and_ux_pass_arrives',
     expected: 'allow',
     run: () => runGate({
       conversationId: 'c_only_ux_requested',
@@ -441,8 +441,8 @@ const cases = [
         { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak window padding' },
         { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/MainForm.cs' } }] },
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] },
-        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: Запустить только Мозгоеба + Елену (проверить окна и дизайн)' },
-        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX PASS]</SYSTEM_MESSAGE>' }
+        { step_index: 3, source: 'MODEL', type: 'GENERIC', content: 'A1: Запустить только Критика + Елену (проверить окна и дизайн)' },
+        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="kritik">[UX PASS]</SYSTEM_MESSAGE>' }
       ])
     })
   }
