@@ -37,6 +37,7 @@ const WRITE_TOOL_NAMES = new Set([
 ]);
 
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte)$/i;
+const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
 
 function readStdin() {
@@ -171,7 +172,9 @@ if (!hermesActive) {
 const artifactDir = String(payload?.artifactDirectoryPath || '');
 const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
 const editedSourceFiles = new Set();
+const editedUiFiles = new Set();
 let hasQaPass = false;
+let hasUxPass = false;
 let hasCompliancePass = false;
 
 const nonAuditorSubagentIds = new Set();
@@ -183,7 +186,7 @@ for (const s of turnSteps) {
     const args = tc?.args || {};
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
-      if (typeName !== 'viktor' && typeName !== 'stanislav') {
+      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'mozgoeb') {
         pendingNonAuditorCount++;
       }
     }
@@ -200,7 +203,7 @@ for (const s of turnSteps) {
   }
 }
 
-const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|COMPLIANCE)\s+PASS\]/gi;
+const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|UX|COMPLIANCE)\s+PASS\]/gi;
 
 for (const s of turnSteps) {
   // Only accept verdicts from real incoming subagent deliveries, never from MODEL prose/thinking, outgoing send_message, or Stop-hook self-reminders
@@ -215,6 +218,7 @@ for (const s of turnSteps) {
       if (!isFromNonAuditor) {
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) hasQaPass = true;
+        if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) hasUxPass = true;
         if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
       }
     }
@@ -226,9 +230,14 @@ for (const s of turnSteps) {
     if (WRITE_TOOL_NAMES.has(name)) {
       const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
       if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
-        editedSourceFiles.add(path.normalize(targetPath));
-        // A new source edit invalidates earlier QA/Compliance approvals in the same turn
+        const normPath = path.normalize(targetPath);
+        editedSourceFiles.add(normPath);
+        if (UI_SOURCE_FILE_RE.test(targetPath)) {
+          editedUiFiles.add(normPath);
+        }
+        // A new source edit invalidates earlier QA/UX/Compliance approvals in the same turn
         hasQaPass = false;
+        hasUxPass = false;
         hasCompliancePass = false;
       }
     }
@@ -240,9 +249,11 @@ if (editedSourceFiles.size === 0) {
   process.exit(0);
 }
 
+const needUx = editedUiFiles.size > 0;
 const needCompliance = editedSourceFiles.size >= 4;
 const missing = [];
 if (!hasQaPass) missing.push('[QA PASS] (Viktor)');
+if (needUx && !hasUxPass) missing.push('[UX PASS] (Mozgoeb — проверка окон/дизайна после доработки)');
 if (needCompliance && !hasCompliancePass) missing.push('[COMPLIANCE PASS] (Stanislav)');
 
 const convId = String(payload?.conversationId || transcriptPath);

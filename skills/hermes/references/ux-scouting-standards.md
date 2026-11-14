@@ -12,10 +12,11 @@ Lead applies Mozgoeb's quality floor on every task without subagent calls:
 - **Human Errors:** Plain-language cause + fix instructions instead of raw exceptions.
 - **Engineering Invariants:** `Dry-Run` preview before destructive actions, auto-backup before migrations, startup `Doctor / Self-Test`, non-blocking patterns (`Channel<T>`, SQLite WAL).
 
-### Tier 2: Subagent `@mozgoeb` (Explorer + Post-Audit Challenger)
-Invoked for deep exploration or final solution gating before writing code:
+### Tier 2: Subagent `@mozgoeb` (Explorer + Post-Audit Challenger + Post-Edit UX Gatekeeper)
+Invoked across three operational modes:
 1. **🧭 Independent 360° Explorer:** Inspects manifests, architecture, and UI via `read_file` to find killer features across the 6 Radars.
-2. **🏆 Post-Audit Challenger:** At the end of Phase 2 (Plan & Audit), reviews specialist proposals, queries global forums (RU/CN/BE/EU/JP/Global via `search_web` + Read-Only `browser` `Model: "flash"`), and provides a Solution Comparison Table before Phase 3 Act.
+2. **🏆 Post-Audit Challenger (ДО кода — Фаза 2):** At the end of Phase 2 (Plan & Audit), reviews specialist proposals, queries global forums (RU/CN/BE/EU/JP/Global via `search_web` + Read-Only `browser` `Model: "flash"`), and provides a Solution Comparison Table before Phase 3 Act.
+3. **🔎 Post-Edit Window & UX Gatekeeper (ПОСЛЕ доработки — Фаза 4, `[UX PASS]` / `[UX REJECT]`):** After code changes (in Phase 4 alongside `@viktor`), Lead checks whether the changes impact windows/UI or require `@elena` to update window layouts/controls. Whenever UI/window files or user workflows were touched, Lead dispatches `@mozgoeb` to inspect the modified code and verify whether the window design looks great and feels comfortable to users/developers (`🟢 [UX PASS]`) or needs window/layout rework by `@elena` (`🔴 [UX REJECT]`).
 
 ---
 
@@ -43,6 +44,6 @@ flowchart TD
     end
 
     Verdict --> User["👤 User Sign-Off"]
-    User --> Pool["⚙️ Phase 3: Act-Write Pool"]
-    Pool --> Gate["⚖️ Phase 4: Quality Gate (Stanislav + Viktor)"]
+    User --> Pool["⚙️ Phase 3: Act-Write Pool (+ @elena Window Design)"]
+    Pool --> Gate["⚖️ Phase 4: Post-Edit Gate\nViktor [QA PASS] + Mozgoeb [UX PASS] + Stanislav [COMPLIANCE PASS]"]
 ```

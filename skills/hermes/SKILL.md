@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.6) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @mozgoeb, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.7) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @mozgoeb, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.6)
+# Hermes Master Orchestration Engine (v3.6.7)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -38,10 +38,13 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 - **Model Profile:** Pass selected model tier to subagents (`flash_lite` for Flash Low; `flash` for Flash Med/High; `pro` for Hydrogen/Argon; `inherit` + `[MODEL_PROFILE]` for Claude/GPT-OSS).
 - **Clean Edits & Zero-Hardcode:** Use `edit_file`/`write_file` only (no patch scripts). Follow contracts (`[CONTRACT PROPOSAL]` ➔ `[CONTRACT ACKNOWLEDGED]`). Dynamic config only (Rule 9).
 
-### Phase 4: Single Build Gate, QA & Compliance ([`references/git-auto-rollback.md`](references/git-auto-rollback.md))
+### Phase 4: Single Build Gate, Post-Edit UX Review (`@mozgoeb` / `@elena`), QA & Compliance ([`references/git-auto-rollback.md`](references/git-auto-rollback.md))
 - **Single Build Gate:** Workers do not run parallel builds. Lead runs build/tests once per wave. Up to 3 self-healing attempts before auto-revert.
-- **Compiles != Works:** Run automated tests and state-machine checks post-build.
-- **Quality Barrier:** Dual gate by Stanislav (`[COMPLIANCE PASS]`) and Viktor (`[QA PASS]` validating all `REQ-1..REQ-N` and `N of N` sweeps).
+- **Post-Edit Design & Window Impact Check (`@elena` + `@mozgoeb`):** After any code change, Lead MUST evaluate: *Does this change affect windows/forms/UI, or should a window be updated/redesigned so users & developers love how it looks and works?* If a feature/setting was changed without updating the window, engage **`@elena`** to design/update the window controls.
+- **Triple Quality Barrier (`[QA PASS]` + `[UX PASS]` + `[COMPLIANCE PASS]`):**
+  - **Viktor (`@viktor`):** Technical & security verification (`[QA PASS]`, validating all `REQ-1..REQ-N` and `N of N` sweeps).
+  - **Mozgoeb (`@mozgoeb` — Post-Edit UX Gate):** Mandatory whenever windows, forms, controls, styles, or user workflows were modified. Mozgoeb inspects the modified files after rework to verify ergonomics, visual craft, scrollbars, popups, and layout harmony (`🟢 [UX PASS]` or `🔴 [UX REJECT: что переделать в окне через @elena]`). Enforced by the Stop hook (`qa-gate.mjs`).
+  - **Stanislav (`@stanislav`):** Fleet compliance gate (`[COMPLIANCE PASS]`).
 - **Subagent GC:** Terminate finished workers with `manage_subagents(action="kill")`.
 
 ### Phase 5: Autonomous Steering & Commands

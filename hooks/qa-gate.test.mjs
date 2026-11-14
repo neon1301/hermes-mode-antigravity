@@ -375,6 +375,47 @@ const cases = [
         { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender=11111111-2222-3333-4444-555555555555 content=🟢 [QA PASS] [COMPLIANCE PASS]>' }
       ])
     })
+  },
+  {
+    name: 'continue_when_ui_window_edited_without_mozgoeb_ux_pass',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_ui_missing_ux_pass',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_ui_missing_ux_pass', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix popup window flicker' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/UI/PopupWindow.cs' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
+  },
+  {
+    name: 'allow_when_ui_window_edited_with_qa_pass_and_mozgoeb_ux_pass',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_ui_with_ux_pass',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_ui_with_ux_pass', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix popup window flicker' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/UI/PopupWindow.cs' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
+  },
+  {
+    name: 'continue_when_mozgoeb_returns_ux_reject',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_ui_ux_reject',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_ui_ux_reject', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix settings form' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/Forms/SettingsForm.cs' } }] },
+        { step_index: 2, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="viktor">[QA PASS]</SYSTEM_MESSAGE>' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="mozgoeb">[UX REJECT] переделать отступы в окне перед [UX PASS]</SYSTEM_MESSAGE>' }
+      ])
+    })
   }
 ];
 
