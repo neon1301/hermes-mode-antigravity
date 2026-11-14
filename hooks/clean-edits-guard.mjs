@@ -44,6 +44,52 @@ function deny(reason) {
   process.stdout.write(JSON.stringify({ decision: 'deny', reason }));
 }
 
+function detectSelectedTier({ checkpointPath, checkpointText, steps = [] } = {}) {
+  let cp = checkpointText || '';
+  if (!cp && checkpointPath && fs.existsSync(checkpointPath)) {
+    try {
+      cp = fs.readFileSync(checkpointPath, 'utf-8');
+    } catch {}
+  }
+  if (cp) {
+    const m = cp.match(/(?:Model Profile|Subagent Model|Модельный профиль|Active Model Profile|Уровень|Режим)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
+    if (m) return m[1].toLowerCase();
+  }
+
+  for (let i = steps.length - 1; i >= 0; i--) {
+    const s = steps[i];
+    const text = typeof s?.content === 'string' ? s.content : JSON.stringify(s || '');
+    const mAns = text.match(/(?:A2|Answer\s*2|режим|уровень)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
+    if (mAns) return mAns[1].toLowerCase();
+
+    const mInj = text.match(/Subagent Model:[^`\n]*\([^)]*\b(high|medium|low)\b/i);
+    if (mInj) return mInj[1].toLowerCase();
+
+    if (s?.type === 'USER_INPUT') {
+      if (/^\s*High\b/i.test(text) || /\b(?:режим\s+)?High\b/i.test(text)) {
+        const prev = steps[i - 1];
+        if (prev && collectToolCalls(prev).some((tc) => tc?.name === 'ask_question')) {
+          return 'high';
+        }
+      }
+      if (/^\s*Medium\b/i.test(text) || /\b(?:режим\s+)?Medium\b/i.test(text)) {
+        const prev = steps[i - 1];
+        if (prev && collectToolCalls(prev).some((tc) => tc?.name === 'ask_question')) {
+          return 'medium';
+        }
+      }
+      if (/^\s*Low\b/i.test(text) || /\b(?:режим\s+)?Low\b/i.test(text)) {
+        const prev = steps[i - 1];
+        if (prev && collectToolCalls(prev).some((tc) => tc?.name === 'ask_question')) {
+          return 'low';
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function collectWrittenText(args) {
   const parts = [];
   for (const key of ['Content', 'CodeContent', 'Replacement', 'ReplacementContent', 'content', 'replacement']) {
@@ -222,6 +268,7 @@ if (toolName === 'invoke_subagent') {
     process.exit(0);
   }
   if (HERMES_AGENTS.has(subType) || subType === 'self') {
+    const hasExplicitModel = Boolean(args.Model || args.model);
     const reqModel = String(args.Model || args.model || 'inherit').toLowerCase().replace(/["']/g, '');
     const validModels = new Set(['inherit', 'flash', 'flash_lite', 'pro']);
     if (!validModels.has(reqModel)) {
@@ -229,6 +276,63 @@ if (toolName === 'invoke_subagent') {
         `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".`
       );
       process.exit(0);
+    }
+
+    const hostModel = String(payload?.modelName || '').toLowerCase();
+    const cwd = String(payload?.cwd || process.cwd() || '');
+    const checkpointPath = path.join(cwd, '.hermes', 'checkpoint.md');
+
+    let transcriptSteps = [];
+    const transcriptPath = payload?.transcriptPath;
+    if (transcriptPath && fs.existsSync(transcriptPath)) {
+      try {
+        const { headText, tailText } = readTranscriptSlices(transcriptPath, {
+          maxTailBytes: MAX_TAIL_BYTES,
+          headScanBytes: HEAD_SCAN_BYTES
+        });
+        transcriptSteps = [...parseJsonl(headText), ...parseJsonl(tailText)];
+      } catch {}
+    }
+
+    const detectedTier = detectSelectedTier({
+      checkpointPath,
+      checkpointText: payload?.checkpointText,
+      steps: transcriptSteps
+    });
+
+    if (detectedTier === 'high') {
+      if (hostModel.includes('flash') && reqModel === 'flash') {
+        deny(
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High (зафиксирован в Handshake/checkpoint). Запрещено занижать модель субагента до Model: "flash"! Для сохранения уровня High передайте Model: "inherit" (или "pro" для сложных задач дизайна/архитектуры).'
+        );
+        process.exit(0);
+      }
+      if (reqModel === 'flash_lite') {
+        deny(
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High. Запрещено передавать Model: "flash_lite"! Передайте Model: "inherit" (или "pro").'
+        );
+        process.exit(0);
+      }
+    } else if (detectedTier === 'medium') {
+      if (hostModel.includes('flash-high') && (!hasExplicitModel || reqModel === 'inherit')) {
+        deny(
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium, а хост работает на Flash High. Во избежание перерасхода токенов передайте явно Model: "flash" вместо "inherit".'
+        );
+        process.exit(0);
+      }
+      if (reqModel === 'flash_lite') {
+        deny(
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium. Передайте Model: "flash".'
+        );
+        process.exit(0);
+      }
+    } else if (detectedTier === 'low') {
+      if (reqModel !== 'flash_lite') {
+        deny(
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite".'
+        );
+        process.exit(0);
+      }
     }
   }
 }
