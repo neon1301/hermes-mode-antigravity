@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.7) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.6.8) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.7)
+# Hermes Master Orchestration Engine (v3.6.8)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -65,7 +65,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ---
 
-## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (13 Experts ➔ 19 Skills)
+## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (14 Experts ➔ 20 Skills)
 
 > [!IMPORTANT]
 > **No Solo Corner-Cutting:** The rule *"1–3 files Lead writes directly"* applies ONLY to physical file writing in Contour B. Lead MUST still dispatch the relevant domain specialists below to design and verify changes — and after ANY backend/DB/socket change, check whether **`@elena`** and **`@kritik`** are needed to update or redesign the windows!
@@ -76,6 +76,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 | **💻 dmitry** | [`backend-architecture`](../backend-architecture/SKILL.md) | Backend APIs (.NET/Py/Node/Go), Config, Outbox | Check if new settings/statuses require **`@elena`** + **`@kritik`** in windows! |
 | **🗄️ denis** | [`high-load-db-tuning`](../high-load-db-tuning/SKILL.md) | SQLite WAL, Postgres, MSSQL, queries, migrations | Verify query plans & lock safety after schema/query edits |
 | **🎨 elena** | [`frontend-design`](../frontend-design/SKILL.md) | Windows, forms, UI tokens, 4 states, scrollbars, popups | Redesign/update windows whenever backend/config/UX changes impact UI |
+| **🌐 gleb** | [`procedural-3d-digital-twin`](../procedural-3d-digital-twin/SKILL.md) | Procedural 3D models, WebGL/Three.js, Digital Twin, factory floor maps | Verify VRAM dispose hygiene & 3D telemetry animation sync |
 | **🔥 kritik** | [`product-ux-scouting`](../product-ux-scouting/SKILL.md) | 360° scout + Phase 2 Post-Audit Challenger | **Mandatory `[UX PASS]` after window/UI edits** + check if windows need rework |
 | **🛡️ viktor** | [`qa-test-automation`](../qa-test-automation/SKILL.md), [`security-audit`](../security-audit/SKILL.md) | TDD reproducer, security & edge-case boundaries | **Mandatory `[QA PASS]`** (`REQ-1..REQ-N` + `N of N` sweep + UI race check) |
 | **🧠 mikhail** | [`ai-rag-engineering`](../ai-rag-engineering/SKILL.md), [`agent-context-memory-engineering`](../agent-context-memory-engineering/SKILL.md), [`llm-finetuning-multimodal-ops`](../llm-finetuning-multimodal-ops/SKILL.md) | Hybrid RAG, vector DBs, context/memory, LoRA, vLLM | Verify evals & prompt-injection safety after AI pipeline edits |

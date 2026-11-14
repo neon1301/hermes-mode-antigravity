@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.7)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.8)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.6.7 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.6.8 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $sourceDir = $PSScriptRoot
@@ -61,7 +61,7 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
 }
 
-Write-Host "`nHermes Fleet v3.6.7 installed successfully!" -ForegroundColor Green
+Write-Host "`nHermes Fleet v3.6.8 installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
 Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan

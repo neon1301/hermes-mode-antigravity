@@ -72,6 +72,11 @@ const DOMAIN_ROUTING_RULES = [
     re: /(?:BinaryPrimitives|Crc16|Crc32|Endian|Disasm|EvidenceLedger)/i
   },
   {
+    agents: ['@gleb (3D/Digital Twin/WebGL)'],
+    keys: ['gleb'],
+    re: /(?:Three|WebGL|DigitalTwin|WebView2|Shader|Canvas|InstancedMesh|OrbitControls|create.*Model)/i
+  },
+  {
     agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],
     keys: ['dmitry', 'elena'],
     re: /(?:Controller|Endpoint|Outbox|Idempotency|ProblemDetails|appsettings|IOptions|Channel<)/i

@@ -1,16 +1,17 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.7)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.8)
 
-Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 13 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 19 профессиональных скиллов**.
+Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 20 профессиональных скиллов**.
 
 Команда Hermes спроектирована как **универсальные разработчики промышленных систем**: мы не привязаны к конкретным брендам станков или контроллеров, а работаем с любым промышленным оборудованием, автоматизированными линиями и вендорами по всему миру.
 
 ---
 
-## 👥 Полный штаб специалистов Hermes (13 экспертов):
+## 👥 Полный штаб специалистов Hermes (14 экспертов):
 * 👑 **Lead (Оркестратор)** — архитектурная декомпозиция, канбан, двухконтурное исполнение (Read-Only `agents/*.md` аудит + Act/Write через Lead / `define_subagent(EnableWriteTools: true)` / `self`-пул), ограниченные волны (3–5), `manage_subagents` preflight & GC, встроенный «Глаз Критика» (Zero-Cost продуктовый и инженерный фильтр на каждом ТЗ: 4 состояния UI, человечные ошибки, Dry-Run, авто-бэкап, Channel<T>/WAL).
-* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 12 правил флота, аудит соблюдения всех 19 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
+* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 12 правил флота, аудит соблюдения всех 20 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
 * 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
 * 🎨 **Elena** — Frontend Lead & UI/UX (Anthropic Frontend Design, Web & Desktop GUI WinForms/WPF, контракт 4 состояний, анимации и формы настроек GUI, иконки через `image-generator`, A11y).
+* 🌐 **Gleb** — Lead 3D Graphics & Industrial Digital Twin Engineer (`procedural-3d-digital-twin`: процедурные 3D-модели Three.js/WebGL, цифровые двойники станков, 3D-карта цеха T01–T20 через `InstancedMesh`, привязка телеметрии к 3D-кинематике и шейдерам, WebView2-мост, нулевые утечки VRAM).
 * 🔥 **Критик (`kritik`)** — 360° Product Critic, Global Tech Trend Scout, Post-Audit Challenger & UX Inspector (`product-ux-scouting`: 360° самостоятельная разведка мировых продуктовых и инженерных трендов, киллер-фич, Doctor-mode, ускорения ядра и эргономики по RU/CN/BE/EU/JP/Global форумам через `search_web` и Read-Only `browser` + роль замыкающего супер-рецензента аудита с выбором лучшего мирового решения + беспощадная прожарка интерфейса по `P0–P3` и эвристикам Нильсена `0–4` + проверенные библиотеки и паттерны `Adopt/Trial/Hold`; строго Read-Only Scout в изолированном контексте для экономии токенов и защиты главного чата).
 * 🛡️ **Viktor** — Lead QA Automation & AppSec Reviewer (7-векторный барьер: `qa-test-automation` + прокачанный `security-audit` — Cloudflare 6-Phase Fresh-Verifier, Trail of Bits `differential-review`/`sharp-edges`, OWASP Auth/JWT/IDOR/SSRF/Crypto, DevSecOps SCA/Docker/CI, TDD, E2E и Zero-Hardcode).
 * ⚙️ **Alexey** — Lead Industrial Hardware, Equipment & Protocol Systems Engineer (универсальное исследование оборудования и вендоров, даташиты, мануалы, регистровые карты, Modbus, Profinet, EtherCAT, OPC UA, сокеты, безопасность станка).
@@ -24,10 +25,10 @@
 
 ---
 
-## 🛠️ Встроенная библиотека профессиональных скиллов (19 скиллов):
+## 🛠️ Встроенная библиотека профессиональных скиллов (20 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.7): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.8): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
@@ -45,6 +46,7 @@
 17. **`agent-context-memory-engineering`** — Инженерия контекста и архитектуры автономных ИИ-агентов: борьба с деградацией внимания (*lost-in-the-middle*, poisoning), оптимизация KV-cache, сжатие с якорями, многоуровневая память агентов, изоляция субагентов, непредвзятый LLM-as-a-Judge (position swap) и автоматический LLM Red-Teaming (`Promptfoo` / `Garak`).
 18. **`llm-finetuning-multimodal-ops`** — Fine-Tuning и Post-Training (`Unsloth`, `LLaMA-Factory`, `TRL` SFT/DPO/GRPO), гигиена синтетических датасетов и паритет chat-template/EOS, высоконагруженный GPU-сервинг (`vLLM` / `SGLang`, Continuous Batching, prefix caching, FP8/AWQ/GGUF), сложный парсинг PDF/таблиц (`Docling`) и мультимодальные пайплайны (`Whisper` VAD / VLM).
 19. **`product-ux-scouting`** — 360° продуктовая критика, разведка мировых инженерных и продуктовых трендов (RU/CN/BE/EU/JP/US), киллер-фичи, ускорение ядра, Doctor-mode и аудит эргономики/UI глазами обычного пользователя (Нильсен `0–4`, приоритеты `P0–P3`, режим «прожарки» `Roast Mode` с `File:Line`, иконки через `image-generator`/SVG, анимации с `Dispose()`, 5-пунктовая проверка `Adopt/Trial/Hold`, строго Read-Only Scout).
+20. **`procedural-3d-digital-twin`** — Процедурное 3D-моделирование (Three.js/WebGL), цифровые двойники оборудования, визуализация телеметрии станков (обороты, обрыв нити, аварии, термокарты), интерактивная 3D-карта цеха (T01–T20, InstancedMesh, Raycaster), WebGL VRAM гигиена (dispose) и интеграция с WinForms/WPF через WebView2.
 
 ---
 

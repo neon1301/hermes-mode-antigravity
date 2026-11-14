@@ -8,10 +8,10 @@ import fs from 'node:fs';
 
 export const HERMES_AGENTS = new Set([
   'alexey', 'anna', 'artem', 'denis', 'dmitry', 'elena',
-  'igor', 'kritik', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'
+  'gleb', 'igor', 'kritik', 'mikhail', 'mozgoeb', 'ruslan', 'sergey', 'stanislav', 'viktor'
 ]);
 
-const MENTION_NAMES = [...HERMES_AGENTS, 'критик', 'мозгоеб'].join('|');
+const MENTION_NAMES = [...HERMES_AGENTS, 'критик', 'мозгоеб', 'глеб'].join('|');
 const WORD_END = `(?=$|[\\s.,:;!?)"'])`;
 
 const SLASH_COMMAND_RE = new RegExp(`(?:^|\\n)[ \\t]*\\/hermes${WORD_END}`, 'i');
