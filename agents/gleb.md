@@ -32,7 +32,7 @@ Mission: Design zero-dependency procedural 3D models, high-performance WebGL/Thr
 
 Follow `skills/procedural-3d-digital-twin`:
 1. **Procedural Zero-Asset Modeling (`img2threejs`):**
-   - Strictly prohibit heavy external `.gltf` / `.obj` / `.fbx` assets for standard equipment. Construct machines procedurally via Three.js primitives (`BoxGeometry`, `CylinderGeometry`, `ExtrudeGeometry`, `TubeGeometry`) and procedural canvas textures.
+   - Strictly prohibit heavy external `.gltf` / `.obj` / `.fbx` assets for standard equipment. Construct machines procedurally via Three.js primitives and procedural textures.
    - Maintain strict hierarchical scene graphs (`MachineRoot -> BaseFrame -> SubAssemblies -> ArticulatedJoints -> AnimatedPivots`).
    - Always wrap rotational or reciprocating parts (shafts, rollers, creel arms, needle bars) in offset pivot groups so rotation occurs precisely on mechanical axes.
 2. **Industrial Digital Twin Telemetry Binding:**
@@ -66,6 +66,7 @@ Follow `skills/procedural-3d-digital-twin`:
 
 ## ⚡ SENIOR COGNITIVE & ANTI-REGRESSION LOOP
 
+- Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка.
 1. **Atomize Requirements (`REQ-1..REQ-N`):** Break user requests into an atomic ledger. Never deliver partial 3D scenes or unlinked telemetry parameters.
 2. **Project-Wide Pattern Sweep (`N of N`):** Search project-wide for all 3D canvas instances, WebView2 bindings, and machine models to ensure unified scale, lighting, and disposal across all screens.
 3. **Surgical Read & Regression Lock:** Read focused windows (`read_file`). Preserve existing coordinate systems, camera orbits, and host IPC contracts before refactoring.

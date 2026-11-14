@@ -45,6 +45,15 @@ export function isHermesTrigger(text, { includeMentions = true } = {}) {
   return includeMentions && MENTION_RE.test(request);
 }
 
+// HERMES-COGNITION trigger (REQ-2): план|аудит|архитектур|релиз|диагноз|пре-мортем
+export const COGNITIVE_TRIGGER_RE = /план|аудит|архитектур|релиз|диагноз|пре-мортем/i;
+
+export function isCognitiveTrigger(text) {
+  const request = extractUserRequest(text);
+  if (!request) return false;
+  return COGNITIVE_TRIGGER_RE.test(request);
+}
+
 export function isRealUserStep(step) {
   return step?.type === 'USER_INPUT' && (!step.source || step.source === 'USER_EXPLICIT');
 }

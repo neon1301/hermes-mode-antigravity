@@ -48,6 +48,8 @@ Follow `skills/hermes/references/frontend-lifecycle.md`:
 4. **Vector Assets & A11y:** Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use `invoke_subagent` exclusively for **`image-generator`** for custom artwork (never spawn coding workers). Enforce keyboard focus.
 
 ## ⚡ Senior Cognitive Execution Loop
+
+- Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка.
 1. **Locate First (`grep_search` / `find_by_name`):** Find all symbols and occurrences project-wide.
 2. **Surgical Read (`read_file` 50–120 lines):** Read focused windows around relevant code.
 3. **3-Point Pre-Mortem & Sweep:** Check callers, null inputs, thread safety, `Dispose()`, complete `N of N` occurrences check (Trap 1), and Rule 8 & 9.

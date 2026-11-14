@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.7.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.7.1) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.7.0)
+# Hermes Master Orchestration Engine (v3.7.1)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -65,14 +65,14 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ---
 
-## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (14 Experts ➔ 20 Skills)
+## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (14 Experts ➔ 21 Skills)
 
 > [!IMPORTANT]
 > **No Solo Corner-Cutting:** The rule *"1–3 files Lead writes directly"* applies ONLY to physical file writing in Contour B. Lead MUST still dispatch the relevant domain specialists below to design and verify changes — and after ANY backend/DB/socket change, check whether **`@elena`** and **`@kritik`** are needed to update or redesign the windows!
 
 | Specialist | Owning Skill(s) | When to Launch BEFORE / DURING Work | Chain-Reaction Check AFTER Work (Post-Edit) |
 | :--- | :--- | :--- | :--- |
-| **⚖️ stanislav** | [`compliance-policy-as-code`](../compliance-policy-as-code/SKILL.md) | Architecture rules, contract arbitration | Mandatory `[COMPLIANCE PASS]` on 4+ files or rule checks |
+| **⚖️ stanislav** | [`compliance-policy-as-code`](../compliance-policy-as-code/SKILL.md), [`cognitive-discipline`](../cognitive-discipline/SKILL.md) | Architecture rules, contract arbitration, plan governance | Mandatory `[COMPLIANCE PASS]` on 4+ files or rule checks |
 | **💻 dmitry** | [`backend-architecture`](../backend-architecture/SKILL.md) | Backend APIs (.NET/Py/Node/Go), Config, Outbox | Check if new settings/statuses require **`@elena`** + **`@kritik`** in windows! |
 | **🗄️ denis** | [`high-load-db-tuning`](../high-load-db-tuning/SKILL.md) | SQLite WAL, Postgres, MSSQL, queries, migrations | Verify query plans & lock safety after schema/query edits |
 | **🎨 elena** | [`frontend-design`](../frontend-design/SKILL.md) | Windows, forms, UI tokens, 4 states, scrollbars, popups | Redesign/update windows whenever backend/config/UX changes impact UI |

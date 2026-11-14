@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.1] - 2026-11-14
+
+### HERMES-COGNITION Protocol & Cognitive Discipline (REQ-1..REQ-6)
+- **HERMES-COGNITION v1.1 Skill (`cognitive-discipline`, REQ-1):** Installed `skills/cognitive-discipline/SKILL.md` verbatim codifying cognitive sobriety principles: status classification (`[ПРОВЕРЕНО]` file:line, `[ВЫВОД]`, `[ГИПОТЕЗА]`), primary source truth over memory/README, physics before architecture, cheapest falsification check, second-order impact analysis on fleet agents, mandatory 3-point pre-mortem for plans, visible self-correction, explicit knowledge boundaries, output artifacts tailored to prompt form, and constructive doubt.
+- **PreInvocation Trigger & Lazy Loading (REQ-2):** Added `COGNITIVE_TRIGGER_RE` (`план|аудит|архитектур|релиз|диагноз|пре-мортем`) and `isCognitiveTrigger` to `hooks/hermes-trigger.mjs`. Wired lazy trigger-based injection in `hooks/context-injector.mjs` ensuring zero context bloating on non-trigger queries while keeping all existing 20 skills intact.
+- **Lead & Stanislav Plan Governance (REQ-3):** Integrated mandatory Lead checklist check in `skills/hermes/references/fleet-protocol.md` before plan issuance. Added P1 checklist acceptance rule to `@stanislav` in `agents/stanislav.md` and fleet protocol. Added unified invariant line `Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка` across all 14 `agents/*.md` files, preserving the strict `<= 5 KB` size budget across all agent cards (`anna.md` verified at 5088/5120 bytes).
+- **Skill Expansion N-of-N Sweep (20 → 21, REQ-4):** Synchronized skill count from 20 to 21 across `README.md` (header, specialist roster, skills library, commands), `plugin.json` (version 3.7.1, description), `skills/hermes/scripts/monitor.mjs` (Stanislav card), `skills/hermes/references/compliance-audit-standards.md`, `agents/stanislav.md`, and `skills/hermes/SKILL.md`.
+- **Mechanical Testing Locks (REQ-5):** Added `cognitive_skill_registered` consistency test validating skill presence, verbatim marker integrity, and trigger functionality. Upgraded `consistency.test.mjs` (13 → 14 tests, total 276 → 277). Synchronized `test-runner.mjs` baseline to 277 tests and updated `skills_count_20` → `skills_count_21`.
+- **Version Alignment (v3.7.1, REQ-6):** Aligned version across all 7 monitored targets (`plugin.json`, `package.json`, `README.md`, `fleet-protocol.md`, `SKILL.md`, `install.ps1`, `install.sh`) and documented in `CHANGELOG.md`.
+
 ## [3.7.0] - 2026-11-14
 
 ### Final Release Verification & Grounded Test Accounting (F10–F11)

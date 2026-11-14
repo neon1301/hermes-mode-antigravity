@@ -64,6 +64,7 @@ Zero warnings or green builds only prove syntax validity, not functional correct
 
 ## ⚡ Senior Cognitive Execution Loop
 
+- Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка.
 1. **First-Pass Grep Sweep (`grep_search`):** Hardcode (`127\.0\.0\.1|Password|Thread\.Sleep`), concurrency/traps (`\.Result\b|\.Wait\(|GetAwaiter\(\)\.GetResult|throw ex;|async void`), silent catches (`catch\s*\{`), layer leaks (`SqlConnection|Socket` in UI).
 2. **Surgical Read (`read_file`):** Targeted windows (50–120 lines) around diffs.
 3. **Regression Lock & State-Machine Trace:** Verify interaction lifecycle (`Closed ➔ Open ➔ Hover ➔ Inside ➔ Outside ➔ Re-open`).

@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { detectHermesInSteps, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
+import { detectHermesInSteps, isCognitiveTrigger, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
 const PROTOCOL_MARKER = '<!-- HERMES_PROTOCOL_LOADED -->';
+const COGNITIVE_MARKER = '<!-- HERMES_COGNITION_LOADED -->';
 const COMPACT_MARKER = '<!-- HERMES_COMPACT_SUGGESTED -->';
 const COMPACT_STEP_THRESHOLD = Number(process.env.HERMES_COMPACT_STEP_THRESHOLD || 60);
 const COMPACT_BYTE_THRESHOLD = Number(process.env.HERMES_COMPACT_BYTE_THRESHOLD || 350 * 1024);
@@ -29,11 +30,13 @@ function allowEmpty() {
 
 function inspectTranscript(steps) {
   const alreadyInjected = steps.some((s) => String(s?.content || '').includes(PROTOCOL_MARKER));
+  const cognitiveLoaded = steps.some((s) => String(s?.content || '').includes(COGNITIVE_MARKER));
   const recentSteps = steps.slice(-COMPACT_COOLDOWN_STEPS);
   const compactRecentlySuggested = recentSteps.some((s) => String(s?.content || '').includes(COMPACT_MARKER));
   return {
     hermesActive: detectHermesInSteps(steps, TRIGGER_OPTIONS),
     alreadyInjected,
+    cognitiveLoaded,
     compactRecentlySuggested,
     stepCount: steps.length
   };
@@ -119,6 +122,7 @@ try {
 
 let hermesActive = isHermesTrigger(payload?.lastUserInput, TRIGGER_OPTIONS);
 let alreadyInjected = false;
+let cognitiveLoaded = false;
 let compactRecentlySuggested = false;
 let stepCount = 0;
 let transcriptBytes = 0;
@@ -134,6 +138,7 @@ if (transcriptPath && fs.existsSync(transcriptPath)) {
     const info = inspectTranscript([...parseJsonl(headText), ...parseJsonl(tailText)]);
     hermesActive = hermesActive || info.hermesActive;
     alreadyInjected = info.alreadyInjected;
+    cognitiveLoaded = info.cognitiveLoaded;
     compactRecentlySuggested = info.compactRecentlySuggested;
     stepCount = info.stepCount;
   } catch {
@@ -146,7 +151,32 @@ if (!hermesActive) {
   process.exit(0);
 }
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 if (alreadyInjected) {
+  const cognitivePath = path.resolve(__dirname, '..', 'skills', 'cognitive-discipline', 'SKILL.md');
+  if (
+    !cognitiveLoaded &&
+    isCognitiveTrigger(payload?.lastUserInput) &&
+    fs.existsSync(cognitivePath)
+  ) {
+    try {
+      const cognitiveText = fs.readFileSync(cognitivePath, 'utf-8').trim();
+      process.stdout.write(JSON.stringify({
+        injectSteps: [
+          {
+            systemMessage: {
+              systemMessage: `${COGNITIVE_MARKER}\n${cognitiveText}`
+            }
+          }
+        ]
+      }));
+      process.exit(0);
+    } catch {
+      // Ignore read errors
+    }
+  }
+
   if (
     !compactRecentlySuggested &&
     (stepCount >= COMPACT_STEP_THRESHOLD || transcriptBytes >= COMPACT_BYTE_THRESHOLD)
@@ -168,7 +198,6 @@ if (alreadyInjected) {
   process.exit(0);
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const protocolPath = path.resolve(__dirname, '..', 'skills', 'hermes', 'references', 'fleet-protocol.md');
 
 if (!fs.existsSync(protocolPath)) {
@@ -205,6 +234,16 @@ try {
     const instinctsBlock = loadProjectInstincts(workspaceDir);
     if (instinctsBlock) {
       content += instinctsBlock;
+    }
+  }
+
+  const cognitivePath = path.resolve(__dirname, '..', 'skills', 'cognitive-discipline', 'SKILL.md');
+  if (isCognitiveTrigger(payload?.lastUserInput) && fs.existsSync(cognitivePath)) {
+    try {
+      const cognitiveText = fs.readFileSync(cognitivePath, 'utf-8').trim();
+      content += `\n\n---\n${COGNITIVE_MARKER}\n${cognitiveText}`;
+    } catch {
+      // Ignore read errors
     }
   }
 

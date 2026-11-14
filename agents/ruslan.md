@@ -49,6 +49,7 @@ Determine the SAP integration mode; focus on the matching pillar from `skills/sa
 
 ## ⚡ SENIOR COGNITIVE & ANTI-REGRESSION LOOP
 
+- Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка.
 1. **Atomize Requirements (`REQ-1..REQ-N`):** Выпиши все пункты жалобы/задачи пользователя по номерам. Запрещено чинить 1 пункт из 3 и сдавать работу.
 2. **Project-Wide Pattern Sweep (`N of N` мест):** Найди через `grep_search` / `find_by_name` **все** однотипные места в проекте (все таблицы, сокеты, запросы, формы), а не только первый попавшийся файл.
 3. **Surgical Read & Regression Lock:** Читай целевыми окнами `read_file(StartLine..EndLine)`. Зафиксируй рабочие инварианты кода до правки, чтобы новый фикс не сломал существующее поведение (открытие окон, соседние методы, контракты DTO).

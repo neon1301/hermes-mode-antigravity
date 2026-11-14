@@ -27,11 +27,11 @@ await test('agents_count_14', () => {
   if (agents.length !== 14) throw new Error(`Expected 14 agents, found ${agents.length}`);
 });
 
-// 2. Validate skills count (20)
-await test('skills_count_20', () => {
+// 2. Validate skills count (21)
+await test('skills_count_21', () => {
   const skillsDir = path.join(rootDir, 'skills');
   const skills = fs.readdirSync(skillsDir).filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')));
-  if (skills.length !== 20) throw new Error(`Expected 20 skills, found ${skills.length}`);
+  if (skills.length !== 21) throw new Error(`Expected 21 skills, found ${skills.length}`);
 });
 
 // 3. Verify no outdated counters in documentation
@@ -50,8 +50,8 @@ await test('no_stale_counters_in_docs', () => {
     const p = path.join(rootDir, rel);
     if (!fs.existsSync(p)) continue;
     const content = fs.readFileSync(p, 'utf-8');
-    if (/\b19\s+(?:specialist\s+skills|скилл)/i.test(content)) {
-      throw new Error(`Found outdated counter '19 skills' in ${rel}`);
+    if (/\b(?:19|20)\s+(?:specialist\s+skills|скилл)/i.test(content)) {
+      throw new Error(`Found outdated counter in ${rel}`);
     }
     if (/Lead\s*\+\s*13\b/i.test(content)) {
       throw new Error(`Found outdated counter 'Lead + 13' in ${rel}`);
@@ -305,7 +305,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 13,
+    'consistency': 14,
     'context-injector': 13,
     'clean-edits-guard': 93,
     'qa-gate': 58,
@@ -321,13 +321,38 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 276 || summary.passed !== 276) {
-    throw new Error(`test-summary.json expected total=276, passed=276, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 277 || summary.passed !== 277) {
+    throw new Error(`test-summary.json expected total=277, passed=277, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
   if (sumTotal !== summary.total || sumPassed !== summary.passed) {
     throw new Error('Sum of suite totals does not match summary total/passed');
+  }
+});
+
+// 14. Verify HERMES-COGNITION skill and trigger registration
+await test('cognitive_skill_registered', async () => {
+  const skillPath = path.join(rootDir, 'skills', 'cognitive-discipline', 'SKILL.md');
+  if (!fs.existsSync(skillPath)) {
+    throw new Error('skills/cognitive-discipline/SKILL.md is missing');
+  }
+  const content = fs.readFileSync(skillPath, 'utf-8');
+  if (!content.includes('HERMES-COGNITION') || !content.includes('протокол трезвости')) {
+    throw new Error('skills/cognitive-discipline/SKILL.md content mismatch');
+  }
+  const triggerModule = await import('./hermes-trigger.mjs');
+  if (typeof triggerModule.isCognitiveTrigger !== 'function') {
+    throw new Error('isCognitiveTrigger function is not exported from hermes-trigger.mjs');
+  }
+  const sampleTriggers = ['план', 'аудит', 'архитектура', 'релиз', 'диагноз', 'пре-мортем'];
+  for (const t of sampleTriggers) {
+    if (!triggerModule.isCognitiveTrigger(`сделай ${t}`)) {
+      throw new Error(`isCognitiveTrigger failed to trigger on '${t}'`);
+    }
+  }
+  if (triggerModule.isCognitiveTrigger('hello world')) {
+    throw new Error('isCognitiveTrigger falsely matched unrelated text');
   }
 });
 

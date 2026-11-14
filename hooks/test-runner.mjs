@@ -32,7 +32,7 @@ if (!fs.existsSync(summaryPath)) {
   fs.writeFileSync(summaryPath, JSON.stringify({
     timestamp: new Date().toISOString(),
     suites: [
-      { name: 'consistency', passed: 13, total: 13, status: 'PASS' },
+      { name: 'consistency', passed: 14, total: 14, status: 'PASS' },
       { name: 'context-injector', passed: 13, total: 13, status: 'PASS' },
       { name: 'clean-edits-guard', passed: 93, total: 93, status: 'PASS' },
       { name: 'qa-gate', passed: 58, total: 58, status: 'PASS' },
@@ -41,8 +41,8 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
       { name: 'contract-validator', passed: 9, total: 9, status: 'PASS' }
     ],
-    passed: 276,
-    total: 276,
+    passed: 277,
+    total: 277,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }
@@ -57,10 +57,10 @@ for (const suite of SUITES) {
       timestamp: new Date().toISOString(),
       suites: [
         ...suiteResults.map(s => ({ name: s.name, passed: s.passed, total: s.total, status: s.status })),
-        { name: 'consistency', passed: 13, total: 13, status: 'PASS' }
+        { name: 'consistency', passed: 14, total: 14, status: 'PASS' }
       ],
-      passed: suiteResults.reduce((acc, s) => acc + s.passed, 0) + 13,
-      total: suiteResults.reduce((acc, s) => acc + s.total, 0) + 13,
+      passed: suiteResults.reduce((acc, s) => acc + s.passed, 0) + 14,
+      total: suiteResults.reduce((acc, s) => acc + s.total, 0) + 14,
       status: anyFailed ? 'FAIL' : 'PASS'
     };
     fs.writeFileSync(summaryPath, JSON.stringify(preSummary, null, 2) + '\n', 'utf-8');

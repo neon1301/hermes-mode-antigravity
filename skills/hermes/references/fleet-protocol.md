@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.7.0)
+# Регламент HERMES (Hermes Fleet Protocol v3.7.1)
 
 Активирован для **/hermes**, «Hermes Mode» / «Режим Hermes» и **@имя**.
 
@@ -61,6 +61,8 @@
 
 > [!IMPORTANT]
 > **Принцип «Скомпилировалось != Работает» (Compiles != Works):** Успешная компиляция (`dotnet build`, `tsc`, `pytest` с 0 warnings) — лишь допуск к ревью, а не доказательство работы. Сдача задачи только по факту компиляции запрещена.
+>
+> **Чеклист трезвости HERMES-COGNITION перед выдачей любого плана:** Перед выдачей любого плана Lead ОБЯЗАН свериться с [Чеклистом Lead перед выдачей любого плана (`skills/cognitive-discipline/SKILL.md`)](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд) (факты [ПРОВЕРЕНЫ] со ссылкой файл:строка, физика среды выписана, пре-мортем 3 причины провала, сценарии флота, ручная проверка).
 
 1. **Атомарный реестр требований (`[REQ-1..REQ-N]`):**
    - Каждый составной запрос разбивается на нумерованный реестр `REQ-1..REQ-N`. Все пункты привязываются к файлам и проверяются перед сдачей.
@@ -101,7 +103,7 @@
 8. **Clean Edits & No Patch Scripts (Rule 8):** Правки через `edit_file`, новые — `write_file`. Скрипты-патчи (`*.ps1`, `.bat`, `.py`) запрещены. Сохраняются CRLF и атомарность.
 9. **Zero-Hardcode & Dynamic Configuration (Rule 9):** Запрещены IP/порты (`127.0.0.1`, `8080`), креды, пути (`C:\...`), `Thread.Sleep`. Конфиг — в `.env`, `appsettings.json`, `.ini`; пути — динамические. Хардкод ➔ `[QA REJECT]`.
 10. **Investigation Routing (Rule 10):** Lead предлагает выбор: (1) Экспресс-поиск (Lead) или (2) Консилиум команды (`@dmitry`, `@denis`, `@elena`, `@kritik`, `@viktor`...).
-11. **Комплаенс (Stanislav, Rule 11):** Ревизия 15 правил и стековых скиллов. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация только с `🟢 [COMPLIANCE PASS]`.
+11. **Комплаенс (Stanislav, Rule 11):** Ревизия 15 правил и стековых скиллов. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация только с `🟢 [COMPLIANCE PASS]`. Приёмка планов по чеклисту HERMES-COGNITION (`skills/cognitive-discipline/SKILL.md`): план без чеклиста — возврат на доработку (P1, без блокировки релиза).
 12. **Dual-Contour Lifecycle, Specialist Dispatch Matrix, Pool Reuse & Subagent GC (Rule 12):**
     * **Контур A (Read-Only Специалисты — ОБЯЗАТЕЛЬНОЕ участие по доменам):** Плагинные специалисты (`agents/*.md`) работают строго Read-Only (`grep_search`/`read_file`). `elena` вызывает `image-generator`, `kritik` — browser. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`) и вердикт.
     * **Контур B (Act/Write — только запись по готовым чертежам):** 1–3 файла Lead записывает сам (`edit_file`/`write_file`) **строго по чертежам профильных спецов Контура A** (правило «1–3 файла» не даёт права пропускать вызов профильных специалистов!); 4+ файлов — `define_subagent(EnableWriteTools: true)`, `TypeName="self"` волнами по 3–5 либо `swarm` (`workspace: "share"`/`"branch"`). Запрещено слать `[ACT MODE]` в Read-Only `agents/*.md`.
