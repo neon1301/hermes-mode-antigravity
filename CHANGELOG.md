@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.0] - 2026-11-14
+
+### Security & Compliance Architecture (Wave 1: REQ-1..REQ-3)
+- **Three-Layer Security Architecture (REQ-1):** Ported and adapted from Anthropic's `security-guidance`.
+  - *Layer 1 (PreToolUse Pattern Matching):* Static regex guard in `clean-edits-guard.mjs` checking dangerous deserialization (`pickle.loads`, PyYAML unsafe loading, `torch.load` without `weights_only=True`), unsafe DOM / code execution (`innerHTML =`, `eval()`), and industrial safety interlock overrides. Whitelisted for tests, mocks, and Igor's simulators (`igor`, `simulator`), or via explicit `hermes-security-ignore:` inline comments.
+  - *Layer 2 (Artifact-Based Signed Diff-Review):* Artifact-based verification scheme for Stop hooks (`qa-gate.mjs`). Avoids LLM calls in Stop hooks to strictly respect Antigravity's 10-second hook timeout. Requires authentic signed verdict (`.hermes/security-verdict.json`) from Viktor / Security Reviewer using v3.6.12 anti-self-signing mechanics.
+  - *Layer 3 (Agentic Commit Review):* Pre-commit architectural data-flow and cross-file invariant audit by Viktor.
+- **Declarative Rule Engine (REQ-2):** Ported from `hookify`. Implemented native Node.js stdlib rule engine (`hooks/rule-engine.mjs`) evaluating `.hermes/rules/*.md` files with YAML frontmatter. Supports 6 condition operators (`regex_match`, `contains`, `not_contains`, `equals`, `starts_with`, `ends_with`), action modes (`block`, `warn`), and event filtering (`PreToolUse`, `Stop`).
+- **Version Alignment & Open-Source Attribution (REQ-3):** Bumped version to `v3.7.0` across manifests, protocols, documentation, and installers. Added `THIRD_PARTY_NOTICES.md` with complete Apache License 2.0 attribution for all 7 ported mechanics from `anthropics/claude-plugins-official`. Excluded historical records (`CHANGELOG.md`, `docs/adr/`) from N-of-N sweep consistency assertions.
+
+---
+
 ## [3.6.12] - 2026-11-14
 
 ### Security & Hardening

@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.6.12)
+# Регламент HERMES (Hermes Fleet Protocol v3.7.0)
 
 Активирован для **/hermes**, «Hermes Mode» / «Режим Hermes» и **@имя**.
 
@@ -29,6 +29,7 @@
 | **/hermes resume** | Восстановление контекста из чекпоинта |
 | **/hermes learn [правило]** | Сохранить «инстинкт проекта» в `.hermes/instincts.json` (авто-подгрузка во всех будущих чатах проекта) |
 | **/hermes review** | 7-векторный аудит диффа и регрессий (Viktor QA) |
+| **/hermes rules** | Сводка и валидация активных декларативных правил флота (`.hermes/rules/*.md`) |
 | **/hermes standup** | Стендап-синхронизация в `.hermes/standups.md` |
 | **@имя [запрос]** | Прямой вызов эксперта (`@dmitry`, `@kritik`, `@viktor`...) |
 

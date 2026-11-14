@@ -9,6 +9,7 @@ import {
   parseJsonl,
   readTranscriptSlices
 } from './hermes-trigger.mjs';
+import { evaluateRules } from './rule-engine.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -276,6 +277,45 @@ function stripGitCommitMessages(cmd) {
   );
 }
 
+const isPatternRulesEnabled = process.env.HERMES_PATTERN_RULES !== '0';
+
+function isTestOrSimulatorFile(filePath) {
+  const norm = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  return /(?:test|spec|mock|simulator|fixtures|__tests__|igor)/i.test(norm);
+}
+
+function hasSecurityIgnoreComment(text) {
+  return /hermes-security-ignore\s*:/i.test(text);
+}
+
+const L1_BLOCK_PATTERNS = [
+  {
+    name: 'Industrial Safety Interlock Override / Bypassing Emergency Stop',
+    test: (t) => /\b(?:bypass|disable|ignore|override)_(?:interlock|safety|emergency_stop|estop|guard)\b/i.test(t) ||
+                 /\b(?:interlock|emergency_stop|estop)\s*=\s*(?:false|0|None|null)\b/i.test(t)
+  },
+  {
+    name: 'Unsafe Deserialization (pickle/yaml.unsafe_load/torch weights_only=False)',
+    test: (t) => /\bpickle\.(?:loads?|Unpickler)\b/.test(t) ||
+                 /\byaml\.(?:unsafe_load|load\([^)]*Loader\s*=\s*(?:yaml\.)?(?:UnsafeLoader|Loader)\))/.test(t) ||
+                 /\btorch\.load\([^)]*weights_only\s*=\s*False\)/i.test(t)
+  },
+  {
+    name: 'Unsafe Code / DOM Execution (raw innerHTML / eval / Function)',
+    test: (t) => /\b(?:eval|document\.write)\s*\(/.test(t) ||
+                 /\bnew\s+Function\s*\(/.test(t) ||
+                 /\binnerHTML\s*=/.test(t)
+  }
+];
+
+const L1_WARN_PATTERNS = [
+  {
+    name: 'Unverified Modbus/PLC Register Direct Write Function Code',
+    test: (t) => /\b(?:write_single_coil|write_multiple_coils|write_single_register|write_multiple_registers|preset_single_register)\b/i.test(t) ||
+                 /\bfunction_code\s*[:=]\s*(?:0x05|0x06|0x0f|0x10|5|6|15|16)\b/i.test(t)
+  }
+];
+
 if (FILE_WRITE_TOOLS.has(toolName)) {
   const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
   if (PATCH_FILE_RE.test(targetPath)) {
@@ -295,6 +335,50 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
         process.exit(0);
       }
     }
+
+    if (isPatternRulesEnabled && !hasSecurityIgnoreComment(written)) {
+      const isTestOrSim = isTestOrSimulatorFile(targetPath);
+      if (!isTestOrSim) {
+        for (const rule of L1_BLOCK_PATTERNS) {
+          if (rule.test(written)) {
+            deny(
+              `Hermes Security Layer 1: в ${targetPath} обнаружен критический паттерн [${rule.name}]. Если вызов легитимен, добавьте inline-обоснование '// hermes-security-ignore: <причина>'.`
+            );
+            process.exit(0);
+          }
+        }
+        for (const rule of L1_WARN_PATTERNS) {
+          if (rule.test(written)) {
+            logGateDecision({
+              toolName,
+              decision: 'warn',
+              reason: `L1 Warning: ${rule.name} in ${targetPath}`
+            });
+          }
+        }
+      }
+    }
+
+    // Declarative Rule Engine (.hermes/rules/*.md)
+    try {
+      const cwd = process.cwd();
+      const hermesRulesDir = path.join(cwd, '.hermes', 'rules');
+      const ruleEval = evaluateRules({
+        event: 'PreToolUse',
+        context: {
+          toolName,
+          Path: targetPath,
+          Content: written,
+          CommandLine: ''
+        },
+        rulesDir: hermesRulesDir
+      });
+      if (ruleEval.blocked) {
+        const br = ruleEval.blockingRules[0];
+        deny(`Hermes Rule Policy (${br.name}): ${br.message || 'Blocked by custom rule'}`);
+        process.exit(0);
+      }
+    } catch {}
   }
 }
 
@@ -315,6 +399,25 @@ if (toolName === 'run_command') {
       process.exit(0);
     }
   }
+
+  // Declarative Rule Engine (.hermes/rules/*.md)
+  try {
+    const cwd = process.cwd();
+    const hermesRulesDir = path.join(cwd, '.hermes', 'rules');
+    const ruleEval = evaluateRules({
+      event: 'PreToolUse',
+      context: {
+        toolName,
+        CommandLine: rawCmd
+      },
+      rulesDir: hermesRulesDir
+    });
+    if (ruleEval.blocked) {
+      const br = ruleEval.blockingRules[0];
+      deny(`Hermes Rule Policy (${br.name}): ${br.message || 'Blocked by custom rule'}`);
+      process.exit(0);
+    }
+  } catch {}
 }
 
 if (toolName === 'invoke_subagent') {

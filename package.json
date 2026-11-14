@@ -1,15 +1,16 @@
 {
   "name": "hermes-fleet",
-  "version": "3.6.12",
+  "version": "3.7.0",
   "description": "Hermes Fleet for Google Antigravity: Multi-Agent Orchestration & Policy as Code",
   "type": "module",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs",
+    "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs && node hooks/rule-engine.test.mjs",
     "test:consistency": "node hooks/consistency.test.mjs",
     "test:injector": "node hooks/context-injector.test.mjs",
     "test:guard": "node hooks/clean-edits-guard.test.mjs",
-    "test:gate": "node hooks/qa-gate.test.mjs"
+    "test:gate": "node hooks/qa-gate.test.mjs",
+    "test:rules": "node hooks/rule-engine.test.mjs"
   },
   "keywords": [
     "antigravity",

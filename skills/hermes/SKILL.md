@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.6.12) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.7.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.6.12)
+# Hermes Master Orchestration Engine (v3.7.0)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
 
@@ -59,7 +59,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 - **⏸️ Async Subagent Wait Rule (NEVER Kill Active Subagents or Fake Reports):** `invoke_subagent` and `send_message` run asynchronously in the background. Immediately after calling `invoke_subagent` or `send_message`, you MUST **STOP calling tools and end your turn** to wait for the `<SYSTEM_MESSAGE>` reply from every launched specialist. NEVER call `manage_subagents(action="kill" | "kill_all")` before their replies arrive (blocked by `PreToolUse`), and NEVER fabricate/hallucinate `[QA PASS]`, `[UX PASS]`, `[DESIGN PASS]`, or `[BACKEND PASS]` on behalf of subagents! Leave idle Read-Only specialists alive for pool reuse.
 
 ### Phase 5: Autonomous Steering, Project Instincts & Context Budget
-- **Commands:** `/goal` (autonomous loop), `/compact` (prune logs), `/hermes save` (`.hermes/checkpoint.md` & `.hermes/profile.json`) & `/hermes resume`, `/hermes learn [правило]` (save project instinct to `.hermes/instincts.json`), `/hermes fix-warnings`, `/hermes audit`, `/hermes review`, `/hermes standup`, `/hermes board`.
+- **Commands:** `/goal` (autonomous loop), `/compact` (prune logs), `/hermes save` (`.hermes/checkpoint.md` & `.hermes/profile.json`) & `/hermes resume`, `/hermes learn [правило]` (save project instinct to `.hermes/instincts.json`), `/hermes rules` (inspect and validate declarative rules in `.hermes/rules/*.md`), `/hermes fix-warnings`, `/hermes audit`, `/hermes review`, `/hermes standup`, `/hermes board`.
 - **🧠 Project Instincts (`.hermes/instincts.json`):** Whenever the user runs `/hermes learn ...` or corrects a project-specific convention (e.g., UI colors, publish path, DB/socket quirk), append/update `{ "id": "...", "domain": "ui|backend|db|build|hardware", "trigger": "...", "rule": "...", "confidence": 0.95 }` in `.hermes/instincts.json`. `context-injector.mjs` automatically loads top instincts (`confidence >= 0.7`) at the start of every future `/hermes` chat in this workspace.
 - **📉 Strategic Context Compaction:** When `context-injector.mjs` injects `<!-- HERMES_COMPACT_SUGGESTED -->` (at 60+ steps or 350+ KB transcript), update `.hermes/checkpoint.md` and recommend `/compact` at the end of your reply.
 

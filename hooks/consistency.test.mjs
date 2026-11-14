@@ -179,5 +179,29 @@ await test('markdown_reference_links_integrity', () => {
   }
 });
 
+// 10. Verify third party notices and open source attribution
+await test('third_party_notices_attribution', () => {
+  const noticesPath = path.join(rootDir, 'THIRD_PARTY_NOTICES.md');
+  if (!fs.existsSync(noticesPath)) throw new Error('THIRD_PARTY_NOTICES.md is missing');
+  const content = fs.readFileSync(noticesPath, 'utf-8');
+  if (!content.includes('Apache License, Version 2.0')) {
+    throw new Error('THIRD_PARTY_NOTICES.md missing Apache-2.0 reference');
+  }
+  const requiredMechanics = [
+    'Three-Layer Security Architecture',
+    'Declarative Rule Engine',
+    '7-Phase Feature Development Protocol',
+    'Specialized PR Reviewers',
+    'Self-Referential Convergence Loops',
+    'Industrial Data Honesty',
+    'Session Metrics & Usage Accounting'
+  ];
+  for (const m of requiredMechanics) {
+    if (!content.includes(m)) {
+      throw new Error(`THIRD_PARTY_NOTICES.md missing ported mechanic section: '${m}'`);
+    }
+  }
+});
+
 console.log(`CONSISTENCY SUMMARY: ${totalTests - failed}/${totalTests} passed`);
 if (failed > 0) process.exit(1);

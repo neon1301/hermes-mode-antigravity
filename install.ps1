@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.12)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.7.0)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.6.12 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.7.0 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -32,6 +32,7 @@ $items = @(
     "README.md",
     "CHANGELOG.md",
     "TROUBLESHOOTING.md",
+    "THIRD_PARTY_NOTICES.md",
     "verify.ps1",
     "verify.sh",
     "install.ps1",
@@ -78,9 +79,11 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "clean-edits-guard.test.mjs failed" }
     node (Join-Path $targetDir "hooks\qa-gate.test.mjs")
     if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
+    node (Join-Path $targetDir "hooks\rule-engine.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "rule-engine.test.mjs failed" }
 }
 
-Write-Host "`nHermes Fleet v3.6.12 installed successfully!" -ForegroundColor Green
+Write-Host "`nHermes Fleet v3.7.0 installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
 Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan

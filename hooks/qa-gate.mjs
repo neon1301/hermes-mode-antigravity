@@ -10,6 +10,7 @@ import {
   parseJsonl,
   readTranscriptSlices
 } from './hermes-trigger.mjs';
+import { evaluateRules } from './rule-engine.mjs';
 
 const MAX_RETURNS = 2;
 const MAX_TAIL_BYTES = 8 * 1024 * 1024;
@@ -258,6 +259,7 @@ const touchedSnapshots = [];
 let hasQaPass = false;
 let hasUxPass = false;
 let hasCompliancePass = false;
+let hasSecurityPass = false;
 let lastWriteIdx = -1;
 let postEditAskIdx = -1;
 let postEditAskAnswer = '';
@@ -305,7 +307,11 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
 
       if (!isFromNonAuditor) {
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
-        if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) hasQaPass = true;
+        if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
+          hasQaPass = true;
+          if (!/\[SECURITY REJECT\]/.test(sysText)) hasSecurityPass = true;
+        }
+        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) hasSecurityPass = true;
         if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) hasUxPass = true;
         if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
       }
@@ -379,6 +385,7 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
         hasQaPass = false;
         hasUxPass = false;
         hasCompliancePass = false;
+        hasSecurityPass = false;
       }
     }
   }
@@ -422,13 +429,120 @@ const onlyQaRequested =
   postEditAskIdx > lastWriteIdx &&
   POSITIVE_ONLY_QA_RE.test(postEditAskAnswer);
 
+function computeDiffHash(snapshots = []) {
+  if (!snapshots || snapshots.length === 0) return 'empty';
+  const h = crypto.createHash('sha256');
+  for (const s of snapshots) {
+    h.update(String(s));
+  }
+  return h.digest('hex');
+}
+
+function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCount = 0, event = 'Stop' } = {}) {
+  if (!isHermesSession) return;
+  try {
+    const cwd = process.cwd();
+    const hermesDir = path.join(cwd, '.hermes');
+    if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const costFile = path.join(hermesDir, 'cost-log.jsonl');
+    try {
+      if (fs.existsSync(costFile)) {
+        const stats = fs.statSync(costFile);
+        if (stats.size > 512 * 1024) {
+          const rotFile = path.join(hermesDir, 'cost-log.1.jsonl');
+          try { if (fs.existsSync(rotFile)) fs.unlinkSync(rotFile); } catch {}
+          fs.renameSync(costFile, rotFile);
+        }
+      }
+    } catch {}
+    const record = {
+      timestamp: new Date().toISOString(),
+      conversationId: convId || null,
+      turnMarker: turnMarker ?? null,
+      event,
+      editedFilesCount,
+      toolCallsCount
+    };
+    fs.appendFileSync(costFile, JSON.stringify(record) + '\n', 'utf-8');
+  } catch {
+    // Fail-open
+  }
+}
+
+const currentDiffHash = computeDiffHash(touchedSnapshots);
+const secVerdictFile = path.join(process.cwd(), '.hermes', 'security-verdict.json');
+if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
+  try {
+    const verdictData = JSON.parse(fs.readFileSync(secVerdictFile, 'utf-8'));
+    const isPass = verdictData?.status === 'PASS';
+    const hasSignature = Boolean(verdictData?.signature);
+    const noUnresolved = !verdictData?.unresolvedHighCritical || verdictData?.unresolvedHighCritical === 0;
+
+    // (a) Transcript evidence: Viktor must have been explicitly invoked in this turn
+    const hasTranscriptProof = invokedSpecialists.has('viktor');
+
+    // (b) Binding to current diff hash (whitelisted touched files in turn)
+    const hasDiffHashMatch = Boolean(verdictData?.diffHash && verdictData.diffHash === currentDiffHash);
+
+    // (c) conversationId + turnMarker binding
+    const hasConvMatch = Boolean(verdictData?.conversationId && String(verdictData.conversationId) === String(convId));
+    const hasTurnMatch = verdictData?.turnMarker !== undefined && String(verdictData.turnMarker) === String(turnMarker);
+
+    // (d) Freshness TTL (must be signed within 5 minutes)
+    const reviewedAtMs = Date.parse(verdictData?.reviewedAt || '');
+    const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= 5 * 60 * 1000;
+
+    if (isPass && hasSignature && noUnresolved && hasTranscriptProof && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
+      hasSecurityPass = true;
+    } else {
+      logGateDecision({
+        decision: 'continue',
+        reason: 'security-verdict.json rejected: anti-self-signing check failed',
+        checks: { isPass, hasSignature, noUnresolved, hasTranscriptProof, hasDiffHashMatch, hasConvMatch, hasTurnMatch, isFresh }
+      });
+    }
+  } catch (err) {
+    logGateDecision({ decision: 'continue', reason: `security-verdict.json parse error: ${err.message}` });
+  }
+}
+
+logCostMetrics({
+  convId,
+  turnMarker,
+  editedFilesCount: editedSourceFiles.size,
+  toolCallsCount: touchedSnapshots.length,
+  event: 'Stop'
+});
+
+const isSecReviewEnabled = process.env.HERMES_SEC_REVIEW !== '0';
 const needQa = !onlyUxRequested && !isEconomySkipRequested;
 const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;
 const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested && !isEconomySkipRequested;
+const needSecurity = isSecReviewEnabled && editedSourceFiles.size > 0 && !onlyUxRequested && !isEconomySkipRequested;
+
 const missing = [];
 if (needQa && !hasQaPass) missing.push('[QA PASS] (Viktor)');
 if (needUx && !hasUxPass) missing.push('[UX PASS] (Kritik — проверка окон/дизайна после доработки)');
 if (needCompliance && !hasCompliancePass) missing.push('[COMPLIANCE PASS] (Stanislav)');
+if (needSecurity && !hasSecurityPass) missing.push('[SECURITY PASS] (Viktor / AppSec Reviewer — L2 Diff-Review)');
+
+// Declarative Rule Engine on Stop event
+try {
+  const hermesRulesDir = path.join(process.cwd(), '.hermes', 'rules');
+  const ruleEval = evaluateRules({
+    event: 'Stop',
+    context: {
+      terminationReason: termReason,
+      editedFilesCount: editedSourceFiles.size
+    },
+    rulesDir: hermesRulesDir
+  });
+  if (ruleEval.blocked) {
+    const br = ruleEval.blockingRules[0];
+    blockStop(`Hermes Rule Policy (${br.name}): ${br.message || 'Blocked by declarative rule'}`);
+    process.exit(0);
+  }
+} catch {}
 
 if (missing.length === 0) {
   cleanupCounter(counterFile);

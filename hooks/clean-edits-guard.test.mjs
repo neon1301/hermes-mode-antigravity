@@ -117,7 +117,17 @@ const cases = [
   { name: 'deny_run_command_before_handshake_even_with_settings_change_and_checkpoint', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes этот список станков можно сделать стиль как левый основной меню ?\n</USER_REQUEST>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Gemini 3.8 Flash (High).\n</USER_SETTINGS_CHANGE>' }, { step_index: 1, source: 'SYSTEM_SDK', type: 'SYSTEM_MESSAGE', content: '<!-- HERMES_PROTOCOL_LOADED -->\n- **Subagent Model:** `Gemini 3.8 Flash (High)` -> `Model: "flash"`' }], payload: { lastUserInput: '/hermes этот список станков можно сделать стиль как левый основной меню ?', toolCall: { name: 'run_command', args: { CommandLine: 'Get-ChildItem -Recurse -Filter "*.cs"' } } } },
   { name: 'deny_read_project_file_before_model_handshake', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'read_file', args: { Path: 'E:\\PRO\\SERVER_Modernized\\LoomConnectionSettingsForm.cs' } } } },
   { name: 'allow_read_skill_md_before_model_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'read_file', args: { Path: 'C:\\Users\\User\\.gemini\\config\\plugins\\hermes-fleet\\skills\\hermes\\SKILL.md' } } } },
-  { name: 'allow_subagent_run_command_without_own_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=f4d054f4-bbad-455f-85c8-ed9a9c607a9c content=Ты — Елена (@elena)' }], payload: { lastUserInput: '', toolCall: { name: 'run_command', args: { CommandLine: 'Select-String -Path "ServerTheme.cs" -Pattern "TreeView"' } } } }
+  { name: 'allow_subagent_run_command_without_own_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=f4d054f4-bbad-455f-85c8-ed9a9c607a9c content=Ты — Елена (@elena)' }], payload: { lastUserInput: '', toolCall: { name: 'run_command', args: { CommandLine: 'Select-String -Path "ServerTheme.cs" -Pattern "TreeView"' } } } },
+
+  // Layer 1 Security Patterns (REQ-1)
+  { name: 'deny_l1_pickle_loads', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/loader.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
+  { name: 'deny_l1_inner_html', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput;' } } } },
+  { name: 'deny_l1_interlock_override', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/machine.ts', Content: 'override_interlock = true;' } } } },
+  { name: 'allow_l1_with_ignore_comment', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput; // hermes-security-ignore: safe sanitized html' } } } },
+  { name: 'allow_l1_test_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'tests/test_loader.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
+  { name: 'allow_l1_simulator_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'simulators/modbus_sim.py', Content: 'function_code = 0x06' } } } },
+  { name: 'allow_l1_igor_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/igor/mock.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
+  { name: 'allow_l1_when_pattern_rules_env_disabled', expected: 'allow', env: { HERMES_PATTERN_RULES: '0' }, payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput;' } } } }
 ];
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-guard-test-'));
@@ -136,7 +146,11 @@ let failed = 0;
 let totalChecks = cases.length;
 try {
   cases.forEach((c, index) => {
-    const out = execFileSync('node', [hookPath], { input: JSON.stringify(buildInput(c, index)), encoding: 'utf-8' });
+    const out = execFileSync('node', [hookPath], {
+      input: JSON.stringify(buildInput(c, index)),
+      encoding: 'utf-8',
+      env: { ...process.env, ...c.env }
+    });
     const parsed = JSON.parse(out);
     const ok = parsed.decision === c.expected;
     if (!ok) failed++;

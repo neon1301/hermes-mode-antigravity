@@ -1,4 +1,4 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.6.12)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.7.0)
 
 Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 20 профессиональных скиллов**.
 
@@ -32,7 +32,7 @@
 ## 🛠️ Встроенная библиотека профессиональных скиллов (20 скиллов):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.6.12): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.7.0): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
@@ -65,6 +65,7 @@
 | **/hermes save** | 💾 Мгновенный снимок спринта в `.hermes/checkpoint.md` |
 | **/hermes resume** | 🔄 Восстановление контекста, задач и договоренностей из Memory Bank |
 | **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |
+| **/hermes rules** | 📜 Сводка и валидация активных декларативных правил флота (`.hermes/rules/*.md`) |
 | **/hermes standup** | 📋 Стендап-синхронизация команды с фиксацией в `.hermes/standups.md` |
 | **@имя [запрос]** | Прямой вызов конкретного специалиста (`@kritik` / `@критик`, `@elena`, `@stanislav`, `@alexey`, `@dmitry`, `@viktor`, `@ruslan` и др.) |
 
@@ -78,7 +79,7 @@
 
 Чтобы не зависеть от облачных сервисов и гарантировать 100% зелёный код перед пушем, в Hermes встроен **автономный локальный CI-гейт**:
 
-1. **Ручной запуск валидации (проверка Node >= 20, манифестов и всех 4 тест-сьютов):**
+1. **Ручной запуск валидации (проверка Node >= 20, манифестов и всех 5 тест-сьютов):**
    * **Windows (PowerShell):**
      ```powershell
      .\verify.ps1
