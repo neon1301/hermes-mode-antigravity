@@ -103,6 +103,8 @@ const cases = [
   { name: 'deny_invoke_subagent_tier_medium_overspend_inherit_on_high_host', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Medium)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'kritik', Model: 'inherit' } } } },
   { name: 'allow_invoke_subagent_tier_medium_with_flash', expected: 'allow', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Medium)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'kritik', Model: 'flash' } } } },
   { name: 'allow_invoke_subagent_tier_low_with_flash_lite', expected: 'allow', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Low)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'kritik', Model: 'flash_lite' } } } },
+  { name: 'allow_invoke_subagent_tier_low_pro_escalation_for_elena', expected: 'allow', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Low)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'elena', Model: 'pro' } } } },
+  { name: 'allow_invoke_subagent_tier_low_pro_escalation_for_self', expected: 'allow', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Low)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'self', Model: 'pro' } } } },
   { name: 'deny_invoke_subagent_tier_low_overspend_with_flash', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (Low)`', toolCall: { name: 'invoke_subagent', args: { TypeName: 'kritik', Model: 'flash' } } } },
   { name: 'allow_browser_subagent_without_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes посмотри баг\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes посмотри баг', toolCall: { name: 'invoke_subagent', args: { TypeName: 'browser', Model: 'flash' } } } },
   { name: 'deny_premature_kill_all_before_subagent_replies', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes fix ui\n</USER_REQUEST>' }, { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'elena', Model: 'flash' } }] }, { step_index: 2, source: 'MODEL', type: 'GENERIC', content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"\n}' }], payload: { lastUserInput: '/hermes fix ui', toolCall: { name: 'manage_subagents', args: { Action: 'kill_all' } } } },
@@ -128,6 +130,7 @@ function buildInput(c, index) {
 }
 
 let failed = 0;
+let totalChecks = cases.length;
 try {
   cases.forEach((c, index) => {
     const out = execFileSync('node', [hookPath], { input: JSON.stringify(buildInput(c, index)), encoding: 'utf-8' });
@@ -136,8 +139,28 @@ try {
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${parsed.decision}`);
   });
+
+  // Verify non-Hermes does not create .hermes/gate-log.jsonl
+  totalChecks++;
+  const isolatedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-log-isolation-'));
+  try {
+    execFileSync('node', [hookPath], {
+      cwd: isolatedDir,
+      input: JSON.stringify({ toolCall: { name: 'run_command', args: { CommandLine: 'dir' } } }),
+      encoding: 'utf-8'
+    });
+    const logExists = fs.existsSync(path.join(isolatedDir, '.hermes', 'gate-log.jsonl'));
+    if (logExists) {
+      failed++;
+      console.log('FAIL gate_log_not_created_outside_hermes: .hermes/gate-log.jsonl was unexpectedly created!');
+    } else {
+      console.log('PASS gate_log_not_created_outside_hermes');
+    }
+  } finally {
+    fs.rmSync(isolatedDir, { recursive: true, force: true });
+  }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
-console.log(`GUARD SUMMARY: ${cases.length - failed}/${cases.length} passed`);
+console.log(`GUARD SUMMARY: ${totalChecks - failed}/${totalChecks} passed`);
 process.exit(failed > 0 ? 1 : 0);

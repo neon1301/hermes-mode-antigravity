@@ -131,7 +131,8 @@
         * Для `Flash` + `Medium` ➔ `Model: "flash"`.
         * Для `Flash` + `Low` ➔ `Model: "flash_lite"`.
         * Для `Hydrogen`/`Argon`/`Pro` ➔ `Model: "pro"`.
-        * Для `Claude`/`GPT-OSS` ➔ `Model: "inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt. Профиль фиксируется в `.hermes/checkpoint.md`.
+        * Для `Claude`/`GPT-OSS` ➔ `Model: "inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt.
+      *Фиксация профиля:* Выбранный профиль фиксируется в `.hermes/checkpoint.md` и в машинном `.hermes/profile.json` (`{ "model": "<модель>", "tier": "high|medium|low", "updatedAt": "<ISO-8601>" }`) сразу после ответа пользователя в `ask_question`.
     * **Preflight & Pool Reuse:** До вызова субагента проверять `manage_subagents(action="list")`. 1 роль = max 1 live аудитор. Использовать `idle` воркеров.
     * **Bounded Waves (3–5), Disjoint Ownership & Single Build Gate:** Волны записи по 3–5 воркеров с непересекающимися файлами и Mission Brief. `Workspace: "branch"` — только при `.git`, иначе `"inherit"`. Single Build Gate выполняет Lead после волны.
     * **⏸️ Железное правило ожидания ответа субагентов (Anti-Premature Kill & No Fake Reports):**

@@ -449,6 +449,7 @@ const cases = [
 ];
 
 let failed = 0;
+let totalChecks = cases.length;
 try {
   for (const c of cases) {
     const res = c.run();
@@ -456,8 +457,35 @@ try {
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name}: expected=${c.expected} actual=${res.decision}`);
   }
+
+  // Verify non-Hermes does not create .hermes/gate-log.jsonl
+  totalChecks++;
+  const isolatedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-qa-log-isolation-'));
+  try {
+    execFileSync('node', [gatePath], {
+      cwd: isolatedDir,
+      input: JSON.stringify({
+        conversationId: 'c_non_hermes_iso',
+        terminationReason: 'NO_TOOL_CALL',
+        transcriptPath: writeTranscript('t_iso', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'just a normal query' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: isolatedDir }
+    });
+    const logExists = fs.existsSync(path.join(isolatedDir, '.hermes', 'gate-log.jsonl'));
+    if (logExists) {
+      failed++;
+      console.log('FAIL qa_gate_log_not_created_outside_hermes: .hermes/gate-log.jsonl was unexpectedly created!');
+    } else {
+      console.log('PASS qa_gate_log_not_created_outside_hermes');
+    }
+  } finally {
+    fs.rmSync(isolatedDir, { recursive: true, force: true });
+  }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
-console.log(`QA-GATE SUMMARY: ${cases.length - failed}/${cases.length} passed`);
+console.log(`QA-GATE SUMMARY: ${totalChecks - failed}/${totalChecks} passed`);
 process.exit(failed > 0 ? 1 : 0);

@@ -32,11 +32,7 @@ jobs:
             if (!hooks['hermes-context-injector'] || !hooks['hermes-clean-edits'] || !hooks['hermes-qa-gate']) {
               throw new Error('Missing required hooks in hooks.json');
             }
-            const agents = fs.readdirSync('agents').filter(f => f.endsWith('.md'));
-            const skills = fs.readdirSync('skills').filter(f => fs.existsSync('skills/' + f + '/SKILL.md'));
-            if (agents.length !== 14) throw new Error('Expected 14 agents, got ' + agents.length);
-            if (skills.length !== 20) throw new Error('Expected 20 skills, got ' + skills.length);
-            console.log('Manifest & structure check passed:', { version: plugin.version, agents: agents.length, skills: skills.length });
+            console.log('Manifest & hooks check passed:', { version: plugin.version });
           "
 
       - name: Run Consistency & Documentation Sync tests

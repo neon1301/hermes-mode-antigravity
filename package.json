@@ -17,6 +17,6 @@
     "policy-as-code",
     "clean-architecture"
   ],
-  "author": "Google DeepMind / neon1301",
-  "license": "Apache-2.0"
+  "author": "neon1301",
+  "license": "MIT"
 }

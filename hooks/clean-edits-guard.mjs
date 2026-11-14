@@ -36,12 +36,25 @@ function isHermesActive(payload) {
   }
 }
 
+let isHermesSession = false;
+
 function logGateDecision({ toolName, decision, reason, model, tier, subType } = {}) {
+  if (!isHermesSession) return;
   try {
     const cwd = process.cwd();
     const hermesDir = path.join(cwd, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
     const logFile = path.join(hermesDir, 'gate-log.jsonl');
+    try {
+      if (fs.existsSync(logFile)) {
+        const stats = fs.statSync(logFile);
+        if (stats.size > 512 * 1024) {
+          const rotFile = path.join(hermesDir, 'gate-log.1.jsonl');
+          try { if (fs.existsSync(rotFile)) fs.unlinkSync(rotFile); } catch {}
+          fs.renameSync(logFile, rotFile);
+        }
+      }
+    } catch {}
     const record = {
       timestamp: new Date().toISOString(),
       hook: 'clean-edits-guard',
@@ -165,7 +178,8 @@ const toolName = String(payload?.toolCall?.name || '').toLowerCase();
 const args = payload?.toolCall?.args || {};
 
 // Rules 8/9 are Hermes Fleet policy: outside Hermes Mode the agent works as a standard agent.
-if (!isHermesActive(payload)) {
+isHermesSession = isHermesActive(payload);
+if (!isHermesSession) {
   allow();
   process.exit(0);
 }
@@ -373,9 +387,10 @@ if (toolName === 'invoke_subagent') {
         process.exit(0);
       }
     } else if (detectedTier === 'low') {
-      if (reqModel !== 'flash_lite') {
+      const isProEscalation = reqModel === 'pro' && (subType === 'elena' || subType === 'self');
+      if (reqModel !== 'flash_lite' && !isProEscalation) {
         deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite".'
+          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite" (эскалация до "pro" разрешена только для @elena и сложных write-воркеров self).'
         );
         process.exit(0);
       }

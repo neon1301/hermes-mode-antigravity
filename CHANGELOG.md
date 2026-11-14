@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`TROUBLESHOOTING.md`:** Comprehensive handbook for common deny triggers (Rule 8, Rule 9, Rule 12 Handshake/Tier Mismatch, Stop Gate).
 
 ### Fixed
+- Prevented non-Hermes pollution of `.hermes/gate-log.jsonl`: gate logger now guards against writes outside Hermes mode and automatically rotates logs exceeding 512KB.
+- Fixed `consistency.test.mjs` async test execution: replaced sync runner on dynamic imports with top-level awaits and static imports to prevent fictitious PASS results in CI.
+- Aligned `package.json` license to MIT and author to `neon1301`, backed by automated verification in `consistency.test.mjs`.
+- Whitelisted `Model: "pro"` escalation for `@elena` (UI/UX) and write workers (`self`) under Medium and Low tiers.
+- Mandated `.hermes/profile.json` generation in Phase 0 Handshake and Phase 5 `/hermes save` protocols.
+- Deduplicated inline manifest validation in `.github/workflows/ci.yml` to rely on `consistency.test.mjs` as the single source of truth.
 - Unblocked `Model: "inherit"` in `clean-edits-guard.mjs` to preserve Gemini 3.8 Flash (High) reasoning budget.
 - Added dynamic 503 error handling protocol (backoff retry ➔ fallback ➔ escalation) replacing pre-emptive model downgrades.
 - Protected `\bThree(?:\.js)?\b` regex with word boundaries in domain routing rules.

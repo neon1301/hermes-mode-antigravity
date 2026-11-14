@@ -91,12 +91,25 @@ function readStdin() {
   }
 }
 
+let isHermesSession = false;
+
 function logGateDecision({ decision, reason, missing } = {}) {
+  if (!isHermesSession) return;
   try {
     const cwd = process.cwd();
     const hermesDir = path.join(cwd, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
     const logFile = path.join(hermesDir, 'gate-log.jsonl');
+    try {
+      if (fs.existsSync(logFile)) {
+        const stats = fs.statSync(logFile);
+        if (stats.size > 512 * 1024) {
+          const rotFile = path.join(hermesDir, 'gate-log.1.jsonl');
+          try { if (fs.existsSync(rotFile)) fs.unlinkSync(rotFile); } catch {}
+          fs.renameSync(logFile, rotFile);
+        }
+      }
+    } catch {}
     const record = {
       timestamp: new Date().toISOString(),
       hook: 'qa-gate',
@@ -228,6 +241,8 @@ for (let i = 0; i < steps.length; i++) {
 if (!hermesActive && detectHermesInSteps(steps)) {
   hermesActive = true;
 }
+
+isHermesSession = hermesActive;
 
 if (!hermesActive) {
   allow();
