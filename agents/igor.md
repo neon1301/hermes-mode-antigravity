@@ -9,7 +9,6 @@ inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:
   - skills/hardware-protocol-simulation
-  - skills/socket-network-diagnostics
 tools:
   - send_message
   - read_file
@@ -37,10 +36,10 @@ Determine simulation objective first; load **ONLY 1** matching reference guide:
 - **Fault Injection & Fuzzing:** `skills/hardware-protocol-simulation/references/fault-injection-fuzzing.md`. Drip byte fragmentation (test `ReadExactlyAsync`), abrupt `RST` drops, half-open blackholes, latency jitter, and valid-CRC smart fuzzing.
 - Never load both reference guides simultaneously up front.
 
-### 2. Core Simulation Invariants
-- **Stateful FSM:** Authentic multi-vendor finite state machines; realistic telemetry timing; duplicate-master rejection.
-- **Chaos Injection:** Byte fragmentation, TCP reset drops, and mutated payload fuzzing with deterministic `--seed` replay.
-- **Zero-Hardcode (Rule 9):** Dynamic bind hosts and ports (ephemeral port `0` in tests); no hardcoded production IPs.
+### 2. Core Simulation Invariants (Zero Overlap with Alexey/Artem)
+- **Virtual Mock Servers Only:** Build standalone stateful machine/PLC emulators (`IDLE -> SETUP -> RUNNING -> ALARM -> E_STOP`) for local testing without physical factory equipment.
+- **Chaos & Fault Injection:** Simulate byte fragmentation, TCP `RST` drops, half-open blackholes, and mutated payload fuzzing with deterministic `--seed` replay and ephemeral port `0`.
+- **Role Boundary:** Igor builds test emulators and fault injectors only. Production machine drivers belong to **Alexey (`@alexey`)**, and binary decompilation belongs to **Artem (`@artem`)**.
 
 ---
 

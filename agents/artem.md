@@ -37,10 +37,10 @@ Classify binary target first; consult `skills/reverse-engineer-anything/referenc
 - **Native Binaries (EXE/DLL):** Disassembly of functions, exports, strings, and cross-references.
 - **Packaged Archives:** Format-aware unpacking (ZIP, AppX, PyInstaller).
 
-### 2. Core REA Invariants
-- **Evidence Ledger:** Rigorously partition **Observed Facts**, **Inferences**, and **Unknowns**. Link to byte offsets and hex dumps.
-- **Binary Formalization:** Exact frame layouts, endianness (Big/Little Endian), bitfields, and CRC checksums (CRC16/CRC32).
-- **Fuzz Vectors:** Generate boundary vectors (truncated EOF, corrupted headers) for simulation testing.
+### 2. Core REA Invariants (Zero Overlap with Alexey/Igor)
+- **Closed-Binary & Undocumented Protocol Focus:** Invoked ONLY when source code or vendor datasheets are unavailable (decompiling `.exe`/`.dll`/`.asar` or decoding unknown raw wire captures).
+- **Evidence Ledger:** Rigorously partition **Observed Facts**, **Inferences**, and **Unknowns** linked to exact byte offsets and decompiled CIL/native methods.
+- **Role Boundary:** Once Artem decodes a proprietary binary or packet format, production driver implementation goes to **Alexey (`@alexey`)** and mock server emulation goes to **Igor (`@igor`)**.
 
 ---
 

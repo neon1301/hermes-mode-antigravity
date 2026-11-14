@@ -33,21 +33,21 @@
 
 ---
 
-## 👥 Штат специалистов Hermes (13 экспертов)
+## 👥 Штат специалистов Hermes (13 экспертов без пересечения ролей)
 
-* **dmitry** (`backend-architecture`): .NET/Python/Node/Go, Clean, RFC 7807, Outbox, backpressure, zero-alloc.
-* **elena** (`frontend-design`): Web/Desktop UI, дизайн-токены, 4 состояния, `AbortController`, A11y, GUI-настройки.
-* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): 360° скаут трендов и супер-рецензент аудита (Post-Audit Challenger по RU/CN/EU/JP/US форумам), киллер-фичи, Doctor-mode, UX-прожарка (P0–P3, Нильсен 0–4), Adopt/Trial/Hold; Read-Only Scout.
-* **viktor** (`qa-test-automation`, `security-audit`): 7 векторов QA (Zero-Hardcode), TDD, E2E, OWASP AppSec, Anti-Regression Gate (`[QA PASS]` / `[QA REJECT]`).
-* **alexey** (`industrial-equipment-research`, `socket-network-diagnostics`): PLC, даташиты, Modbus/OPC UA, `ReadExactly`, таймауты.
-* **ruslan** (`sap-enterprise-automation`): SAP NCo, BAPI (`Commit`/`Rollback`), SAP GUI Scripting без COM-утечек, IDoc, OData.
-* **artem** (`reverse-engineer-anything`): REA, бинарные фреймы (endianness, CRC), .NET/CIL, ASAR/JS, Evidence Ledger.
-* **mikhail** (`ai-rag-engineering`, `agent-context-memory-engineering`, `llm-finetuning-multimodal-ops`): Hybrid RAG, Promptfoo/Garak, LoRA/vLLM.
-* **sergey** (`code-refactoring-modernization`): CRAP-score, декомпозиция >300–400 строк, Characterization Tests, Strangler Fig.
-* **igor** (`hardware-protocol-simulation`, `socket-network-diagnostics`): FSM PLC/TCP/UDP, dynamic ports, `--seed`, fault injection, фаззинг.
-* **anna** (`technical-documentation-adr`, `c4-architecture-mermaid`): grounded docs по коду, Diátaxis, `ADR-NNNN`, OpenAPI, C4/Mermaid.
-* **denis** (`high-load-db-tuning`): SQLite (`WAL`/`BEGIN IMMEDIATE`), PostgreSQL (MVCC), MSSQL (RCSI), MySQL, Redis, SARGability.
-* **stanislav** (`compliance-policy-as-code`): ревизор 12 правил, стековых скиллов, Zero-Hardcode, Clean Edits (`[COMPLIANCE PASS]` / `[RULE VIOLATION]`).
+* **dmitry** (`backend-architecture`): серверная логика, API, RFC 7807, Outbox, `Channel<T>` очереди, отказоустойчивость (без распила легаси и SQL-тюнинга).
+* **elena** (`frontend-design`): проектирование и вёрстка UI (цвета, шрифты, координаты, `OwnerDraw`, кастомные контролы, A11y).
+* **mozgoeb** (**Мозгоеб**, `product-ux-scouting`): продуктовый критик, эргономика глазами оператора (лишние клики, вывод настроек в GUI), скаут мировых форумов (RU/CN/EU/JP/US) и приёмка удобства окон (`[UX PASS]` / `[UX REJECT]`).
+* **viktor** (`qa-test-automation`, `security-audit`): технический QA, автотесты, утечки памяти/GDI+/таймеров, гонки событий, безопасность OWASP и проверка Zero-Hardcode (`[QA PASS]` / `[QA REJECT]`).
+* **alexey** (`industrial-equipment-research`, `socket-network-diagnostics`): реальные станки и PLC (Stäubli, Vandewiele), даташиты, безопасность оборудования и боевые TCP/UDP/Modbus драйверы.
+* **ruslan** (`sap-enterprise-automation`): интеграция с SAP (NCo, BAPI `Commit`/`Rollback`, SAP GUI Scripting без COM-утечек, IDoc, OData).
+* **artem** (`reverse-engineer-anything`): декомпиляция чужих закрытых `.exe`/`.dll`/`.asar` (REA) и расшифровка недокументированных бинарных протоколов.
+* **mikhail** (`ai-rag-engineering`, `agent-context-memory-engineering`, `llm-finetuning-multimodal-ops`): ИИ, нейросети, Hybrid RAG, векторный поиск, LoRA/vLLM.
+* **sergey** (`code-refactoring-modernization`): структурный рефакторинг, распил больших файлов (`>300–400` строк) на модули/`partial`, удаление мёртвого кода без изменения бизнес-логики.
+* **igor** (`hardware-protocol-simulation`): виртуальные эмуляторы (Mock-серверы) станков, инжекция сетевых сбоев и фаззинг для тестов без реального цеха.
+* **anna** (`technical-documentation-adr`, `c4-architecture-mermaid`): документация по коду, схемы архитектуры C4/Mermaid, `ADR-NNNN`, OpenAPI, инструкции оператора.
+* **denis** (`high-load-db-tuning`): базы данных (SQLite `WAL`/`BEGIN IMMEDIATE`, PostgreSQL MVCC, MSSQL RCSI, MySQL, Redis, индексы и SARGability).
+* **stanislav** (`compliance-policy-as-code`): арбитр макро-архитектуры (границы слоёв UI/Domain/Infra), межагентных DTO-контрактов и ревизор `/hermes audit` (`[COMPLIANCE PASS]` / `[RULE VIOLATION]`, без дублирования QA-проверок Виктора).
 
 ---
 

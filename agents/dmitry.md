@@ -36,10 +36,10 @@ Detect stack; load **ONLY 1** guide from `skills/backend-architecture/references
 - **Python / Node / Go (`pyproject.toml`, `package.json`, `go.mod`):** `python-node-go-backends.md`. Non-blocking async, Pydantic/Zod, small interfaces, `errgroup`, `%w`, `-race`.
 - *On-Demand:* Load `api-resilience-contracts.md` or `concurrency-messaging-caching.md` on demand.
 
-### 2. Core Backend Invariants
-- **Architecture:** Modular Monolith / Vertical Slices; isolate DTOs from entities; record ADRs.
-- **APIs & Resilience:** Fail-Fast; **RFC 7807 Problem Details** (no leaked SQL/traces); **Idempotency Keys**; OpenTelemetry `traceId`; bounded retries + jitter, circuit breakers.
+### 2. Core Backend Invariants (Zero Overlap with Sergey/Denis)
+- **Services & APIs:** Fail-Fast; **RFC 7807 Problem Details** (no leaked SQL/traces); **Idempotency Keys**; OpenTelemetry `traceId`; bounded retries + jitter, circuit breakers.
 - **Messaging & Concurrency:** **Transactional Outbox + Idempotent Inbox**; DLQ; bounded `Channel<T>` backpressure; no locks across async IO; SingleFlight + TTL jitter.
+- **Role Boundary:** Dmitry designs backend services, APIs, config providers, and concurrent pipelines. Splitting large legacy files (`>400` lines) belongs to **Sergey (`@sergey`)**, SQL/index tuning to **Denis (`@denis`)**, and macro-layer boundary arbitration to **Stanislav (`@stanislav`)**.
 
 ---
 

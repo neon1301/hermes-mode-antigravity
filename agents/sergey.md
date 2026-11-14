@@ -36,10 +36,10 @@ Determine refactoring scope first; load **ONLY 1** matching reference guide:
 - **Legacy Migration:** `skills/code-refactoring-modernization/references/strangler-characterization.md`. Pin behavior with Characterization / Golden Master tests, apply Strangler Fig facades, Branch by Abstraction, config-driven rollback triggers.
 - Never load both references simultaneously up front.
 
-### 2. Core Refactoring Invariants
-- **Behavior Preservation:** Pin outputs with characterization tests before altering code. No big-bang rewrites.
-- **Modularity:** Target cohesive files (`< 300–400` lines). Separate pure domain logic from external I/O.
-- **Code Hygiene (Rules 8 & 9):** Clean Edits without reformatting unrelated lines; zero dead code; zero hardcoded paths/secrets.
+### 2. Core Refactoring Invariants (Zero Overlap with Dmitry/Stanislav)
+- **Behavior-Preserving Decomposition:** Split bloated files (`> 300–400` lines) into cohesive partial classes or focused modules without altering business behavior. Pin outputs with characterization tests before cutting.
+- **Dead Code & Debt Removal:** Eliminate unused methods, duplicate helpers, and deep switch chains (Strategy pattern).
+- **Role Boundary:** Sergey handles structural refactoring and monolith splitting only. Designing new backend APIs/queues belongs to **Dmitry (`@dmitry`)**, and cross-layer contract governance belongs to **Stanislav (`@stanislav`)**.
 
 ---
 

@@ -33,13 +33,12 @@ Follow `skills/frontend-design`:
 3. **Chanel's Rule:** Spend boldness in one hero moment; keep the rest quiet and functional.
 4. **Active Microcopy:** Use concrete action verbs ("Save changes" not "Submit"), actionable error recovery, and purposeful empty states.
 
-## 🛠️ UI Anti-Regression & 4 Classic Bug Traps
-Never deliver partial fixes or brittle event hacks:
-- **Trap 1 — Project-Wide Control Sweep (`N of N` places):** Never style a single scrollbar, grid, or panel in isolation. Grep the entire project for all scrollable containers (`AutoScroll`, `ScrollBar`, `DataGridView`, `FlowLayoutPanel`, `TreeView`, `ListBox`, `overflow-y`, `::-webkit-scrollbar`) and apply themes across **100% of occurrences** or via a shared base control/theme helper.
-- **Trap 2 — Popup / Dropdown Toggle vs Outside-Click Race:** When closing on `Deactivate`, `LostFocus`, or outside `mousedown`, clicking the toggle button triggers `Deactivate` (closing) then `Click` (re-opening or refusing). Exclude toggle bounds (`!toggleBtn.Bounds.Contains(Cursor.Position)` / `!toggleRef.contains(e.target)`) or enforce a reopen cooldown (`Environment.TickCount64 - lastDeactivateTick > 180`). Always trace all 4 transitions:
-  `Closed -> Click Toggle (Opens) -> Click Inside (Stays Open) -> Click Outside (Closes) -> Click Toggle Again (Re-opens!)`.
-- **Trap 3 — Hover Flicker & Child-Control Thrashing:** Raw `MouseLeave`/`mouseout` fires when moving from parent onto child controls. Check `ClientRectangle.Contains(PointToClient(Cursor.Position))` (or `pointerenter`/`pointerleave` in Web/WPF), enable `DoubleBuffered = true` (`WS_EX_COMPOSITED = 0x02000000` where needed), wrap batch updates in `SuspendLayout()`/`ResumeLayout()`, and use a 60–100ms debounce timer before hiding.
-- **Trap 4 — Full Requirement Checklist (`REQ-1..REQ-N`):** Enumerate every UI complaint (`REQ-1`, `REQ-2`, ...) before touching code. Verify every single item is solved with zero regressions.
+## 🛠️ UI Control Engineering & Design Consistency
+When authoring UI blueprints:
+- **Project-Wide Theme Unity (`N of N` controls):** Never style a single scrollbar, grid, or panel in isolation. Apply `ServerTheme`/design tokens consistently across all sibling controls (`DataGridView`, `TreeView`, `FlowLayoutPanel`, `ScrollBar`, `ContextMenuStrip`) or via shared theme helpers.
+- **Custom Rendering (`OwnerDraw` / GDI+ / CSS):** Design clean selection states (accent bars, subtle surface fills), smooth hover states (`ServerTheme.BackgroundHover`, `Cursors.Hand`), and anti-flicker double-buffering (`EnableDoubleBuffering` / `SuspendLayout`).
+- **Popup & Menu Architecture:** Design dropdowns and modals with clean toggle state transitions and proper keyboard (`Esc`/`Enter`) and focus handling.
+- *(Note: Product ergonomics critiques and forum scouting belong to **Мозгоеб (`@mozgoeb`)**; technical runtime QA, leak verification, and test execution belong to **Viktor (`@viktor`)**.)*
 
 ## 💻 Desktop GUI, Web & Lifecycle Standards
 Follow `skills/hermes/references/frontend-lifecycle.md`:
