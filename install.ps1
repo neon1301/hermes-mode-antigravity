@@ -1,9 +1,19 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.8)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.6.9)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.6.8 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.6.9 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
+
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if (-not $nodeCmd) {
+    throw "Node.js is not installed or not in PATH. Please install Node.js >= 20."
+}
+$nodeVer = (node -v).TrimStart('v')
+$majorVer = [int]($nodeVer.Split('.')[0])
+if ($majorVer -lt 20) {
+    Write-Warning "Node.js version is $nodeVer (Node.js >= 20 recommended)."
+}
 
 $sourceDir = $PSScriptRoot
 $targetDir = Join-Path $env:USERPROFILE ".gemini\config\plugins\hermes-fleet"
@@ -16,9 +26,12 @@ if (-not (Test-Path $targetDir)) {
 
 $items = @(
     "plugin.json",
+    "package.json",
     "hooks.json",
     "LICENSE",
     "README.md",
+    "CHANGELOG.md",
+    "TROUBLESHOOTING.md",
     "hooks",
     "assets",
     "skills",
@@ -53,6 +66,8 @@ foreach ($item in $items) {
 
 if (Get-Command node -ErrorAction SilentlyContinue) {
     Write-Host "`nRunning hook self-tests..." -ForegroundColor Cyan
+    node (Join-Path $targetDir "hooks\consistency.test.mjs")
+    if ($LASTEXITCODE -ne 0) { throw "consistency.test.mjs failed" }
     node (Join-Path $targetDir "hooks\context-injector.test.mjs")
     if ($LASTEXITCODE -ne 0) { throw "context-injector.test.mjs failed" }
     node (Join-Path $targetDir "hooks\clean-edits-guard.test.mjs")
@@ -61,7 +76,7 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "qa-gate.test.mjs failed" }
 }
 
-Write-Host "`nHermes Fleet v3.6.8 installed successfully!" -ForegroundColor Green
+Write-Host "`nHermes Fleet v3.6.9 installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
 Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan

@@ -91,11 +91,32 @@ function readStdin() {
   }
 }
 
-function allow() {
+function logGateDecision({ decision, reason, missing } = {}) {
+  try {
+    const cwd = process.cwd();
+    const hermesDir = path.join(cwd, '.hermes');
+    if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const logFile = path.join(hermesDir, 'gate-log.jsonl');
+    const record = {
+      timestamp: new Date().toISOString(),
+      hook: 'qa-gate',
+      decision,
+      reason: reason || null,
+      missing: missing || []
+    };
+    fs.appendFileSync(logFile, JSON.stringify(record) + '\n', 'utf-8');
+  } catch {
+    // Fail-open
+  }
+}
+
+function allow(meta = {}) {
+  logGateDecision({ decision: 'allow', ...meta });
   process.stdout.write(JSON.stringify({ decision: 'allow' }));
 }
 
-function blockStop(reason) {
+function blockStop(reason, meta = {}) {
+  logGateDecision({ decision: 'continue', reason, ...meta });
   process.stdout.write(JSON.stringify({ decision: 'continue', reason }));
 }
 

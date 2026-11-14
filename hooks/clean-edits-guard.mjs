@@ -36,24 +36,68 @@ function isHermesActive(payload) {
   }
 }
 
-function allow() {
+function logGateDecision({ toolName, decision, reason, model, tier, subType } = {}) {
+  try {
+    const cwd = process.cwd();
+    const hermesDir = path.join(cwd, '.hermes');
+    if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const logFile = path.join(hermesDir, 'gate-log.jsonl');
+    const record = {
+      timestamp: new Date().toISOString(),
+      hook: 'clean-edits-guard',
+      tool: toolName || null,
+      subType: subType || null,
+      decision,
+      reason: reason || null,
+      model: model || null,
+      tier: tier || null
+    };
+    fs.appendFileSync(logFile, JSON.stringify(record) + '\n', 'utf-8');
+  } catch {
+    // Fail-open: logging errors must never affect execution
+  }
+}
+
+function allow(meta = {}) {
+  logGateDecision({ decision: 'allow', ...meta });
   process.stdout.write(JSON.stringify({ decision: 'allow' }));
 }
 
-function deny(reason) {
+function deny(reason, meta = {}) {
+  logGateDecision({ decision: 'deny', reason, ...meta });
   process.stdout.write(JSON.stringify({ decision: 'deny', reason }));
 }
 
-function detectSelectedTier({ checkpointPath, checkpointText, steps = [] } = {}) {
-  let cp = checkpointText || '';
-  if (!cp && checkpointPath && fs.existsSync(checkpointPath)) {
+function detectSelectedTier({ checkpointPath, checkpointText, profilePath, profileText, steps = [] } = {}) {
+  // In-memory mocks (e.g. test payloads) take precedence over disk files
+  if (profileText) {
     try {
-      cp = fs.readFileSync(checkpointPath, 'utf-8');
+      const data = typeof profileText === 'string' ? JSON.parse(profileText) : profileText;
+      const t = String(data?.tier || data?.Tier || '').toLowerCase();
+      if (t === 'high' || t === 'medium' || t === 'low') return t;
     } catch {}
   }
-  if (cp) {
-    const m = cp.match(/(?:Model Profile|Subagent Model|Модельный профиль|Active Model Profile|Уровень|Режим)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
+  if (checkpointText) {
+    const m = checkpointText.match(/(?:Model Profile|Subagent Model|Модельный профиль|Active Model Profile|Уровень|Режим)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
     if (m) return m[1].toLowerCase();
+  }
+
+  // 1. Check structured .hermes/profile.json on disk (deterministic, machine-readable)
+  if (profilePath && fs.existsSync(profilePath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
+      const t = String(data?.tier || data?.Tier || '').toLowerCase();
+      if (t === 'high' || t === 'medium' || t === 'low') return t;
+    } catch {}
+  }
+
+  // 2. Check explicit checkpoint file on disk
+  if (checkpointPath && fs.existsSync(checkpointPath)) {
+    try {
+      const cp = fs.readFileSync(checkpointPath, 'utf-8');
+      const m = cp.match(/(?:Model Profile|Subagent Model|Модельный профиль|Active Model Profile|Уровень|Режим)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
+      if (m) return m[1].toLowerCase();
+    } catch {}
   }
 
   for (let i = steps.length - 1; i >= 0; i--) {
@@ -281,6 +325,7 @@ if (toolName === 'invoke_subagent') {
     const hostModel = String(payload?.modelName || '').toLowerCase();
     const cwd = String(payload?.cwd || process.cwd() || '');
     const checkpointPath = path.join(cwd, '.hermes', 'checkpoint.md');
+    const profilePath = path.join(cwd, '.hermes', 'profile.json');
 
     let transcriptSteps = [];
     const transcriptPath = payload?.transcriptPath;
@@ -296,6 +341,7 @@ if (toolName === 'invoke_subagent') {
 
     const detectedTier = detectSelectedTier({
       checkpointPath,
+      profilePath,
       checkpointText: payload?.checkpointText,
       steps: transcriptSteps
     });

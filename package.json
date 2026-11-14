@@ -1,0 +1,22 @@
+{
+  "name": "hermes-fleet",
+  "version": "3.6.9",
+  "description": "Hermes Fleet for Google Antigravity: Multi-Agent Orchestration & Policy as Code",
+  "type": "module",
+  "scripts": {
+    "test": "node hooks/consistency.test.mjs && node hooks/context-injector.test.mjs && node hooks/clean-edits-guard.test.mjs && node hooks/qa-gate.test.mjs",
+    "test:consistency": "node hooks/consistency.test.mjs",
+    "test:injector": "node hooks/context-injector.test.mjs",
+    "test:guard": "node hooks/clean-edits-guard.test.mjs",
+    "test:gate": "node hooks/qa-gate.test.mjs"
+  },
+  "keywords": [
+    "antigravity",
+    "hermes",
+    "multi-agent",
+    "policy-as-code",
+    "clean-architecture"
+  ],
+  "author": "Google DeepMind / neon1301",
+  "license": "Apache-2.0"
+}
