@@ -266,7 +266,9 @@ let postEditAskAnswer = '';
 let postEditAskToolCallId = '';
 
 const nonAuditorSubagentIds = new Set();
+const viktorSubagentUuids = new Set();
 let pendingNonAuditorCount = 0;
+let pendingViktorCount = 0;
 
 for (const s of turnSteps) {
   for (const tc of collectToolCalls(s)) {
@@ -275,15 +277,24 @@ for (const s of turnSteps) {
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
       if (typeName) invokedSpecialists.add(typeName);
-      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'kritik') {
+      if (typeName === 'viktor') {
+        pendingViktorCount++;
+      } else if (typeName !== 'stanislav' && typeName !== 'kritik') {
         pendingNonAuditorCount++;
       }
     }
   }
 
   const stepType = String(s?.type || '').toUpperCase();
+  const textToScan = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+  if (pendingViktorCount > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
+    const m = textToScan.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+    if (m) {
+      viktorSubagentUuids.add(m[1].toLowerCase());
+      pendingViktorCount--;
+    }
+  }
   if (pendingNonAuditorCount > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
-    const textToScan = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
     const m = textToScan.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
     if (m) {
       nonAuditorSubagentIds.add(m[1].toLowerCase());
@@ -293,6 +304,7 @@ for (const s of turnSteps) {
 }
 
 const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|UX|COMPLIANCE)\s+PASS\]/gi;
+const viktorDeliveryTexts = [];
 
 for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
   const s = turnSteps[stepIdx];
@@ -304,14 +316,22 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       const senderMatch = sysText.match(/sender=["']?([0-9a-f-]{36})["']?/i);
       const senderUuid = senderMatch ? senderMatch[1].toLowerCase() : (String(s?.sender || '').match(/^[0-9a-f-]{36}$/i) ? String(s.sender).toLowerCase() : '');
       const isFromNonAuditor = senderUuid && nonAuditorSubagentIds.has(senderUuid);
+      const isViktorSender = (senderUuid && viktorSubagentUuids.has(senderUuid)) ||
+                             /sender=["']?viktor["']?/i.test(sysText) ||
+                             String(s?.sender || '').toLowerCase() === 'viktor';
+
+      if (isViktorSender) {
+        viktorDeliveryTexts.push(sysText);
+      }
 
       if (!isFromNonAuditor) {
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
           hasQaPass = true;
-          if (!/\[SECURITY REJECT\]/.test(sysText)) hasSecurityPass = true;
         }
-        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) hasSecurityPass = true;
+        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
+          hasSecurityPass = true;
+        }
         if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) hasUxPass = true;
         if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
       }
@@ -373,8 +393,14 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
         const normPath = path.normalize(targetPath);
         editedSourceFiles.add(normPath);
-        const snippet = String(args.Content || args.Replacement || args.CodeContent || '').slice(0, 2000);
-        touchedSnapshots.push(`${targetPath}\n${snippet}`);
+        const snippet = String(args.Content || args.Replacement || args.CodeContent || '');
+        let diskContent = '';
+        try {
+          if (fs.existsSync(normPath)) {
+            diskContent = fs.readFileSync(normPath, 'utf-8');
+          }
+        } catch {}
+        touchedSnapshots.push(`${targetPath}\n${snippet}\n${diskContent}`);
         if (UI_SOURCE_FILE_RE.test(targetPath)) {
           editedUiFiles.add(normPath);
         }
@@ -476,10 +502,14 @@ if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
     const verdictData = JSON.parse(fs.readFileSync(secVerdictFile, 'utf-8'));
     const isPass = verdictData?.status === 'PASS';
     const hasSignature = Boolean(verdictData?.signature);
-    const noUnresolved = !verdictData?.unresolvedHighCritical || verdictData?.unresolvedHighCritical === 0;
+    // R1: unresolvedHighCritical must be explicitly === 0. Missing or non-zero = reject
+    const noUnresolved = verdictData?.unresolvedHighCritical === 0;
 
     // (a) Transcript evidence: Viktor must have been explicitly invoked in this turn
     const hasTranscriptProof = invokedSpecialists.has('viktor');
+
+    // (a2) R2: Real delivery from Viktor containing diffHash (Anti-Show Protection)
+    const hasViktorDeliveryWithHash = viktorDeliveryTexts.some((txt) => txt.includes(currentDiffHash));
 
     // (b) Binding to current diff hash (whitelisted touched files in turn)
     const hasDiffHashMatch = Boolean(verdictData?.diffHash && verdictData.diffHash === currentDiffHash);
@@ -492,13 +522,13 @@ if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
     const reviewedAtMs = Date.parse(verdictData?.reviewedAt || '');
     const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= 5 * 60 * 1000;
 
-    if (isPass && hasSignature && noUnresolved && hasTranscriptProof && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
+    if (isPass && hasSignature && noUnresolved && hasTranscriptProof && hasViktorDeliveryWithHash && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
       hasSecurityPass = true;
     } else {
       logGateDecision({
         decision: 'continue',
         reason: 'security-verdict.json rejected: anti-self-signing check failed',
-        checks: { isPass, hasSignature, noUnresolved, hasTranscriptProof, hasDiffHashMatch, hasConvMatch, hasTurnMatch, isFresh }
+        checks: { isPass, hasSignature, noUnresolved, hasTranscriptProof, hasViktorDeliveryWithHash, hasDiffHashMatch, hasConvMatch, hasTurnMatch, isFresh }
       });
     }
   } catch (err) {
@@ -550,9 +580,42 @@ if (missing.length === 0) {
   process.exit(0);
 }
 
+// REQ-6: Bounded Convergence Loop (--loop / /hermes fix-warnings --loop) with ceiling 25
+const isLoopRequested = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i.test(payload?.lastUserInput || '') ||
+                        steps.some((s) => /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i.test(typeof s?.content === 'string' ? s.content : ''));
+const LOOP_CEILING = 25;
+
+if (isLoopRequested) {
+  const safeId = String(convId).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const hermesDir = path.join(process.cwd(), '.hermes');
+  if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+  const loopFile = path.join(hermesDir, `loop-state-${safeId}.json`);
+  let loopIteration = 0;
+  try {
+    if (fs.existsSync(loopFile)) {
+      loopIteration = JSON.parse(fs.readFileSync(loopFile, 'utf-8')).iteration || 0;
+    }
+  } catch {}
+  loopIteration++;
+  try {
+    fs.writeFileSync(loopFile, JSON.stringify({ conversationId: convId, iteration: loopIteration, updatedAt: new Date().toISOString() }), 'utf-8');
+  } catch {}
+
+  if (loopIteration >= LOOP_CEILING) {
+    try {
+      const blockersPath = path.join(hermesDir, 'loop-blockers.md');
+      const blockerReport = `# 🛑 Hermes Convergence Loop Blockers\n\n- **Conversation ID:** \`${convId}\`\n- **Iterations:** ${loopIteration}/${LOOP_CEILING} (Ceiling Exhausted)\n- **Unresolved Invariants:** ${missing.join(', ')}\n\nLoop exhausted maximum allowed iterations. Manual review required.\n`;
+      fs.writeFileSync(blockersPath, blockerReport, 'utf-8');
+    } catch {}
+    cleanupCounter(counterFile);
+    allow();
+    process.exit(0);
+  }
+}
+
 const attempt = readCounter(counterFile);
 
-if (attempt >= MAX_RETURNS) {
+if (!isLoopRequested && attempt >= MAX_RETURNS) {
   allow();
   process.exit(0);
 }

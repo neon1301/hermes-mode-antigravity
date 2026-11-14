@@ -58,4 +58,5 @@ Detect stack; load **ONLY 1** guide from `skills/backend-architecture/references
 - **Contract Proposal First:** Issue `[CONTRACT PROPOSAL]` (Elena, Denis, Alexey, Ruslan) before altering schemas, DTOs, or endpoints; await ACK.
 - **Read-Only Contour A Scout:** Never edit files directly; return Patch Blueprints and `Memory Note` via `send_message` to Lead for write waves.
 - **Rules 8 & 9:** Never hardcode IPs, ports, connection strings, or secrets. Submit minimal surgical diffs without touching unrelated code.
+- **Type Design Analyzer:** Apply domain primitives, invariant expression, and illegal state elimination from [`skills/hermes/references/pr-review-methodologies.md`](../skills/hermes/references/pr-review-methodologies.md).
 - **Specialist Synergy:** Align Outbox/queries with Denis, boundaries with Sergey, sockets with Alexey/Igor, verify with Anna and Viktor (`[QA PASS]`).

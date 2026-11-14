@@ -22,6 +22,7 @@
 | Команда | Назначение |
 | :--- | :--- |
 | **/hermes [задача]** | Оркестрация, реестр `REQ-1..REQ-N`, декомпозиция и контроль |
+| **/hermes feature [описание]** | 🚀 7-фазный протокол проектирования фич (Discovery, 3 альтернативы, Quality Review, Fast-Path) |
 | **/hermes board** | Канбан-доска в чате (Generative UI) |
 | **/hermes fix-warnings** | Устранение warnings компилятора до нуля |
 | **/hermes audit** | Ревизия 12 правил и стековых скиллов (Stanislav) |

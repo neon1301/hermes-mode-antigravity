@@ -203,5 +203,41 @@ await test('third_party_notices_attribution', () => {
   }
 });
 
+// 11. Verify Wave 2 references and ADR existence
+await test('wave2_artifacts_and_adr_integrity', () => {
+  const featProto = path.join(rootDir, 'skills', 'hermes', 'references', 'feature-dev-protocol.md');
+  if (!fs.existsSync(featProto)) throw new Error('feature-dev-protocol.md missing');
+  const featContent = fs.readFileSync(featProto, 'utf-8');
+  if (!featContent.includes('Fast-Path') || !featContent.includes('7-Phase')) {
+    throw new Error('feature-dev-protocol.md missing Fast-Path or 7-Phase references');
+  }
+
+  const prMethod = path.join(rootDir, 'skills', 'hermes', 'references', 'pr-review-methodologies.md');
+  if (!fs.existsSync(prMethod)) throw new Error('pr-review-methodologies.md missing');
+  const prContent = fs.readFileSync(prMethod, 'utf-8');
+  if (!prContent.includes('PR Test Analyzer') || !prContent.includes('Type Design') || !prContent.includes('Comment Freshness')) {
+    throw new Error('pr-review-methodologies.md missing review methodology sections');
+  }
+
+  const adrFile = path.join(rootDir, 'docs', 'adr', '0001-l2-diff-review-and-anti-self-signing.md');
+  if (!fs.existsSync(adrFile)) throw new Error('ADR 0001 file missing');
+  const adrContent = fs.readFileSync(adrFile, 'utf-8');
+  if (/крипто/i.test(adrContent)) {
+    throw new Error('ADR 0001 must not use the term "крипто"');
+  }
+});
+
+// 12. Verify specialized agent cards size budget (<= 5 KB)
+await test('specialized_agent_cards_size_budget', () => {
+  const agentsToCheck = ['viktor.md', 'dmitry.md', 'anna.md'];
+  for (const file of agentsToCheck) {
+    const p = path.join(rootDir, 'agents', file);
+    const size = fs.statSync(p).size;
+    if (size > 5120) {
+      throw new Error(`Agent card agents/${file} (${size} bytes) exceeds 5 KB budget`);
+    }
+  }
+});
+
 console.log(`CONSISTENCY SUMMARY: ${totalTests - failed}/${totalTests} passed`);
 if (failed > 0) process.exit(1);

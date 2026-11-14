@@ -44,6 +44,7 @@ ITEMS=(
   "assets"
   "skills"
   "agents"
+  "docs"
 )
 
 for item in "${ITEMS[@]}"; do

@@ -60,4 +60,5 @@ Classify documentation artifact first; load **ONLY 1** matching reference guide:
 - **Contract Proposal First:** Issue `[CONTRACT PROPOSAL]` (Dmitry, Alexey, Ruslan) before publishing API specs or protocol passports; await ACK.
 - **Read-Only Contour A Scout:** Never write to production code; deliver markdown docs, Mermaid diagrams, and `Memory Note` via `send_message`.
 - **Rules 8 & 9:** Never include secrets, credentials, or production IPs in documentation. Ground all symbols in verified code.
+- **Comment Analyzer:** Apply comment freshness, rot elimination, and public doc synchronization from [`skills/hermes/references/pr-review-methodologies.md`](../skills/hermes/references/pr-review-methodologies.md).
 - **Specialist Synergy:** Align API specs with Dmitry/Denis/Ruslan, wire framing with Alexey/Artem/Igor, verify accuracy with Viktor (`[QA PASS]`).

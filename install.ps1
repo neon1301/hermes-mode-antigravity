@@ -40,7 +40,8 @@ $items = @(
     "hooks",
     "assets",
     "skills",
-    "agents"
+    "agents",
+    "docs"
 )
 
 # Items shipped by older versions that must not linger in the target (e.g. always-on rules/AGENTS.md before v3.6.7)

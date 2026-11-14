@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.7.0] - 2026-11-14
 
+### Advanced Engineering Workflows (Wave 2: REQ-4..REQ-6 & R1–R4 Hardening)
+- **7-Phase Feature Dev Protocol & Fast-Path (REQ-4):** Ported from `feature-dev`. Added structured 7-phase flow (`Discovery`, `Exploration`, `Clarifying Questions`, `Architecture Design` with 3 evaluated alternatives, `Implementation`, `Quality Review`, `Summary & Walkthrough`). General findings are filtered by `confidence >= 80`, while High/Critical security findings are always reported. Introduced Fast-Path for trivial changes (< 5 lines, comment typo, rename) skipping formal alternatives while retaining build and test validation. Defined in `skills/hermes/references/feature-dev-protocol.md` and accessible via `/hermes feature`.
+- **Specialized PR Reviewers (REQ-5):** Ported from `pr-review-toolkit`. Augmented specialist cards `@viktor` (PR Test Analyzer), `@dmitry` (Type Design Analyzer), and `@anna` (Comment Analyzer) with focused code-quality methodologies. All agent cards strictly maintained `<= 5 KB` to preserve prompt budgets. Methodologies documented in `skills/hermes/references/pr-review-methodologies.md`.
+- **Bounded Convergence Loop (REQ-6):** Ported from `loop`. Added convergence loop engine in `hooks/qa-gate.mjs` for `/hermes fix-warnings --loop` and `/hermes loop` with a hard ceiling of 25 iterations (`--max-iterations 25`). Tracks per-conversation iteration counts in memory and `.hermes/loop-state.json`. L2 Diff-Review runs once at loop completion. On ceiling exhaustion, allows Stop while generating `.hermes/loop-blockers.md` actionable report.
+- **L2 Anti-Self-Signing & Host Delivery Binding (R1–R4 Hardening):**
+  - *R1 Strict Assertion:* Enforced strict `unresolvedHighCritical === 0` in `hooks/qa-gate.mjs:504`. Missing or undefined field immediately rejects verdict with `continue`.
+  - *R2 Delivery Binding:* Bound security verdict acceptance to authentic host delivery (`<SYSTEM_MESSAGE>`) from Viktor's subagent UUID containing `diffHash`. Forged Lead verdicts or invocations "для вида" without authentic delivery are rejected.
+  - *R3 Full Snapshot Diff-Hash:* Updated `computeDiffHash` to hash the complete content of all touched files without 2000-character truncation; disk content at Stop is read for replacement tool operations.
+  - *R4 Residual Limitation ADR:* Documented architectural decision and residual model-collusion limitations in `docs/adr/0001-l2-diff-review-and-anti-self-signing.md` without pseudo-cryptographic terminology.
+
 ### Security & Compliance Architecture (Wave 1: REQ-1..REQ-3)
 - **Three-Layer Security Architecture (REQ-1):** Ported and adapted from Anthropic's `security-guidance`.
   - *Layer 1 (PreToolUse Pattern Matching):* Static regex guard in `clean-edits-guard.mjs` checking dangerous deserialization (`pickle.loads`, PyYAML unsafe loading, `torch.load` without `weights_only=True`), unsafe DOM / code execution (`innerHTML =`, `eval()`), and industrial safety interlock overrides. Whitelisted for tests, mocks, and Igor's simulators (`igor`, `simulator`), or via explicit `hermes-security-ignore:` inline comments.

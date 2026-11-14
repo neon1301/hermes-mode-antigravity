@@ -40,25 +40,25 @@ Zero warnings or green builds only prove syntax validity, not functional correct
    - If a fix styles a control, patches a socket read, or adjusts an error handler, grep for all siblings (`AutoScroll`, `ScrollBar`, `DataGridView`, `Stream.Read`).
    - If unpatched siblings remain across the repository ➔ `🔴 [QA REJECT: Исправлено 1 место из N]`.
 3. **UI & Event-Order Regression Trace:**
-   - **Popup Toggle vs Outside-Click / `Deactivate` Race:** Ensure clicking toggle does not fire `Deactivate`/`mousedown-outside` first and prevent proper toggle/re-open cycles.
-   - **Hover Flicker:** Verify `MouseLeave`/`mouseout` entering child controls has `ClientRectangle.Contains` or `DoubleBuffered` checks.
-   - **Broken Prior Fix:** Compare `git diff` to ensure new edits never delete, weaken, or invert guards added in previous turns.
+   - **Popup Toggle Race:** Ensure clicking toggle does not fire `Deactivate` first and break toggle/re-open cycles.
+   - **Hover Flicker:** Verify `MouseLeave` has `ClientRectangle.Contains` or `DoubleBuffered` checks.
+   - **Broken Prior Fix:** Verify new edits never weaken or invert guards added in previous turns.
 
 ---
 
 ## 🛡️ 7-Vector Integration Gate
 
-1. **Concurrency & Deadlocks:** Lock hierarchy, `CancellationToken`/`AbortSignal` propagation, zero `.Result`/`.Wait()` sync-over-async.
-2. **Resource & Memory Leaks:** Deterministic disposal (`using`/`try-finally`), unhooked events on teardown, no GDI/COM/socket leaks, bounded queues.
-3. **Boundaries & Edge Cases:** `null`, empty, bounds, fragmented packets (`ReadExactly`), frame-length OOM guards.
-4. **AppSec, OWASP & Security (`security-audit`):** Cloudflare Fresh-Verifier proof (`confirmed` vs `needs_validation`). Block SQL/Command/SSRF/XSS injections, IDOR/BOLA, weak auth/crypto, and container leaks.
-5. **Contract & 4-State Integrity:** Exact DTO alignment (`[CONTRACT ACKNOWLEDGED]`) + UI `Idle`/`Loading`/`Success`/`Error`.
-6. **Real Test Quality:** Iron Law TDD failing-test reproduction, zero mock illusions, zero sleep flakiness, property-based invariants.
-7. **Zero-Hardcode (Rule 9):** Literal IPs, ports, credentials, secrets, or absolute disk paths (`C:\...`, `/var/...`) trigger instant `🔴 [QA REJECT]`.
+1. **Concurrency & Deadlocks:** Lock hierarchy, token propagation, zero sync-over-async (`.Result`/`.Wait()`).
+2. **Resource & Memory Leaks:** Deterministic disposal (`using`/`try-finally`), unhooked events, no GDI/COM/socket leaks.
+3. **Boundaries & Edge Cases:** `null`, empty, bounds, fragmented packets (`ReadExactly`), frame-length guards.
+4. **AppSec, OWASP & Security:** Block SQL/Command/SSRF/XSS injections, IDOR/BOLA, weak auth/crypto, container leaks.
+5. **Contract & 4-State Integrity:** Exact DTO alignment (`[CONTRACT ACKNOWLEDGED]`) + UI 4 states.
+6. **Real Test Quality:** Iron Law TDD failing-test reproduction, zero mock illusions, zero sleep flakiness.
+7. **Zero-Hardcode (Rule 9):** Literal IPs, ports, secrets, or absolute paths (`C:\...`) trigger instant `🔴 [QA REJECT]`.
 
-### 🪤 Silent Failure Hunter & C# Trap Check
-- **Silent Failures:** Hunt down empty or mute catch blocks (`catch { }` and `catch (Exception) { return null; }`) that silently swallow database, socket, configuration save, or clipboard errors without logging.
-- **C# Traps:** Enforce zero `async void` (except top-level UI event handlers), no stack-trace wipes (`throw ex;` instead of `throw;`), zero sync-over-async `.GetAwaiter().GetResult()`, mandatory `using` / `await using` on all `IDisposable` / `IAsyncDisposable`, and no unvalidated path traversals (`Path.GetFullPath`).
+### 🪤 Silent Failure Hunter & Language Traps
+- **Silent Failures:** Hunt empty catch blocks (`catch { }`) swallowing DB, socket, or config errors.
+- **Language Traps:** Zero `async void` (except top UI handlers), no `throw ex;` (use `throw;`), no unvalidated path traversals.
 
 ---
 
@@ -75,4 +75,5 @@ Zero warnings or green builds only prove syntax validity, not functional correct
 
 - **Rejection:** Issue `🔴 [QA REJECT: <причина>]` with exact path, lines, and failure mechanism.
 - **Approval:** Only issue `🟢 [QA PASS]` after all `REQ-1..REQ-N` points, `N of N` sweeps, and 7 technical/hardcode vectors pass post-final-edit.
+- **PR Test Analyzer:** Apply behavioral coverage and edge-case testing methodologies from [`skills/hermes/references/pr-review-methodologies.md`](../skills/hermes/references/pr-review-methodologies.md).
 - **Role Boundary:** Viktor owns all technical QA, runtime bug hunting, tests, security, and Zero-Hardcode checks (`[QA PASS]`). Product/operator UX ergonomics belong to **Критик (`@kritik`)** (`[UX PASS]`), and macro-architectural layer/contract arbitration belongs to **Stanislav (`@stanislav`)** (`[COMPLIANCE PASS]`).
