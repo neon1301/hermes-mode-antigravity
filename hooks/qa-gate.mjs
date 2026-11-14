@@ -316,20 +316,18 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       const senderMatch = sysText.match(/sender=["']?([0-9a-f-]{36})["']?/i);
       const senderUuid = senderMatch ? senderMatch[1].toLowerCase() : (String(s?.sender || '').match(/^[0-9a-f-]{36}$/i) ? String(s.sender).toLowerCase() : '');
       const isFromNonAuditor = senderUuid && nonAuditorSubagentIds.has(senderUuid);
-      const isViktorSender = (senderUuid && viktorSubagentUuids.has(senderUuid)) ||
-                             /sender=["']?viktor["']?/i.test(sysText) ||
-                             String(s?.sender || '').toLowerCase() === 'viktor';
-
-      if (isViktorSender) {
-        viktorDeliveryTexts.push(sysText);
-      }
+      const isViktorSender = Boolean(senderUuid && viktorSubagentUuids.has(senderUuid));
 
       if (!isFromNonAuditor) {
+        if (isViktorSender) {
+          viktorDeliveryTexts.push(sysText);
+        }
+
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
           hasQaPass = true;
         }
-        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
+        if (isViktorSender && /\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
           hasSecurityPass = true;
         }
         if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) hasUxPass = true;
@@ -544,11 +542,24 @@ logCostMetrics({
   event: 'Stop'
 });
 
+// REQ-6: Bounded Convergence Loop (--loop / /hermes fix-warnings --loop / /hermes loop)
+const LOOP_COMMAND_RE = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i;
+const isLoopRequested = LOOP_COMMAND_RE.test(payload?.lastUserInput || '') ||
+  steps.some((s) => {
+    const isUserStep = s?.source === 'USER_EXPLICIT' || s?.type === 'USER_INPUT';
+    if (!isUserStep) return false;
+    const content = typeof s?.content === 'string' ? s.content : (s?.content?.text || '');
+    return LOOP_COMMAND_RE.test(content);
+  });
+const LOOP_CEILING = 25;
+
 const isSecReviewEnabled = process.env.HERMES_SEC_REVIEW !== '0';
 const needQa = !onlyUxRequested && !isEconomySkipRequested;
 const needUx = (editedUiFiles.size > 0 || onlyUxRequested) && !onlyQaRequested;
 const needCompliance = editedSourceFiles.size >= 4 && !onlyUxRequested && !onlyQaRequested && !isEconomySkipRequested;
-const needSecurity = isSecReviewEnabled && editedSourceFiles.size > 0 && !onlyUxRequested && !isEconomySkipRequested;
+// L2 Security Diff-Review runs once at the end of the convergence loop after QA pass is achieved
+const needSecurity = isSecReviewEnabled && editedSourceFiles.size > 0 && !onlyUxRequested && !isEconomySkipRequested &&
+                     (!isLoopRequested || hasQaPass);
 
 const missing = [];
 if (needQa && !hasQaPass) missing.push('[QA PASS] (Viktor)');
@@ -579,11 +590,6 @@ if (missing.length === 0) {
   allow();
   process.exit(0);
 }
-
-// REQ-6: Bounded Convergence Loop (--loop / /hermes fix-warnings --loop) with ceiling 25
-const isLoopRequested = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i.test(payload?.lastUserInput || '') ||
-                        steps.some((s) => /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i.test(typeof s?.content === 'string' ? s.content : ''));
-const LOOP_CEILING = 25;
 
 if (isLoopRequested) {
   const safeId = String(convId).replace(/[^a-zA-Z0-9_-]/g, '_');

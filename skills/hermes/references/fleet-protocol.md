@@ -24,7 +24,8 @@
 | **/hermes [задача]** | Оркестрация, реестр `REQ-1..REQ-N`, декомпозиция и контроль |
 | **/hermes feature [описание]** | 🚀 7-фазный протокол проектирования фич (Discovery, 3 альтернативы, Quality Review, Fast-Path) |
 | **/hermes board** | Канбан-доска в чате (Generative UI) |
-| **/hermes fix-warnings** | Устранение warnings компилятора до нуля |
+| **/hermes fix-warnings [--loop]** | Устранение warnings компилятора до нуля (`--loop` включает цикл сходимости) |
+| **/hermes loop [задача]** | 🔄 Автономный ограниченный цикл сходимости (Bounded Convergence Loop, потолок 25 итераций, L2 в финале) |
 | **/hermes audit** | Ревизия 12 правил и стековых скиллов (Stanislav) |
 | **/hermes save** | Снимок контекста и моделей в `.hermes/checkpoint.md` |
 | **/hermes resume** | Восстановление контекста из чекпоинта |
