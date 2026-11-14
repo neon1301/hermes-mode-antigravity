@@ -95,7 +95,6 @@ try {
     : `${PROTOCOL_MARKER}\n${protocolText}`;
 
   const workspaceDir = resolveWorkspaceDir(payload);
-  let hasSavedModelProfile = false;
   if (workspaceDir) {
     const checkpointPath = path.join(workspaceDir, '.hermes', 'checkpoint.md');
     if (fs.existsSync(checkpointPath)) {
@@ -103,14 +102,11 @@ try {
         const stat = fs.statSync(checkpointPath);
         if (stat.size > 0) {
           let cpText = fs.readFileSync(checkpointPath, 'utf-8');
-          if (/Model Profile|Subagent Model|Модель субагентов|Gemini|Claude|GPT-OSS/i.test(cpText)) {
-            hasSavedModelProfile = true;
-          }
           if (cpText.length > 2048) {
             cpText = cpText.slice(0, 2048);
           }
           if (cpText.trim().length > 0) {
-            content += `\n\n---\n## 📌 Авто-подхват чекпоинта (.hermes/checkpoint.md)\n${cpText}`;
+            content += `\n\n---\n## 📌 Авто-подхват чекпоинта прошлой сессии (.hermes/checkpoint.md)\n> ⚠️ **ВАЖНО:** Запись о модели в этом чекпоинте относится к прошлому чату и НЕ освобождает от ШАГА 0! В текущем чате ты ОБЯЗАН ПЕРВЫМ действием вызвать \`ask_question\` для выбора модели субагентов.\n\n${cpText}`;
           }
         }
       } catch {
@@ -119,9 +115,7 @@ try {
     }
   }
 
-  if (!hasSavedModelProfile) {
-    content = `${PROTOCOL_MARKER}\n🚨 **MANDATORY FIRST TOOL CALL (ШАГ 0):** В этой сессии ещё не выбрана модель для субагентов! ПЕРВЫМ действием (до чтения кода проекта и до запуска команд/субагентов) вызовите инструмент \`ask_question\` с 2 вопросами: (1) «Какую модель ИИ использовать для всех субагентов?» и (2) «Какой режим (уровень ума) поставить субагентам?» (см. раздел ШАГ 0 ниже).\n\n` + content.replace(PROTOCOL_MARKER, '').trim();
-  }
+  content = `${PROTOCOL_MARKER}\n🚨 **MANDATORY FIRST TOOL CALL (ШАГ 0):** В этом чате ещё не выбрана модель для субагентов! ПЕРВЫМ ЖЕ действием (до чтения кода проекта, до запуска команд и до вызова субагентов — даже если в \`.hermes/checkpoint.md\` есть старая запись от прошлого чата!) вызовите инструмент \`ask_question\` с 2 вопросами: (1) «Какую модель ИИ использовать для всех субагентов?» и (2) «Какой режим (уровень ума) поставить субагентам?» (см. раздел ШАГ 0 ниже).\n\n` + content.replace(PROTOCOL_MARKER, '').trim();
 
   process.stdout.write(JSON.stringify({
     injectSteps: [

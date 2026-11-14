@@ -22,13 +22,13 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ## 🚀 The 5-Phase Master Workflow
 
-### 🚨 Phase 0 (MANDATORY FIRST ACTION ON SESSION START): Subagent Model Handshake (`ask_question`)
-- **STOP — Ask Before Doing Anything Else:** On the first turn of a `/hermes` session (unless a model profile is already loaded from `.hermes/checkpoint.md`), your **VERY FIRST tool call** (after reading `SKILL.md` — **BEFORE** `Phase 1 Discovery`, **BEFORE** reading project files, **BEFORE** `run_command`, and **BEFORE** `invoke_subagent`) MUST be **`ask_question`** with exactly 2 questions in one dialog:
+### 🚨 Phase 0 (MANDATORY FIRST ACTION ON EVERY NEW CHAT): Subagent Model Handshake (`ask_question`)
+- **STOP — Ask Before Doing Anything Else:** On the first turn of **EVERY** `/hermes` chat session (even if `.hermes/checkpoint.md` exists on disk from a previous chat!), your **VERY FIRST tool call** (after reading `SKILL.md` — **BEFORE** `Phase 1 Discovery`, **BEFORE** reading project files, **BEFORE** `run_command`, and **BEFORE** `invoke_subagent`) MUST be **`ask_question`** with exactly 2 questions in one dialog:
   1. **Question 1:** `Какую модель ИИ использовать для всех субагентов?`
      - `options`: `["(Recommended) Gemini 3.8 Flash", "Gemini 4 Hydrogen", "Gemini 4 Argon", "Claude Sonnet 5.5", "Claude Opus 5.5", "GPT-OSS 120B"]`
   2. **Question 2:** `Какой режим (уровень ума) поставить субагентам?`
      - `options`: `["(Recommended) Medium", "High", "Low"]`
-- Wait for the user's answer, save the chosen pair to `.hermes/checkpoint.md`, and ONLY THEN proceed to Phase 1.
+- **NEVER skip `ask_question` based on an old `.hermes/checkpoint.md`!** Wait for the user's answer in the current chat, update `.hermes/checkpoint.md`, and ONLY THEN proceed to Phase 1.
 
 ### Phase 1: Discovery & Repo Map ([`references/repo-map-protocol.md`](references/repo-map-protocol.md))
 - **AST Map & Memory Bank:** Index types and symbols; read `.hermes/memory-bank/` (`activeContext.md`, `systemPatterns.md`).

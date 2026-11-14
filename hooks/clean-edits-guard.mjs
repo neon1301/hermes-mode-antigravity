@@ -225,83 +225,79 @@ if (toolName === 'invoke_subagent') {
       );
       process.exit(0);
     }
+  }
+}
 
-    const transcriptPath = payload?.transcriptPath;
-    if (transcriptPath && fs.existsSync(transcriptPath)) {
-      try {
-        const { headText, tailText } = readTranscriptSlices(transcriptPath, {
-          maxTailBytes: MAX_TAIL_BYTES,
-          headScanBytes: HEAD_SCAN_BYTES
-        });
-        const steps = [...parseJsonl(headText), ...parseJsonl(tailText)];
-        const slashHermesSession =
-          isHermesTrigger(payload?.lastUserInput, { includeMentions: false }) ||
-          detectHermesInSteps(steps, { includeMentions: false });
+// Step 0 Model Handshake & Post-Edit Token Economy Gate (transcript-aware checks)
+const subType = toolName === 'invoke_subagent' ? String(args.TypeName || args.typeName || '').toLowerCase() : '';
+const readTarget = toolName === 'read_file' ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '') : '';
+const isSkillOrAgentDocRead = toolName === 'read_file' && /[\\/](?:skills|agents)[\\/]/i.test(readTarget);
+const requiresStep0Handshake =
+  (toolName === 'read_file' && !isSkillOrAgentDocRead) ||
+  toolName === 'run_command' ||
+  FILE_WRITE_TOOLS.has(toolName) ||
+  (toolName === 'invoke_subagent' && (HERMES_AGENTS.has(subType) || subType === 'self'));
 
-        if (slashHermesSession) {
-          let hasHandshake = steps.some((s) =>
-            collectToolCalls(s).some((tc) => String(tc?.name || '').toLowerCase() === 'ask_question')
+if (requiresStep0Handshake) {
+  const transcriptPath = payload?.transcriptPath;
+  if (transcriptPath && fs.existsSync(transcriptPath)) {
+    try {
+      const { headText, tailText } = readTranscriptSlices(transcriptPath, {
+        maxTailBytes: MAX_TAIL_BYTES,
+        headScanBytes: HEAD_SCAN_BYTES
+      });
+      const steps = [...parseJsonl(headText), ...parseJsonl(tailText)];
+      const isParentSession = steps.some(isRealUserStep);
+      const slashHermesSession =
+        isHermesTrigger(payload?.lastUserInput, { includeMentions: false }) ||
+        detectHermesInSteps(steps, { includeMentions: false });
+
+      if (isParentSession && slashHermesSession) {
+        const hasHandshake = steps.some((s) =>
+          collectToolCalls(s).some((tc) => String(tc?.name || '').toLowerCase() === 'ask_question')
+        );
+        if (!hasHandshake) {
+          deny(
+            'Hermes Rule 12 (Step 0 Model Handshake): В этом чате ещё не выполнен выбор модели для субагентов! ПЕРВЫМ действием в новой сессии /hermes (до чтения файлов проекта, запуска команд, правок или вызова субагентов) вызовите инструмент ask_question с 2 вопросами: (1) "Какую модель ИИ использовать для всех субагентов?" и (2) "Какой режим (уровень ума) поставить субагентам?" (Medium, High, Low). Старый .hermes/checkpoint.md от прошлых чатов не заменяет опрос в новом чате!'
           );
-          if (!hasHandshake) {
-            hasHandshake = steps.some(
-              (s) => isRealUserStep(s) && /(?:gemini|claude|gpt-oss|flash|argon|hydrogen|sonnet|opus)/i.test(String(s?.content || ''))
-            );
-          }
-          if (!hasHandshake) {
-            const rawDir = payload?.cwd || (Array.isArray(payload?.workspacePaths) ? payload.workspacePaths[0] : '');
-            if (rawDir) {
-              const cpFile = path.join(String(rawDir), '.hermes', 'checkpoint.md');
-              if (fs.existsSync(cpFile)) {
-                const cpText = fs.readFileSync(cpFile, 'utf-8');
-                if (/Model Profile|Subagent Model|Модель субагентов|Gemini|Claude|GPT-OSS/i.test(cpText)) {
-                  hasHandshake = true;
-                }
-              }
-            }
-          }
-          if (!hasHandshake) {
-            deny(
-              'Hermes Rule 12 (Model Handshake): перед первым запуском субагентов в сессии /hermes вызовите инструмент ask_question с 2 вопросами: (1) "Какую модель ИИ использовать для всех субагентов?" и (2) "Какой режим (уровень ума) поставить субагентам?" (Medium, High, Low).'
-            );
-            process.exit(0);
-          }
+          process.exit(0);
         }
-
-        if (HERMES_AGENTS.has(subType)) {
-          const tailSteps = parseJsonl(tailText);
-          let lastUserIdx = -1;
-          for (let i = 0; i < tailSteps.length; i++) {
-            if (isRealUserStep(tailSteps[i])) lastUserIdx = i;
-          }
-          const turnSteps = tailSteps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
-          let lastWriteIdx = -1;
-          let postEditAskIdx = -1;
-          for (let i = 0; i < turnSteps.length; i++) {
-            for (const tc of collectToolCalls(turnSteps[i])) {
-              const tcName = String(tc?.name || '').toLowerCase();
-              const tcArgs = tc?.args || {};
-              if (tcName === 'ask_question' && lastWriteIdx >= 0) {
-                postEditAskIdx = i;
-              }
-              if (FILE_WRITE_TOOLS.has(tcName)) {
-                const p = String(tcArgs.Path || tcArgs.TargetFile || tcArgs.AbsolutePath || tcArgs.path || '');
-                if (SOURCE_CODE_EXT_RE.test(p)) {
-                  lastWriteIdx = i;
-                  postEditAskIdx = -1;
-                }
-              }
-            }
-          }
-          if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx) {
-            deny(
-              'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»'
-            );
-            process.exit(0);
-          }
-        }
-      } catch {
-        // Ignore transcript read errors
       }
+
+      if (toolName === 'invoke_subagent' && HERMES_AGENTS.has(subType)) {
+        const tailSteps = parseJsonl(tailText);
+        let lastUserIdx = -1;
+        for (let i = 0; i < tailSteps.length; i++) {
+          if (isRealUserStep(tailSteps[i])) lastUserIdx = i;
+        }
+        const turnSteps = tailSteps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
+        let lastWriteIdx = -1;
+        let postEditAskIdx = -1;
+        for (let i = 0; i < turnSteps.length; i++) {
+          for (const tc of collectToolCalls(turnSteps[i])) {
+            const tcName = String(tc?.name || '').toLowerCase();
+            const tcArgs = tc?.args || {};
+            if (tcName === 'ask_question' && lastWriteIdx >= 0) {
+              postEditAskIdx = i;
+            }
+            if (FILE_WRITE_TOOLS.has(tcName)) {
+              const p = String(tcArgs.Path || tcArgs.TargetFile || tcArgs.AbsolutePath || tcArgs.path || '');
+              if (SOURCE_CODE_EXT_RE.test(p)) {
+                lastWriteIdx = i;
+                postEditAskIdx = -1;
+              }
+            }
+          }
+        }
+        if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx) {
+          deny(
+            'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»'
+          );
+          process.exit(0);
+        }
+      }
+    } catch {
+      // Ignore transcript read errors
     }
   }
 }
