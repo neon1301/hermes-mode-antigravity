@@ -16,7 +16,12 @@ export const HERMES_AGENT_ALIASES = {
   мозгоеб: 'kritik'
 };
 
-const MENTION_NAMES = [...HERMES_AGENTS, ...Object.keys(HERMES_AGENT_ALIASES), 'критик', 'мозгоеб', 'глеб'].join('|');
+const MENTION_NAMES = Array.from(new Set([
+  ...HERMES_AGENTS,
+  ...Object.keys(HERMES_AGENT_ALIASES),
+  'критик',
+  'глеб'
+])).join('|');
 const WORD_END = `(?=$|[\\s.,:;!?)"'])`;
 
 const SLASH_COMMAND_RE = new RegExp(`(?:^|\\n)[ \\t]*\\/hermes${WORD_END}`, 'i');

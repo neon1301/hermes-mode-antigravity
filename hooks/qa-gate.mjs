@@ -74,7 +74,7 @@ const DOMAIN_ROUTING_RULES = [
   {
     agents: ['@gleb (3D/Digital Twin/WebGL)'],
     keys: ['gleb'],
-    re: /(?:Three(?:\.js)?|WebGL|DigitalTwin|WebView2|InstancedMesh|OrbitControls)/i
+    re: /(?:\bThree(?:\.js)?\b|WebGL|DigitalTwin|WebView2|InstancedMesh|OrbitControls)/i
   },
   {
     agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],
@@ -102,9 +102,10 @@ function blockStop(reason) {
 function isIgnoredArtifactOrMeta(targetPath, artifactDir) {
   if (META_PATH_RE.test(targetPath)) return true;
   if (artifactDir) {
-    const normTarget = path.resolve(targetPath).toLowerCase();
-    const normArtifact = path.resolve(artifactDir).toLowerCase();
-    if (normTarget === normArtifact || normTarget.startsWith(normArtifact + path.sep)) {
+    const norm = (x) => path.resolve(String(x || '')).replace(/\\/g, '/').toLowerCase();
+    const normTarget = norm(targetPath);
+    const normArtifact = norm(artifactDir);
+    if (normTarget === normArtifact || normTarget.startsWith(normArtifact + '/')) {
       return true;
     }
   }
@@ -235,7 +236,7 @@ for (const s of turnSteps) {
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
       if (typeName) invokedSpecialists.add(typeName);
-      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'kritik' && typeName !== 'mozgoeb') {
+      if (typeName !== 'viktor' && typeName !== 'stanislav' && typeName !== 'kritik') {
         pendingNonAuditorCount++;
       }
     }
@@ -327,7 +328,7 @@ if (
 }
 
 const onlyUxRequested =
-  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|мозгоеб|mozgoeb|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
+  postEditAskIdx > lastWriteIdx && /(?:только\s+(?:критик|kritik|ux|окн|дизайн)|only\s+ux)/i.test(postEditAskAnswer);
 const onlyQaRequested =
   postEditAskIdx > lastWriteIdx && /(?:только\s+(?:виктор|viktor|qa)|only\s+qa)/i.test(postEditAskAnswer);
 
@@ -364,7 +365,7 @@ for (const rule of DOMAIN_ROUTING_RULES) {
     }
   }
 }
-if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('kritik') && !invokedSpecialists.has('mozgoeb')) {
+if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('kritik')) {
   recommendedTeam.add('@elena / @kritik (оцените: не нужно ли после изменений кода переделать окна/дизайн?)');
 }
 const teamHint = recommendedTeam.size > 0

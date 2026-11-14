@@ -131,9 +131,9 @@ const server = http.createServer((req, res) => {
   </div>
   <div class="grid">
     <div class="panel">
-      <h2>Hermes Fleet (Lead + 13)</h2>
+      <h2>Hermes Fleet (Lead + 14)</h2>
       <div class="worker-card"><div class="worker-name">&#128081; lead (Оркестратор)</div><div class="worker-role">Декомпозиция, волны 3–5, Build Gate, Subagent GC</div></div>
-      <div class="worker-card"><div class="worker-name">&#9878;&#65039; stanislav</div><div class="worker-role">Chief Fleet Auditor (12 правил, 19 скиллов, Read-Only)</div></div>
+      <div class="worker-card"><div class="worker-name">&#9878;&#65039; stanislav</div><div class="worker-role">Chief Fleet Auditor (12 правил, 20 скиллов, Read-Only)</div></div>
       <div class="worker-card"><div class="worker-name">&#128293; kritik (Критик)</div><div class="worker-role">UX Critic, Product Roast &amp; Forum/Methods Scout (Read-Only)</div></div>
       <div class="worker-card"><div class="worker-name">&#128737;&#65039; viktor</div><div class="worker-role">Lead QA &amp; AppSec (7-векторный QA, TDD, OWASP, DevSecOps)</div></div>
       <div class="worker-card"><div class="worker-name">&#128187; dmitry</div><div class="worker-role">Multi-Stack Backend (Clean Arch, API, Outbox, .NET/Py/Node/Go)</div></div>
@@ -146,6 +146,7 @@ const server = http.createServer((req, res) => {
       <div class="worker-card"><div class="worker-name">&#128221; anna</div><div class="worker-role">Technical Writer (C4/Mermaid, Di&#225;taxis, ADR, OpenAPI, Read-Only)</div></div>
       <div class="worker-card"><div class="worker-name">&#128202; ruslan</div><div class="worker-role">SAP &amp; Enterprise (NCo, BAPI, GUI Scripting, IDoc, OData)</div></div>
       <div class="worker-card"><div class="worker-name">&#128269; artem</div><div class="worker-role">Reverse Engineering (REA, CIL/ASAR, бинарные протоколы)</div></div>
+      <div class="worker-card"><div class="worker-name">&#127918; gleb</div><div class="worker-role">Lead 3D &amp; Digital Twin (Three.js, WebGL, InstancedMesh, Procedural 3D)</div></div>
     </div>
     <div class="panel">
       <h2>Inter-Agent Chatter Feed (<span id="count">0</span>)</h2>
