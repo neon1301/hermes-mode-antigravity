@@ -223,11 +223,10 @@ if (toolName === 'invoke_subagent') {
   }
   if (HERMES_AGENTS.has(subType) || subType === 'self') {
     const reqModel = String(args.Model || args.model || 'inherit').toLowerCase().replace(/["']/g, '');
-    const hostModel = String(payload?.modelName || '').toLowerCase();
-
-    if (reqModel === 'inherit' && hostModel.includes('flash')) {
+    const validModels = new Set(['inherit', 'flash', 'flash_lite', 'pro']);
+    if (!validModels.has(reqModel)) {
       deny(
-        'Hermes Rule 12 (Anti-503 Flash Routing): не используйте Model: "inherit" на Gemini Flash (пул gemini-3.8-flash-high часто возвращает 503 No capacity). Передайте явно Model: "flash" (или "flash_lite" для Low).'
+        `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".`
       );
       process.exit(0);
     }

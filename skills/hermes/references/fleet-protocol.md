@@ -124,8 +124,14 @@
       1. *Какую модель ИИ использовать для всех субагентов?* Options: `(Recommended) Gemini 3.8 Flash`, `Gemini 4 Hydrogen`, `Gemini 4 Argon`, `Claude Sonnet 5.5`, `Claude Opus 5.5`, `GPT-OSS 120B`.
       2. *Какой режим (уровень ума) поставить субагентам?* Options: `(Recommended) Medium`, `High`, `Low`.
       *Применение `<Модель> + <Low/Medium/High>`:*
-      - В `swarm(action="add")`: точный ID (`gemini-3.8-flash-medium`, `claude-sonnet-5-5-high`...).
-      - В `invoke_subagent`: для `Gemini 3.8 Flash` (`Medium` или `High`) ВСЕГДА явно передавать `Model: "flash"` (НЕ `"inherit"`, так как серверный пул `gemini-3.8-flash-high` часто перегружен `503 No capacity`); для `Flash` + `Low` ➔ `Model: "flash_lite"`; для `Hydrogen`/`Argon` ➔ `Model: "pro"`; для `Claude`/`GPT-OSS` ➔ `Model: "inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt. Сохраняется в `.hermes/checkpoint.md`.
+      - В `swarm(action="add")`: точный ID модели (`gemini-3.8-flash-high`, `gemini-3.8-flash-medium`, `claude-sonnet-5-5-high`...).
+      - В `invoke_subagent` (поддерживает enum `"inherit"`, `"flash"`, `"flash_lite"`, `"pro"`):
+        * Для `Gemini 3.8 Flash` + `High`: передавать `Model: "inherit"`, чтобы субагент унаследовал уровень `High` (с расширенным бюджетом размышлений). Для `@elena` (UI/UX дизайн) и сложных write-воркеров (архитектура/монолиты) разрешено повышать модель до `Model: "pro"` (или через `swarm`), так как для визуального вкуса и нетривиального дизайна базовый Flash слабее Pro.
+        * Динамическая обработка 503 (Anti-503 Resilience): при возникновении реальной серверной ошибки `503 No capacity` на High пуле во время вызова — выполнить 1 retry с экспоненциальной задержкой (backoff); при повторе 503 — временный fallback на `Model: "flash"` (Medium) либо эскалация на `Model: "pro"` с уведомлением пользователя (не глушить High превентивно!).
+        * Для `Flash` + `Medium` ➔ `Model: "flash"`.
+        * Для `Flash` + `Low` ➔ `Model: "flash_lite"`.
+        * Для `Hydrogen`/`Argon`/`Pro` ➔ `Model: "pro"`.
+        * Для `Claude`/`GPT-OSS` ➔ `Model: "inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt. Профиль фиксируется в `.hermes/checkpoint.md`.
     * **Preflight & Pool Reuse:** До вызова субагента проверять `manage_subagents(action="list")`. 1 роль = max 1 live аудитор. Использовать `idle` воркеров.
     * **Bounded Waves (3–5), Disjoint Ownership & Single Build Gate:** Волны записи по 3–5 воркеров с непересекающимися файлами и Mission Brief. `Workspace: "branch"` — только при `.git`, иначе `"inherit"`. Single Build Gate выполняет Lead после волны.
     * **⏸️ Железное правило ожидания ответа субагентов (Anti-Premature Kill & No Fake Reports):**

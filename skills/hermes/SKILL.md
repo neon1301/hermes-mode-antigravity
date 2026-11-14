@@ -42,7 +42,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 ### Phase 3: Act & Capability-Routed Waves (Contour B)
 - **Capability Routing:** 1–3 files: Lead edits directly (`edit_file`/`write_file`). 4+ files: `define_subagent(EnableWriteTools: true)`, `TypeName="self"` in disjoint waves of 3–5 (or `/swarm`). Never send `[ACT MODE]` to Read-Only `agents/*.md`.
 - **Sibling Sweep & Regression Lock:** Search all `N of N` occurrences across repo; verify working state machine before touching code.
-- **Model Profile:** Pass selected model tier to subagents (`flash_lite` for Flash Low; ALWAYS explicit `Model: "flash"` for Flash Med/High — never `"inherit"` on Flash High to avoid `503 No capacity` server errors; `pro` for Hydrogen/Argon; `inherit` + `[MODEL_PROFILE]` for Claude/GPT-OSS).
+- **Model Profile:** Pass selected model tier to subagents: for Flash High use `inherit` to preserve the High reasoning tier (with dynamic retry / fallback to `flash` only if actual 503 occurs; `pro` option for Elena/write-workers); `flash` for Flash Med; `flash_lite` for Flash Low; `pro` for Hydrogen/Argon/Pro; `inherit` + `[MODEL_PROFILE]` for Claude/GPT-OSS. In `swarm(add)` pass exact model ID (`gemini-3.8-flash-high`).
 - **Clean Edits & Zero-Hardcode:** Use `edit_file`/`write_file` only (no patch scripts). Follow contracts (`[CONTRACT PROPOSAL]` ➔ `[CONTRACT ACKNOWLEDGED]`). Dynamic config only (Rule 9).
 
 ### Phase 4: Single Build Gate & User-Confirmed Verification (`ask_question` Token Economy Gate)
