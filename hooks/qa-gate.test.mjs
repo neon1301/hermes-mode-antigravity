@@ -1076,15 +1076,21 @@ const cases = [
     run: () => {
       // F7: In loop, while !hasQaPass, needSecurity is false (L2 deferred); gate returns continue for QA pass
       const safeId = 'c_loop_defer_l2';
-      return runGate({
-        conversationId: safeId,
-        terminationReason: 'model_stop',
-        lastUserInput: '/hermes fix-warnings --loop',
-        transcriptPath: writeTranscript('t_loop_defer_l2', [
-          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix-warnings --loop' },
-          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/app.ts' } }] }
-        ])
-      });
+      const loopFile = path.join(process.cwd(), '.hermes', `loop-state-${safeId}.json`);
+      try { if (fs.existsSync(loopFile)) fs.unlinkSync(loopFile); } catch {}
+      try {
+        return runGate({
+          conversationId: safeId,
+          terminationReason: 'model_stop',
+          lastUserInput: '/hermes fix-warnings --loop',
+          transcriptPath: writeTranscript('t_loop_defer_l2', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix-warnings --loop' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/app.ts' } }] }
+          ])
+        });
+      } finally {
+        try { if (fs.existsSync(loopFile)) fs.unlinkSync(loopFile); } catch {}
+      }
     }
   }
 ];
