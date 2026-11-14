@@ -1,5 +1,14 @@
 import fs from 'node:fs';
-import { detectHermesInSteps, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
+import path from 'node:path';
+import {
+  collectToolCalls,
+  detectHermesInSteps,
+  HERMES_AGENTS,
+  isHermesTrigger,
+   isRealUserStep,
+  parseJsonl,
+  readTranscriptSlices
+} from './hermes-trigger.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -200,6 +209,66 @@ if (toolName === 'run_command') {
         `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.`
       );
       process.exit(0);
+    }
+  }
+}
+
+if (toolName === 'invoke_subagent') {
+  const subType = String(args.TypeName || args.typeName || '').toLowerCase();
+  if (HERMES_AGENTS.has(subType) || subType === 'self') {
+    const reqModel = String(args.Model || args.model || 'inherit').toLowerCase().replace(/["']/g, '');
+    const hostModel = String(payload?.modelName || '').toLowerCase();
+
+    if (reqModel === 'inherit' && hostModel.includes('flash')) {
+      deny(
+        'Hermes Rule 12 (Anti-503 Flash Routing): не используйте Model: "inherit" на Gemini Flash (пул gemini-3.8-flash-high часто возвращает 503 No capacity). Передайте явно Model: "flash" (или "flash_lite" для Low).'
+      );
+      process.exit(0);
+    }
+
+    const transcriptPath = payload?.transcriptPath;
+    if (transcriptPath && fs.existsSync(transcriptPath)) {
+      try {
+        const { headText, tailText } = readTranscriptSlices(transcriptPath, {
+          maxTailBytes: MAX_TAIL_BYTES,
+          headScanBytes: HEAD_SCAN_BYTES
+        });
+        const steps = [...parseJsonl(headText), ...parseJsonl(tailText)];
+        const slashHermesSession =
+          isHermesTrigger(payload?.lastUserInput, { includeMentions: false }) ||
+          detectHermesInSteps(steps, { includeMentions: false });
+
+        if (slashHermesSession) {
+          let hasHandshake = steps.some((s) =>
+            collectToolCalls(s).some((tc) => String(tc?.name || '').toLowerCase() === 'ask_question')
+          );
+          if (!hasHandshake) {
+            hasHandshake = steps.some(
+              (s) => isRealUserStep(s) && /(?:gemini|claude|gpt-oss|flash|argon|hydrogen|sonnet|opus)/i.test(String(s?.content || ''))
+            );
+          }
+          if (!hasHandshake) {
+            const rawDir = payload?.cwd || (Array.isArray(payload?.workspacePaths) ? payload.workspacePaths[0] : '');
+            if (rawDir) {
+              const cpFile = path.join(String(rawDir), '.hermes', 'checkpoint.md');
+              if (fs.existsSync(cpFile)) {
+                const cpText = fs.readFileSync(cpFile, 'utf-8');
+                if (/Model Profile|Subagent Model|Модель субагентов|Gemini|Claude|GPT-OSS/i.test(cpText)) {
+                  hasHandshake = true;
+                }
+              }
+            }
+          }
+          if (!hasHandshake) {
+            deny(
+              'Hermes Rule 12 (Model Handshake): перед первым запуском субагентов в сессии /hermes вызовите инструмент ask_question с 2 вопросами: (1) "Какую модель ИИ использовать для всех субагентов?" и (2) "Какой режим (уровень ума) поставить субагентам?" (Medium, High, Low).'
+            );
+            process.exit(0);
+          }
+        }
+      } catch {
+        // Ignore transcript read errors
+      }
     }
   }
 }

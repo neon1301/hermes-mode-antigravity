@@ -22,14 +22,21 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ## 🚀 The 5-Phase Master Workflow
 
+### 🚨 Phase 0 (MANDATORY FIRST ACTION ON SESSION START): Subagent Model Handshake (`ask_question`)
+- **STOP — Ask Before Doing Anything Else:** On the first turn of a `/hermes` session (unless a model profile is already loaded from `.hermes/checkpoint.md`), your **VERY FIRST tool call** (after reading `SKILL.md` — **BEFORE** `Phase 1 Discovery`, **BEFORE** reading project files, **BEFORE** `run_command`, and **BEFORE** `invoke_subagent`) MUST be **`ask_question`** with exactly 2 questions in one dialog:
+  1. **Question 1:** `Какую модель ИИ использовать для всех субагентов?`
+     - `options`: `["(Recommended) Gemini 3.8 Flash", "Gemini 4 Hydrogen", "Gemini 4 Argon", "Claude Sonnet 5.5", "Claude Opus 5.5", "GPT-OSS 120B"]`
+  2. **Question 2:** `Какой режим (уровень ума) поставить субагентам?`
+     - `options`: `["(Recommended) Medium", "High", "Low"]`
+- Wait for the user's answer, save the chosen pair to `.hermes/checkpoint.md`, and ONLY THEN proceed to Phase 1.
+
 ### Phase 1: Discovery & Repo Map ([`references/repo-map-protocol.md`](references/repo-map-protocol.md))
 - **AST Map & Memory Bank:** Index types and symbols; read `.hermes/memory-bank/` (`activeContext.md`, `systemPatterns.md`).
 
-### Phase 2: Plan, Audit & Model Handshake ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
+### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
 - **Requirement Atomization:** Build the `REQ-1..REQ-N` ledger in chat before dispatching work.
 - **Contour A (Read-Only):** Specialists produce findings and Patch Blueprints (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
 - **Two-Tier Mozgoeb:** Lead applies the built-in UX/product lens locally (4 UI states, clear error messages, `Dry-Run`, `Channel<T>`/WAL). In final audit stage, `@mozgoeb` acts as Post-Audit Challenger: checks world forums (`RU/CN/EU/JP/Global`), compares options, and approves the best design before Act Mode.
-- **Model Handshake:** Lead calls `ask_question` once for (1) AI Model (`Gemini 3.8 Flash`, `Gemini 4 Hydrogen`, `Gemini 4 Argon`, `Claude Sonnet 5.5`, `Claude Opus 5.5`, `GPT-OSS 120B`) and (2) Reasoning Tier (`Medium`, `High`, `Low`). Saved to `.hermes/checkpoint.md`.
 - **Preflight & Routing:** Max 1 live auditor per role. Offer `/grill-me` choice: express lead lookup vs specialist council. Build DAG with `blocked_by`.
 
 ### Phase 3: Act & Capability-Routed Waves (Contour B)

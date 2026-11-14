@@ -95,6 +95,7 @@ try {
     : `${PROTOCOL_MARKER}\n${protocolText}`;
 
   const workspaceDir = resolveWorkspaceDir(payload);
+  let hasSavedModelProfile = false;
   if (workspaceDir) {
     const checkpointPath = path.join(workspaceDir, '.hermes', 'checkpoint.md');
     if (fs.existsSync(checkpointPath)) {
@@ -102,6 +103,9 @@ try {
         const stat = fs.statSync(checkpointPath);
         if (stat.size > 0) {
           let cpText = fs.readFileSync(checkpointPath, 'utf-8');
+          if (/Model Profile|Subagent Model|Модель субагентов|Gemini|Claude|GPT-OSS/i.test(cpText)) {
+            hasSavedModelProfile = true;
+          }
           if (cpText.length > 2048) {
             cpText = cpText.slice(0, 2048);
           }
@@ -113,6 +117,10 @@ try {
         // Ignore checkpoint read failures
       }
     }
+  }
+
+  if (!hasSavedModelProfile) {
+    content = `${PROTOCOL_MARKER}\n🚨 **MANDATORY FIRST TOOL CALL (ШАГ 0):** В этой сессии ещё не выбрана модель для субагентов! ПЕРВЫМ действием (до чтения кода проекта и до запуска команд/субагентов) вызовите инструмент \`ask_question\` с 2 вопросами: (1) «Какую модель ИИ использовать для всех субагентов?» и (2) «Какой режим (уровень ума) поставить субагентам?» (см. раздел ШАГ 0 ниже).\n\n` + content.replace(PROTOCOL_MARKER, '').trim();
   }
 
   process.stdout.write(JSON.stringify({
