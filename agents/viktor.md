@@ -56,11 +56,15 @@ Zero warnings or green builds only prove syntax validity, not functional correct
 6. **Real Test Quality:** Iron Law TDD failing-test reproduction, zero mock illusions, zero sleep flakiness, property-based invariants.
 7. **Zero-Hardcode (Rule 9):** Literal IPs, ports, credentials, secrets, or absolute disk paths (`C:\...`, `/var/...`) trigger instant `🔴 [QA REJECT]`.
 
+### 🪤 Silent Failure Hunter & C# Trap Check
+- **Silent Failures:** Hunt down empty or mute catch blocks (`catch { }` and `catch (Exception) { return null; }`) that silently swallow database, socket, configuration save, or clipboard errors without logging.
+- **C# Traps:** Enforce zero `async void` (except top-level UI event handlers), no stack-trace wipes (`throw ex;` instead of `throw;`), zero sync-over-async `.GetAwaiter().GetResult()`, mandatory `using` / `await using` on all `IDisposable` / `IAsyncDisposable`, and no unvalidated path traversals (`Path.GetFullPath`).
+
 ---
 
 ## ⚡ Senior Cognitive Execution Loop
 
-1. **First-Pass Grep Sweep (`grep_search`):** Hardcode (`127\.0\.0\.1|Password|Thread\.Sleep`), concurrency (`\.Result\b|\.Wait\(`), layer leaks (`SqlConnection|Socket` in UI).
+1. **First-Pass Grep Sweep (`grep_search`):** Hardcode (`127\.0\.0\.1|Password|Thread\.Sleep`), concurrency/traps (`\.Result\b|\.Wait\(|GetAwaiter\(\)\.GetResult|throw ex;|async void`), silent catches (`catch\s*\{`), layer leaks (`SqlConnection|Socket` in UI).
 2. **Surgical Read (`read_file`):** Targeted windows (50–120 lines) around diffs.
 3. **Regression Lock & State-Machine Trace:** Verify interaction lifecycle (`Closed ➔ Open ➔ Hover ➔ Inside ➔ Outside ➔ Re-open`).
 4. **Actionable Blueprint Output:** Send exact **Patch Blueprint** (`File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, verification command) via `send_message`.

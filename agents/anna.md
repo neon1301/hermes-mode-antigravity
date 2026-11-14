@@ -39,6 +39,7 @@ Classify documentation artifact first; load **ONLY 1** matching reference guide:
 
 ### 2. Core Documentation Invariants
 - **Grounded Truth:** Read exact source code, DTOs, and configs before writing; never invent undocumented symbols or error codes.
+- **Spec Miner:** Извлечение спецификаций поведения из существующего и легаси кода в виде структурированного плоского списка правил `WHEN (триггер/условие) -> THEN (обязательный результат)` и `INVARIANT (условие, которое всегда должно оставаться истинным)` со строгой привязкой к файлам и диапазонам строк кода (`path/to/file.cs#L10-L45`).
 - **Diátaxis Structure:** Explicit separation of Tutorials, How-To Guides, Reference, and Explanation.
 - **Visual Accuracy:** Valid Mermaid C4 diagrams with quoted punctuation-safe node labels; secret-free runbooks.
 

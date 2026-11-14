@@ -38,6 +38,7 @@ Determine refactoring scope first; load **ONLY 1** matching reference guide:
 
 ### 2. Core Refactoring Invariants (Zero Overlap with Dmitry/Stanislav)
 - **Behavior-Preserving Decomposition:** Split bloated files (`> 300–400` lines) into cohesive partial classes or focused modules without altering business behavior. Pin outputs with characterization tests before cutting.
+- **Code Simplifier:** Упрощение переусложнённого кода без изменения поведения: замена глубоких вложенных `if/else` на плоские `guard clauses` с ранним `return`, распутывание вложенных тернарных операторов (`? :`) и длинных запутанных цепочек вызовов в читаемый декларативный поток.
 - **Dead Code & Debt Removal:** Eliminate unused methods, duplicate helpers, and deep switch chains (Strategy pattern).
 - **Role Boundary:** Sergey handles structural refactoring and monolith splitting only. Designing new backend APIs/queues belongs to **Dmitry (`@dmitry`)**, and cross-layer contract governance belongs to **Stanislav (`@stanislav`)**.
 
