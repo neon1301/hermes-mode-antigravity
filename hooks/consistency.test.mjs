@@ -68,12 +68,19 @@ await test('all_agents_registered_in_trigger', () => {
   }
 });
 
-// 5. Verify plugin.json, package.json version alignment
+// 5. Verify plugin.json, package.json version alignment & docs
 await test('version_alignment', () => {
   const plugin = JSON.parse(fs.readFileSync(path.join(rootDir, 'plugin.json'), 'utf-8'));
   const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'));
   if (plugin.version !== pkg.version) {
     throw new Error(`plugin.json version (${plugin.version}) does not match package.json (${pkg.version})`);
+  }
+  const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf-8');
+  if (!readme.includes(`(v${plugin.version})`)) {
+    throw new Error(`README.md header does not contain current version (v${plugin.version})`);
+  }
+  if (!plugin.description.includes(`(v${plugin.version})`)) {
+    throw new Error(`plugin.json description does not contain current version (v${plugin.version})`);
   }
 });
 
