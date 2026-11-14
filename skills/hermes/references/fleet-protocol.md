@@ -100,7 +100,7 @@
       2. *Какой режим (уровень ума) поставить субагентам?* Options: `(Recommended) Medium`, `High`, `Low`.
       *Применение `<Модель> + <Low/Medium/High>`:*
       - В `swarm(action="add")`: точный ID (`gemini-3.8-flash-medium`, `claude-sonnet-5-5-high`...).
-      - В `invoke_subagent`: Flash+Low ➔ `"flash_lite"`; Flash+Medium/High ➔ `"flash"`; Hydrogen/Argon ➔ `"pro"` (или `"inherit"`); Claude/GPT-OSS ➔ `"inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt. Сохраняется в `.hermes/checkpoint.md`.
+      - В `invoke_subagent`: для `Gemini 3.8 Flash` (`Medium` или `High`) ВСЕГДА явно передавать `Model: "flash"` (НЕ `"inherit"`, так как серверный пул `gemini-3.8-flash-high` часто перегружен `503 No capacity`); для `Flash` + `Low` ➔ `Model: "flash_lite"`; для `Hydrogen`/`Argon` ➔ `Model: "pro"`; для `Claude`/`GPT-OSS` ➔ `Model: "inherit"` + `[MODEL_PROFILE: <Модель> (<Уровень>)]` в начале Prompt. Сохраняется в `.hermes/checkpoint.md`.
     * **Preflight & Pool Reuse:** До вызова субагента проверять `manage_subagents(action="list")`. 1 роль = max 1 live аудитор. Использовать `idle` воркеров.
     * **Bounded Waves (3–5), Disjoint Ownership & Single Build Gate:** Волны записи по 3–5 воркеров с непересекающимися файлами и Mission Brief. `Workspace: "branch"` — только при `.git`, иначе `"inherit"`. Single Build Gate выполняет Lead после волны.
     * **Post-Restart & GC:** После перезапуска опросить `manage_subagents(action="list")`. Завершивших работу воркеров удалять через `manage_subagents(action="kill")` (или `kill_all` после финализации).
