@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.10.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v4.0.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.10.0)
+# Hermes Master Orchestration Engine (v4.0.0)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md). For planning, parallel execution, and engineering protocols, see [`references/orchestrator-planning.md`](references/orchestrator-planning.md), [`references/orchestrator-parallel.md`](references/orchestrator-parallel.md), [`references/specialist-dispatch-matrix.md`](references/specialist-dispatch-matrix.md), [`references/spec-driven-templates.md`](references/spec-driven-templates.md), [`references/systematic-debugging.md`](references/systematic-debugging.md), [`references/verification-before-completion.md`](references/verification-before-completion.md), and [`references/writing-skills.md`](references/writing-skills.md).
 

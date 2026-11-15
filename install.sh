@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Hermes Fleet Plugin Installer for Google Antigravity (v3.10.0)
+# Hermes Fleet Plugin Installer for Google Antigravity (v4.0.0)
 set -euo pipefail
 
 echo "=========================================="
-echo "  Hermes Fleet v3.10.0 Installer for Antigravity"
+echo "  Hermes Fleet v4.0.0 Installer for Antigravity"
 echo "=========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,6 +45,7 @@ ITEMS=(
   "skills"
   "agents"
   "docs"
+  "scripts"
 )
 
 for item in "${ITEMS[@]}"; do

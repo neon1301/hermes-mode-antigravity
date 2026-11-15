@@ -49,15 +49,15 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ---
 
-### [TASK-003] Lightweight Merge-Queue Hook (Gas Town Refinery Automation)
+### [TASK-003] Lightweight Merge-Queue Utility (Gas Town Refinery Automation)
 * **Priority:** P2
 * **Target Version:** v4.0.0
-* **Scope & Context:** 
-  Automate the Refinery Bors-style merge queue currently specified in `skills/hermes/references/orchestrator-parallel.md`.
-* **Proposed Architecture:**
-  - Hook analyzing branch workspaces upon worker completion.
-  - Serial merge into a temporary staging branch with automated invocation of `verify.sh` / `verify.ps1`.
-  - Automated git bisect script to reject the failing branch worker without Lead manual intervention.
+* **Status:** ✅ COMPLETED in v4.0.0
+* **Resolution:** 
+  - Designed via `docs/adr/ADR-0002-refinery-merge-queue.md` (interception at user-space CLI/module `scripts/refinery.mjs` avoiding hook 10s timeout risks).
+  - Implemented standalone Bors-style staging pipeline and recursive binary bisection in `scripts/refinery.mjs`.
+  - Added deterministic test suite `hooks/refinery.test.mjs` (9/9 PASS) verifying green batch merges, red batch bisection isolation, injection resistance, atomic rollback, and Beads ledger synchronization.
+  - Zero external Go binaries (`gt`), zero patch scripts (Rule 8), zero hardcoding (Rule 9).
 
 ---
 

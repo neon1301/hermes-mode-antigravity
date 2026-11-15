@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.0.0] - 2026-11-15
+
+### Gas Town Refinery Merge-Queue Automation (TASK-003) — MAJOR
+- **Architectural Decision & Formal ADR (ADR-0002, REQ-1):**
+  - Formulated and documented `docs/adr/ADR-0002-refinery-merge-queue.md` analyzing integration of the Gas Town Refinery merge queue with Google Antigravity subagent branch workspaces.
+  - Evaluated interception points: rejected `PreToolUse` (git) and `Stop` hooks due to strict 10-second platform execution ceilings and fail-open requirements; adopted standalone user-space CLI and library `scripts/refinery.mjs`.
+  - Formally reviewed and adopted by Lead Orchestrator, Chief Fleet Auditor (Stanislav), and Lead QA & AppSec (Viktor) prior to implementation.
+- **Refinery Merge Queue & Bisecting Pipeline (`scripts/refinery.mjs`, REQ-2):**
+  - Implemented automated Bors-style serial integration pipeline merging parallel write-worker branches (`Workspace: "branch"`) into a temporary staging branch (`hermes/refinery-staging-<timestamp>`).
+  - Implemented recursive binary bisection (`bisectCandidates`): upon Single Build Gate failure (`npm test`), the pipeline automatically isolates the offending branch with exact build error output, while safely merging all passing branches into the target branch.
+  - Implemented strict ref sanitization (`validateBranchName`), rejecting CLI flags (`--*`), path traversal (`..`), reflog traversal (`@{`), and git forbidden characters.
+  - Implemented fail-open atomic rollback (`safeRollback`) via `git merge --abort` and `git checkout`, guaranteeing zero repository corruption or dirty files on unexpected crashes or 3-way conflicts.
+  - Zero external Go binaries (`gt`), zero patch scripts (Rule 8), zero hardcoding of paths/IPs (Rule 9).
+- **Beads Ledger Integration & Anti-Premature Kill Preservation (REQ-3):**
+  - Integrated status synchronization with `.hermes/tasks.json`: accepted branches mark tasks as `DONE` with `mergedAt`; bisected/rejected branches mark tasks as `FAILED` with `mergeError`.
+  - Preserved the Anti-Premature Kill invariant: `scripts/refinery.mjs` never kills subagents; worker lifecycle remains strictly governed by Lead under the Watchdog recovery ladder.
+  - Updated `skills/hermes/references/orchestrator-parallel.md` documenting usage of `scripts/refinery.mjs`.
+- **Refinery Test Suite & Baseline Expansion (REQ-4):**
+  - Added dedicated test suite `hooks/refinery.test.mjs` covering positive green batch merges, red batch bisection isolation, injection resistance, atomic rollback, and Beads ledger updates.
+  - Registered `refinery` as the 10th suite in `hooks/test-runner.mjs`, updating baseline to **324 tests** (324/324 PASS).
+  - Updated `hooks/consistency.test.mjs` test 13 and test 17 to validate 10 suites and `scripts/refinery.mjs` + `ADR-0002` integrity.
+- **Universal Version Alignment (REQ-5):**
+  - Synchronized MAJOR version `4.0.0` across all 7 targets: `plugin.json`, `package.json`, `README.md`, `skills/hermes/references/fleet-protocol.md`, `skills/hermes/SKILL.md`, `install.ps1`, and `install.sh`.
+  - Added `"scripts"` directory to `install.ps1` and `install.sh` distribution payload.
+
 ## [3.10.0] - 2026-11-15
 
 ### Marketplace Readiness & Polish

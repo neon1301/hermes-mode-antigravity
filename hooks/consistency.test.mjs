@@ -311,8 +311,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error('.hermes/test-summary.json missing! Run npm test or verify.ps1/sh to generate.');
   }
   const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  if (!Array.isArray(summary.suites) || summary.suites.length !== 9) {
-    throw new Error(`Expected 9 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
+  if (!Array.isArray(summary.suites) || summary.suites.length !== 10) {
+    throw new Error(`Expected 10 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
     'consistency': 17,
@@ -323,7 +323,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     'session-report': 3,
     'eval-harness': 68,
     'contract-validator': 9,
-    'doc-lint': 15
+    'doc-lint': 15,
+    'refinery': 9
   };
   for (const [suiteName, expTotal] of Object.entries(expectedBreakdown)) {
     const s = summary.suites.find(x => x.name === suiteName);
@@ -332,8 +333,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 315 || summary.passed !== 315) {
-    throw new Error(`test-summary.json expected total=315, passed=315, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 324 || summary.passed !== 324) {
+    throw new Error(`test-summary.json expected total=324, passed=324, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -465,7 +466,9 @@ await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () 
     'skills/hermes/references/specialist-dispatch-matrix.md',
     'skills/hermes/references/orchestrator-planning.md',
     'skills/hermes/references/orchestrator-parallel.md',
-    'skills/hermes/references/spec-driven-templates.md'
+    'skills/hermes/references/spec-driven-templates.md',
+    'docs/adr/ADR-0002-refinery-merge-queue.md',
+    'scripts/refinery.mjs'
   ];
   for (const rel of newRefs) {
     const full = path.join(rootDir, rel);

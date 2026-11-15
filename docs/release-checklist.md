@@ -68,7 +68,7 @@
 ---
 
 ## 6. 🧪 Локальный CI-гейт (Zero Billing Dependency)
-- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (9 сьютов, 315 тестов):
+- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (10 сьютов, 324 теста):
   - `context-injector.test.mjs` (18 тестов)
   - `clean-edits-guard.test.mjs` (102 теста)
   - `qa-gate.test.mjs` (63 теста)
@@ -77,6 +77,7 @@
   - `eval-harness.test.mjs` (68 тестов)
   - `contract-validator.test.mjs` (9 тестов)
   - `doc-lint.test.mjs` (15 тестов)
+  - `refinery.test.mjs` (9 тестов)
   - `consistency.test.mjs` (17 тестов)
 - [ ] Pre-push хук `.githooks/pre-push` активен (`git config core.hooksPath .githooks`).
 - [ ] Инсталляция `install.ps1` / `install.sh` синхронизирована с каталогом плагина Antigravity.

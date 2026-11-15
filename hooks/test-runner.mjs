@@ -20,10 +20,11 @@ const SUITES = [
   { name: 'eval-harness', file: 'hooks/eval-harness.test.mjs' },
   { name: 'contract-validator', file: 'skills/compliance-policy-as-code/scripts/contract-validator.test.mjs' },
   { name: 'doc-lint', file: 'hooks/doc-lint.test.mjs' },
+  { name: 'refinery', file: 'hooks/refinery.test.mjs' },
   { name: 'consistency', file: 'hooks/consistency.test.mjs' }
 ];
 
-console.log('🏛️  [HERMES TEST RUNNER] Starting execution of all 9 test suites...\n');
+console.log('🏛️  [HERMES TEST RUNNER] Starting execution of all 10 test suites...\n');
 
 // Ensure .hermes/test-summary.json exists with baseline before suites execute
 const hermesDir = path.join(rootDir, '.hermes');
@@ -41,10 +42,11 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'session-report', passed: 3, total: 3, status: 'PASS' },
       { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
       { name: 'contract-validator', passed: 9, total: 9, status: 'PASS' },
-      { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' }
+      { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' },
+      { name: 'refinery', passed: 9, total: 9, status: 'PASS' }
     ],
-    passed: 315,
-    total: 315,
+    passed: 324,
+    total: 324,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }
