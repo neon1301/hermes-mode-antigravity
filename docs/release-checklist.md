@@ -68,10 +68,10 @@
 ---
 
 ## 6. 🧪 Локальный CI-гейт (Zero Billing Dependency)
-- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (10 сьютов, 332 теста):
+- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (10 сьютов, 336 тестов):
   - `context-injector.test.mjs` (18 тестов)
   - `clean-edits-guard.test.mjs` (106 тестов)
-  - `qa-gate.test.mjs` (67 тестов)
+  - `qa-gate.test.mjs` (71 тест)
   - `rule-engine.test.mjs` (20 тестов)
   - `session-report.test.mjs` (3 теста)
   - `eval-harness.test.mjs` (68 тестов)

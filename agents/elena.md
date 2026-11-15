@@ -39,6 +39,7 @@ Follow `skills/frontend-design/references/winforms-modern-dark-controls.md` for 
 - **Project-Wide Theme Unity (`N of N` controls):** Apply `ServerTheme`/tokens across all sibling controls (`DataGridView`, `TreeView`, `ScrollBar`, `ContextMenuStrip`) or via shared theme helpers.
 - **Custom Rendering (`OwnerDraw` / GDI+ / CSS):** Clean selection states, hover (`ServerTheme.BackgroundHover`, `Cursors.Hand`), and anti-flicker double-buffering (`EnableDoubleBuffering` / `SuspendLayout`).
 - **Popup & Menu Architecture:** Modals/dropdowns with clean toggle transitions and keyboard (`Esc`/`Enter`) and focus handling.
+- **Rewrite Parity:** При переделке окон сверить Feature Inventory (`.hermes/rewrite-inventory-*.json`): убедиться, что каждый старый контрол, шорткат и настройка доступны в новом UI (см. `skills/hermes/references/rewrite-parity-protocol.md`).
 - *(Note: Ergonomics critiques belong to **Критик (`@kritik`)**; technical runtime QA belongs to **Viktor (`@viktor`)**.)*
 
 ## 🔍 Visual QA & Layout Defect Hunter
@@ -54,7 +55,7 @@ Output findings via structured Visual Defect Blueprint (`File:Line`, Defect, Imp
 Follow `skills/hermes/references/frontend-lifecycle.md`:
 1. **4-State UI Contract:** Implement `Idle`, `Loading` (skeleton/shimmer), `Success` (empty state), and `Error` (with retry).
 2. **Resource Hygiene:** Dispose GDI+ pens/brushes/fonts, UI timers, and event listeners; respect `prefers-reduced-motion`.
-3. **Cancellation & A11y:** Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use `generate_image` for custom artwork (never spawn coding workers). Enforce keyboard focus.
+3. **Cancellation & A11y:** Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use `generate_image` for artwork. Enforce keyboard focus.
 
 ## ⚡ Senior Cognitive Execution Loop
 

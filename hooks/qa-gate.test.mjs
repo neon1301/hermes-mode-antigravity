@@ -1261,6 +1261,103 @@ const cases = [
         { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
       ])
     })
+  },
+  {
+    name: 'deny_rewrite_without_parity_report_or_inventory',
+    expected: 'continue',
+    run: () => {
+      const testWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-parity-missing-'));
+      try {
+        const hermesDir = path.join(testWs, '.hermes');
+        fs.mkdirSync(hermesDir, { recursive: true });
+        return runGate({
+          conversationId: 'c_rewrite_missing',
+          terminationReason: 'model_stop',
+          workspacePaths: [testWs],
+          transcriptPath: writeTranscript('t_rewrite_missing', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes перепиши компонент Button.cs' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'src/Button.cs' } }] }
+          ])
+        });
+      } finally {
+        fs.rmSync(testWs, { recursive: true, force: true });
+      }
+    }
+  },
+  {
+    name: 'deny_rewrite_with_silently_lost_features',
+    expected: 'continue',
+    run: () => {
+      const testWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-parity-silent-'));
+      try {
+        const hermesDir = path.join(testWs, '.hermes');
+        fs.mkdirSync(hermesDir, { recursive: true });
+        fs.writeFileSync(path.join(hermesDir, 'parity-report.json'), JSON.stringify({ silentlyLost: 1, approvedRemoved: 0 }));
+        return runGate({
+          conversationId: 'c_rewrite_silent',
+          terminationReason: 'model_stop',
+          workspacePaths: [testWs],
+          transcriptPath: writeTranscript('t_rewrite_silent', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes rewrite Button.cs' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'src/Button.cs' } }] }
+          ])
+        });
+      } finally {
+        fs.rmSync(testWs, { recursive: true, force: true });
+      }
+    }
+  },
+  {
+    name: 'deny_rewrite_with_unapproved_feature_removal',
+    expected: 'continue',
+    run: () => {
+      const testWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-parity-unapproved-'));
+      try {
+        const hermesDir = path.join(testWs, '.hermes');
+        fs.mkdirSync(hermesDir, { recursive: true });
+        fs.writeFileSync(path.join(hermesDir, 'parity-report.json'), JSON.stringify({ silentlyLost: 0, approvedRemoved: 1 }));
+        return runGate({
+          conversationId: 'c_rewrite_unapproved',
+          terminationReason: 'model_stop',
+          workspacePaths: [testWs],
+          transcriptPath: writeTranscript('t_rewrite_unapproved', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes заново перепиши Button.cs' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'src/Button.cs' } }] }
+          ])
+        });
+      } finally {
+        fs.rmSync(testWs, { recursive: true, force: true });
+      }
+    }
+  },
+  {
+    name: 'allow_rewrite_with_approved_removal_and_zero_silent_loss',
+    expected: 'allow',
+    run: () => {
+      const testWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-parity-approved-'));
+      try {
+        const hermesDir = path.join(testWs, '.hermes');
+        fs.mkdirSync(hermesDir, { recursive: true });
+        fs.writeFileSync(path.join(hermesDir, 'parity-report.json'), JSON.stringify({ silentlyLost: 0, approvedRemoved: 1 }));
+        const viktorUuid = '11111111-1111-1111-1111-111111111111';
+        return runGate({
+          conversationId: 'c_rewrite_approved',
+          terminationReason: 'model_stop',
+          workspacePaths: [testWs],
+          transcriptPath: writeTranscript('t_rewrite_approved', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes rewrite Button.cs' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'write_file', args: { Path: 'src/Button.cs' } }] },
+            { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ id: 'ask_1', name: 'ask_question', args: { question: 'Удалить устаревшую настройку?' } }] },
+            { step_index: 3, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'Да, удалить' },
+            { step_index: 4, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'viktor' } }] },
+            { step_index: 5, source: 'SYSTEM', type: 'GENERIC', content: JSON.stringify({ conversationId: viktorUuid }) },
+            { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', sender: viktorUuid, content: '[QA PASS] Rewrite parity verified.' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        fs.rmSync(testWs, { recursive: true, force: true });
+      }
+    }
   }
 ];
 

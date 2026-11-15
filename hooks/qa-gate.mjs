@@ -180,6 +180,37 @@ function writeCounter(counterFile, count) {
   }
 }
 
+function checkUserRemovalConsent(turnSteps = [], postEditAskAnswer = '', parityReport = {}) {
+  let askQuestionCalled = false;
+  for (const s of turnSteps) {
+    for (const tc of collectToolCalls(s)) {
+      if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+        askQuestionCalled = true;
+        break;
+      }
+    }
+    if (askQuestionCalled) break;
+  }
+  if (!askQuestionCalled) return false;
+
+  const userTexts = [];
+  if (postEditAskAnswer) userTexts.push(postEditAskAnswer);
+  for (const s of turnSteps) {
+    if (isRealUserStep(s) || s?.source === 'USER' || s?.source === 'USER_EXPLICIT') {
+      const c = typeof s?.content === 'string' ? s.content : (s?.content?.text || JSON.stringify(s?.content || ''));
+      userTexts.push(c);
+    }
+  }
+  const combined = userTexts.join('\n');
+  const REMOVAL_CONSENT_RE = /(?:удалить|удали|да|согласен|подтверждаю|remove|delete|yes|approved|approve|confirm|dropped|drop)\b/i;
+  const REMOVAL_REJECTION_RE = /(?:не\s+(?:удаляй|надо|удалять)|оставь|сохрани|keep|don'?t\s+remove|no\b)/i;
+
+  if (REMOVAL_REJECTION_RE.test(combined) && !REMOVAL_CONSENT_RE.test(combined)) {
+    return false;
+  }
+  return REMOVAL_CONSENT_RE.test(combined);
+}
+
 const raw = readStdin().trim();
 if (!raw) {
   allow();
@@ -458,6 +489,78 @@ const convId = String(payload?.conversationId || transcriptPath);
 const turnMarker = steps[lastUserIdx]?.step_index ?? lastUserIdx;
 const counterFile = getCounterFile(convId, turnMarker);
 
+const lastUserContent = lastUserIdx >= 0
+  ? (typeof steps[lastUserIdx]?.content === 'string' ? steps[lastUserIdx].content : (steps[lastUserIdx]?.content?.text || ''))
+  : '';
+
+// REQ-2: Rewrite Parity Gate (Sergey)
+const REWRITE_TRIGGER_RE = /(?:перепиши|переписат[ье]|rewrite|recreate|заново|с\s+нуля)/i;
+let isCompleteFileReplacement = false;
+for (const s of turnSteps) {
+  for (const tc of collectToolCalls(s)) {
+    const name = String(tc?.name || '').toLowerCase();
+    const args = tc?.args || {};
+    if (WRITE_TOOL_NAMES.has(name)) {
+      const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
+      if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
+        if (args.Overwrite === true || args.overwrite === true) {
+          isCompleteFileReplacement = true;
+        }
+      }
+    }
+  }
+}
+
+const isRewriteTask =
+  REWRITE_TRIGGER_RE.test(payload?.lastUserInput || '') ||
+  REWRITE_TRIGGER_RE.test(lastUserContent) ||
+  isCompleteFileReplacement;
+
+if (isRewriteTask) {
+  const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+  const parityReportPath = path.join(hermesDir, 'parity-report.json');
+
+  if (!fs.existsSync(parityReportPath)) {
+    blockStop(
+      `Hermes Gate [QA REJECT: Rewrite Parity]: Задача по переписыванию компонента требует Feature Inventory и отчёта .hermes/parity-report.json с silentlyLost === 0. См. skills/hermes/references/rewrite-parity-protocol.md.\n[EN: Hermes Gate [QA REJECT: Rewrite Parity]: Component rewrite detected. Feature Inventory and .hermes/parity-report.json with silentlyLost === 0 are required. See skills/hermes/references/rewrite-parity-protocol.md.]`,
+      { missing: ['parity-report.json'] }
+    );
+    process.exit(0);
+  }
+
+  let parityReport;
+  try {
+    parityReport = JSON.parse(fs.readFileSync(parityReportPath, 'utf-8'));
+  } catch (err) {
+    blockStop(
+      `Hermes Gate [QA REJECT: Rewrite Parity]: Некорректный JSON в .hermes/parity-report.json: ${err.message}`,
+      { missing: ['valid parity-report.json'] }
+    );
+    process.exit(0);
+  }
+
+  const silentlyLost = Number(parityReport?.silentlyLost ?? 0);
+  if (silentlyLost > 0) {
+    blockStop(
+      `Hermes Gate [QA REJECT: Rewrite Parity]: Обнаружена молчаливая потеря функциональности (${silentlyLost} функций в silentlyLost > 0). Восстановите функции или согласуйте удаление с пользователем через ask_question.\n[EN: Hermes Gate [QA REJECT: Rewrite Parity]: Silent feature loss detected (${silentlyLost} features in silentlyLost > 0). Restore features or obtain explicit user removal approval via ask_question.]`,
+      { missing: ['zero silentlyLost'] }
+    );
+    process.exit(0);
+  }
+
+  const approvedRemoved = Number(parityReport?.approvedRemoved ?? 0);
+  if (approvedRemoved > 0) {
+    const hasRemovalConsent = checkUserRemovalConsent(turnSteps, postEditAskAnswer, parityReport);
+    if (!hasRemovalConsent) {
+      blockStop(
+        `Hermes Gate [QA REJECT: Rewrite Parity]: В отчёте заявлено ${approvedRemoved} удалённых функций (approvedRemoved > 0), но отсутствует явное согласие пользователя через инструмент ask_question.\n[EN: Hermes Gate [QA REJECT: Rewrite Parity]: ${approvedRemoved} removed features declared in approvedRemoved, but explicit user confirmation via ask_question is missing.]`,
+        { missing: ['user removal consent via ask_question'] }
+      );
+      process.exit(0);
+    }
+  }
+}
+
 // Token economy skip requires explicit option selection or positive intent anchored to option/line start.
 // Casual words like "нет", "не нужно", "достаточно", "no" or negations like "don't skip", "нельзя пропустить",
 // "не оставляй без проверки", "без проверки не оставляй" MUST NOT bypass verification.
@@ -577,9 +680,6 @@ logCostMetrics({
 
 // REQ-6: Bounded Convergence Loop (--loop / /hermes fix-warnings --loop / /hermes loop)
 const LOOP_COMMAND_RE = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i;
-const lastUserContent = lastUserIdx >= 0
-  ? (typeof steps[lastUserIdx]?.content === 'string' ? steps[lastUserIdx].content : (steps[lastUserIdx]?.content?.text || ''))
-  : '';
 const isLoopRequested = LOOP_COMMAND_RE.test(payload?.lastUserInput || '') || LOOP_COMMAND_RE.test(lastUserContent);
 const LOOP_CEILING = 25;
 

@@ -48,7 +48,7 @@
 
 > [!IMPORTANT]
 > **Compiles != Works:** Успешная компиляция — допуск к ревью, а не доказательство работы. Реестр `REQ-1..REQ-N`, сквозной аудит N-of-N и регрессионный замок обязательны.
-> Полный регламент: [`anti-regression-protocol.md`](anti-regression-protocol.md). Сверка с [Чеклистом Lead (`skills/cognitive-discipline/SKILL.md`)](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
+> Полный регламент: [`anti-regression-protocol.md`](anti-regression-protocol.md). Rewrite Parity (Sergey): опись Feature Inventory и Parity Diff ([`rewrite-parity-protocol.md`](rewrite-parity-protocol.md)). Сверка с [Чеклистом Lead (`skills/cognitive-discipline/SKILL.md`)](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
 
 ---
 
@@ -85,7 +85,7 @@
 
 * **Маршрутизация и цепная реакция:** [`specialist-dispatch-matrix.md`](specialist-dispatch-matrix.md)
 * **Справочник команд Hermes:** [`hermes-commands-reference.md`](hermes-commands-reference.md)
-* **Защита от регрессий и 100% полнота:** [`anti-regression-protocol.md`](anti-regression-protocol.md)
+* **Защита от регрессий и паритет переписывания:** [`anti-regression-protocol.md`](anti-regression-protocol.md) и [`rewrite-parity-protocol.md`](rewrite-parity-protocol.md)
 * **Адаптивное планирование (BMAD, Spec Law, Decisions Ledger):** [`orchestrator-planning.md`](orchestrator-planning.md)
 * **Шаблоны спецификаций и планов (Spec-Driven Templates):** [`spec-driven-templates.md`](spec-driven-templates.md)
 * **Параллельная разработка (Refinery Merge Queue, Beads Ledger, Watchdog):** [`orchestrator-parallel.md`](orchestrator-parallel.md)

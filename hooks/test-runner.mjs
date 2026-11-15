@@ -37,7 +37,7 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'consistency', passed: 17, total: 17, status: 'PASS' },
       { name: 'context-injector', passed: 18, total: 18, status: 'PASS' },
       { name: 'clean-edits-guard', passed: 106, total: 106, status: 'PASS' },
-      { name: 'qa-gate', passed: 67, total: 67, status: 'PASS' },
+      { name: 'qa-gate', passed: 71, total: 71, status: 'PASS' },
       { name: 'rule-engine', passed: 20, total: 20, status: 'PASS' },
       { name: 'session-report', passed: 3, total: 3, status: 'PASS' },
       { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
@@ -45,8 +45,8 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' },
       { name: 'refinery', passed: 9, total: 9, status: 'PASS' }
     ],
-    passed: 332,
-    total: 332,
+    passed: 336,
+    total: 336,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }

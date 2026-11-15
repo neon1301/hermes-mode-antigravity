@@ -29,6 +29,12 @@
 * Трассировка UI и контрактных связей бэкенда и фронтенда.
 * Сверка финального `git diff` со спецификацией задачи.
 
+### 4. Протокол паритета переписывания (Rewrite Parity Protocol)
+При глубокой модернизации или переписывании компонентов с нуля (`rewrite`, `recreate`, замена файла целиком):
+* **Шаг 0: Feature Inventory.** Сплошная опись поведения из кода (`.hermes/rewrite-inventory-<component>.json`) до единой строки нового дизайна.
+* **Parity Diff:** Нулевая молчаливая потеря функций (`silentlyLost === 0` в `.hermes/parity-report.json`). Удаление функций допустимо только с явного согласия пользователя через `ask_question`.
+* Полный регламент: [`rewrite-parity-protocol.md`](rewrite-parity-protocol.md).
+
 Детализированные эвристики и чек-листы ревью: [`qa-heuristics.md`](qa-heuristics.md).
 
 ---
@@ -36,5 +42,6 @@
 ## Связанные регламенты
 
 * **Ядро регламента флота:** [`fleet-protocol.md`](fleet-protocol.md)
+* **Паритет при переписывании (Rewrite Parity):** [`rewrite-parity-protocol.md`](rewrite-parity-protocol.md)
 * **Эвристики контроля качества Viktor:** [`qa-heuristics.md`](qa-heuristics.md)
 * **Протокол когнитивной дисциплины:** [`../../cognitive-discipline/SKILL.md`](../../cognitive-discipline/SKILL.md)
