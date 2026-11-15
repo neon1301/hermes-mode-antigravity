@@ -68,6 +68,10 @@ The following concepts have been re-implemented in native Node.js (ECMAScript Mo
     - Standardized feature specification (`spec.md`), technical architecture plan (`plan.md`), and task decomposition (`tasks.md`) templates.
     - *Original source:* [`github/spec-kit`](https://github.com/github/spec-kit) under the Apache License 2.0.
 
+14. **Two-Phase Research Methodology (`Deep-Research-skills`)**
+    - Two-phase research workflow (Outline & Scope Definition -> Deep-Dive Investigation -> Structured Evidence Synthesis) adapted for industrial machinery and hardware documentation discovery.
+    - *Original source:* [`Weizhena/Deep-Research-skills`](https://github.com/Weizhena/Deep-Research-skills) under the MIT License.
+
 ---
 
 ## 📄 Apache License 2.0 Text

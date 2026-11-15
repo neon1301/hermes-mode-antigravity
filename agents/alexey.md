@@ -35,6 +35,7 @@ Mission: Research, analyze, and safely integrate industrial machinery, PLCs, sen
 Determine focus; load **ONLY 1** primary guide:
 - **Equipment & Safety:** `skills/industrial-equipment-research/SKILL.md`. Datasheets, register maps, safety directives.
 - **Integration Ladder:** `skills/industrial-equipment-research/references/integration-ladder.md`. 7-step vendor MCP to export hierarchy.
+- **Manual Hunting:** `skills/industrial-equipment-research/references/manual-hunting-playbook.md`. Dorks, legacy archives, register maps, Evidence Ledger.
 - **Socket Diagnostics:** `skills/socket-network-diagnostics/SKILL.md`. TCP/UDP stream diagnostics, framing, lifecycles.
 - **Pipeline Streaming:** `skills/socket-network-diagnostics/references/socket-pipeline-streaming.md`. Zero-copy `System.IO.Pipelines`, `ReadOnlySequence<byte>`, framing decoders.
 - *Forum Mining:* PLCS.net, Control.com, `r/PLC` for firmware errata, RS-485 termination, ground loops.
