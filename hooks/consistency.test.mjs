@@ -315,7 +315,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 14,
+    'consistency': 15,
     'context-injector': 18,
     'clean-edits-guard': 102,
     'qa-gate': 63,
@@ -331,8 +331,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 297 || summary.passed !== 297) {
-    throw new Error(`test-summary.json expected total=297, passed=297, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 298 || summary.passed !== 298) {
+    throw new Error(`test-summary.json expected total=298, passed=298, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -363,6 +363,55 @@ await test('cognitive_skill_registered', async () => {
   }
   if (triggerModule.isCognitiveTrigger('hello world')) {
     throw new Error('isCognitiveTrigger falsely matched unrelated text');
+  }
+});
+
+// 15. Verify all skill verification scripts pass (doc-lint suite)
+await test('doc_lint_verify_scripts_pass', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const verifyScripts = [
+    'skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs',
+    'skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs',
+    'skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs',
+    'skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs',
+    'skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs',
+    'skills/frontend-design/scripts/verify-winforms-patterns.mjs',
+    'skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs',
+    'skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs',
+    'skills/procedural-3d-digital-twin/scripts/verify-vram-hygiene-patterns.mjs',
+    'skills/product-ux-scouting/scripts/verify-nielsen-roast-patterns.mjs',
+    'skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs',
+    'skills/reverse-engineer-anything/scripts/verify-frame-disassembly-patterns.mjs',
+    'skills/sap-enterprise-automation/scripts/verify-sap-nco-hygiene.mjs',
+    'skills/socket-network-diagnostics/scripts/verify-pipeline-streaming-patterns.mjs'
+  ];
+  for (const s of verifyScripts) {
+    const fullPath = path.join(rootDir, s);
+    if (!fs.existsSync(fullPath)) {
+      throw new Error(`Missing verify script: ${s}`);
+    }
+    const res = spawnSync('node', [fullPath], { encoding: 'utf-8', cwd: rootDir });
+    if (res.status !== 0) {
+      throw new Error(`Verify script failed: ${s} (exit ${res.status}): ${res.stderr || res.stdout}`);
+    }
+  }
+
+  // Also enforce skill size <= 7KB and when-clauses
+  const skillsDir = path.join(rootDir, 'skills');
+  for (const s of fs.readdirSync(skillsDir)) {
+    const p = path.join(skillsDir, s, 'SKILL.md');
+    if (fs.existsSync(p)) {
+      const stat = fs.statSync(p);
+      if (s !== 'hermes' && stat.size > 7168) {
+        throw new Error(`Skill '${s}' SKILL.md exceeds 7KB budget (${stat.size} > 7168 bytes)`);
+      }
+      const content = fs.readFileSync(p, 'utf-8');
+      const m = content.match(/description:\s*([^\n]+(?:\n\s+[^\n]+)*)/);
+      const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+      if (!/\b(?:when|use when|activate when)\b/i.test(desc)) {
+        throw new Error(`Skill '${s}' description lacks a 'when' trigger clause`);
+      }
+    }
   }
 });
 

@@ -41,7 +41,7 @@ Scouting must never be restricted to English-only search. Real power users and e
 ### 🔍 Scouting Execution Rules
 1. **Multilingual Queries:** Query in local idioms (e.g., `C# WinForms 滚动条 闪烁`, `WPF Deactivate 焦点 抖动`, `Span<T> zero alloc socket`).
 2. **Domain Targeting:** Use `domain` in `search_web` (e.g. `query="site:v2ex.com/t VirtualMode DataGridView"`).
-3. **Deep Reading via Browser Subagent:** When snippets truncate vital discussion threads, delegate to Read-Only `browser` (`Model: "flash"`). Never attempt auth/captcha bypass.
+3. **Deep Reading via `read_url_content` & Browser Delegation:** Read complete web pages and forum threads directly with `read_url_content`. When complex multi-step web workflows or interactive rendering are required, request Lead to delegate to Read-Only `browser` (`Model: "flash"`). Never attempt auth/captcha bypass.
 
 ---
 

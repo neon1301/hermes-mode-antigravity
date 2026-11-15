@@ -25,7 +25,7 @@ Low-latency        Transactional      sapfewse.ocx   Bulk Data           Clean C
 
 ---
 
-## 1. Pillar 1: SAP .NET Connector (NCo 3.1 / 4.0)
+## 1. Pillar 1: SAP .NET Connector (NCo 3.0 / 3.1.x)
 The official SAP library for direct C# integration without launching desktop SAP GUI.
 
 ### Destination Configuration Pattern (`IDestinationConfiguration`)

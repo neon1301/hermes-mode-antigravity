@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.7.3)
+# Регламент HERMES (Hermes Fleet Protocol v3.7.4)
 
 Активирован для **/hermes**, «Hermes Mode» / «Режим Hermes» и **@имя**.
 

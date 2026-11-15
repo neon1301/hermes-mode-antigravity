@@ -1,6 +1,6 @@
 ---
 name: cognitive-discipline
-description: HERMES-COGNITION v1.1 protocol of sobriety and cognitive discipline. PreInvocation trigger on plan, audit, architecture, release, diagnosis, pre-mortem. Enforces [VERIFIED] file:line references, physical constraints before architecture, and plan pre-mortems.
+description: HERMES-COGNITION v1.1 protocol of sobriety and cognitive discipline. Use when developing plans, performing audits, reviewing architecture, preparing releases, diagnosing defects, or conducting plan pre-mortems. Enforces [VERIFIED] file:line references, physical constraints before architecture, and plan pre-mortems.
 ---
 
 # 🧭 HERMES-COGNITION v1.1 — протокол трезвости

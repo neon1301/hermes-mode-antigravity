@@ -19,7 +19,7 @@
 - **Приоритет:** Высокий (Tier 2).
 - **Суть:** Проверенные коннекторы сообщества для SAP OData сервисов и каталогов метаданных.
 
-### Ступень 3: Typed OData / BAPI Wrapper (NCo 3.1/4.0 & OData v2/v4)
+### Ступень 3: Typed OData / BAPI Wrapper (NCo 3.0/3.1.x & OData v2/v4)
 - **Приоритет:** Высокий (Tier 3).
 - **Суть:** Типизированные клиенты на C#/.NET на базе SAP .NET Connector (NCo) для BAPI/RFC транзакций (`BAPI_TRANSACTION_COMMIT` / `ROLLBACK`) или REST/OData API шлюза SAP Gateway.
 - **Обязательно:** Строгое соблюдение BAPI Return structure (`BAPIRET2`) и обработка CSRF токенов.

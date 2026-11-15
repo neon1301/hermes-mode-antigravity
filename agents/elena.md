@@ -13,6 +13,7 @@ tools:
   - send_message
   - read_file
   - view_file
+  - generate_image
   - grep_search
   - find_by_name
   - list_dir
@@ -54,7 +55,7 @@ Output findings via structured Visual Defect Blueprint (`File:Line`, Defect, Imp
 Follow `skills/hermes/references/frontend-lifecycle.md`:
 1. **4-State UI Contract:** Implement `Idle`, `Loading` (skeleton/shimmer), `Success` (empty state), and `Error` (with retry).
 2. **Resource Hygiene:** Dispose GDI+ pens/brushes/fonts, UI timers, and event listeners; respect `prefers-reduced-motion`.
-3. **Cancellation & A11y:** Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use `image-generator` for custom artwork (never spawn coding workers). Enforce keyboard focus.
+3. **Cancellation & A11y:** Clean 100%–200% DPI scaling; prefer SVGs / `Segoe Fluent Icons`. Use `generate_image` for custom artwork (never spawn coding workers). Enforce keyboard focus.
 
 ## ⚡ Senior Cognitive Execution Loop
 

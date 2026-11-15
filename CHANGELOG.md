@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.4] - 2026-11-15
+
+### Skill Hygiene, Tool Realignment & Verification Linting
+- **Kritik Tool & Delegation Realignment:** Equipped Kritik (`@kritik`) with `read_url_content` for direct deep research of public forum threads and documentation; restructured browser delegation to route complex interactive flows through Lead to Read-Only `browser`.
+- **Elena Artwork Tool Realignment:** Equipped Elena (`@elena`) with `generate_image` instead of abstract subagent references, strictly enforcing Anthropic Frontend design standards.
+- **SAP NCo Version Precision:** Corrected references from hallucinated `NCo 4.0` to official `NCo 3.0 / 3.1.x` across README, skill documentation, and the integration ladder based on primary SAP documentation.
+- **Skill Compression to <= 7 KB:** Refactored `reverse-engineer-anything` (14.7 KB -> 4.0 KB) and `industrial-equipment-research` (12.0 KB -> 4.4 KB), offloading routing tables, connection recovery ladders, and hardware matrices to modular `references/`. Compressed `procedural-3d-digital-twin` (7.4 KB -> 6.5 KB).
+- **Enforced `when`-Clauses:** Verified and ensured all 21 skills have explicit `Use when...` trigger clauses in their frontmatter descriptions for deterministic discovery.
+- **Doc-Lint Test Suite Expansion:** Added test 15 (`doc_lint_verify_scripts_pass`) to `consistency.test.mjs`, mechanically executing all 14 `skills/*/scripts/verify-*.mjs` scripts during every CI run.
+
 ## [3.7.3] - 2026-11-15
 
 ### Hotfix: Fail-Closed Anti-Self-Signing Invariant & Unbound Hook Hardening

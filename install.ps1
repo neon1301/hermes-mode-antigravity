@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.7.3)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.7.4)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.7.3 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.7.4 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -76,7 +76,7 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "test-runner.mjs failed" }
 }
 
-Write-Host "`nHermes Fleet v3.7.3 installed successfully!" -ForegroundColor Green
+Write-Host "`nHermes Fleet v3.7.4 installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
 Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
