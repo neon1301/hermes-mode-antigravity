@@ -38,6 +38,7 @@ await test('skills_count_22', () => {
 await test('no_stale_counters_in_docs', () => {
   const filesToCheck = [
     'README.md',
+    'README.ru.md',
     'plugin.json',
     'skills/hermes/SKILL.md',
     'skills/hermes/scripts/monitor.mjs',
@@ -176,6 +177,7 @@ await test('skill_frontmatter_and_unique_names', () => {
 await test('markdown_reference_links_integrity', () => {
   const refFiles = [
     path.join(rootDir, 'README.md'),
+    path.join(rootDir, 'README.ru.md'),
     path.join(rootDir, 'TROUBLESHOOTING.md'),
     path.join(rootDir, 'skills', 'hermes', 'SKILL.md'),
     ...fs.readdirSync(path.join(rootDir, 'skills', 'hermes', 'references'))

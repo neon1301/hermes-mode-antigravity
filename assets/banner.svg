@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-label="Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology">
+  <title>Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology</title>
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#161b22"/>
+      <stop offset="60%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#05070a"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#58a6ff" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#1f6feb" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Node Glow Filters -->
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glowPurple" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glowAmber" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Linear Gradients for Conduits -->
+    <linearGradient id="traceGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58a6ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1f6feb" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="traceGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3fb950" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#238636" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="traceGrad3" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#bc8cff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#8957e5" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="traceGrad4" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#d29922" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#9e6a03" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1280" height="400" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Cybernetic Grid Pattern -->
+  <g stroke="#30363d" stroke-width="0.75" opacity="0.35">
+    <line x1="80" y1="0" x2="80" y2="400"/>
+    <line x1="200" y1="0" x2="200" y2="400"/>
+    <line x1="320" y1="0" x2="320" y2="400"/>
+    <line x1="440" y1="0" x2="440" y2="400"/>
+    <line x1="560" y1="0" x2="560" y2="400"/>
+    <line x1="680" y1="0" x2="680" y2="400"/>
+    <line x1="800" y1="0" x2="800" y2="400"/>
+    <line x1="920" y1="0" x2="920" y2="400"/>
+    <line x1="1040" y1="0" x2="1040" y2="400"/>
+    <line x1="1160" y1="0" x2="1160" y2="400"/>
+
+    <line x1="0" y1="60" x2="1280" y2="60"/>
+    <line x1="0" y1="130" x2="1280" y2="130"/>
+    <line x1="0" y1="200" x2="1280" y2="200"/>
+    <line x1="0" y1="270" x2="1280" y2="270"/>
+    <line x1="0" y1="340" x2="1280" y2="340"/>
+  </g>
+
+  <!-- Hexagonal & Circuit Accents (Left & Right Wings) -->
+  <g opacity="0.25" stroke="#58a6ff" stroke-width="1.2" fill="none">
+    <polygon points="120,80 150,60 180,80 180,110 150,130 120,110"/>
+    <polygon points="180,110 210,90 240,110 240,140 210,160 180,140"/>
+    <polygon points="120,150 150,130 180,150 180,180 150,200 120,180"/>
+    <line x1="240" y1="125" x2="310" y2="125"/>
+    <circle cx="310" cy="125" r="3" fill="#58a6ff"/>
+
+    <polygon points="1100,280 1130,260 1160,280 1160,310 1130,330 1100,310"/>
+    <polygon points="1040,250 1070,230 1100,250 1100,280 1070,300 1040,280"/>
+    <polygon points="1100,210 1130,190 1160,210 1160,240 1130,260 1100,240"/>
+    <line x1="1040" y1="265" x2="970" y2="265"/>
+    <circle cx="970" cy="265" r="3" fill="#3fb950"/>
+  </g>
+
+  <!-- Large Central Glow -->
+  <circle cx="640" cy="200" r="230" fill="url(#coreGlow)"/>
+
+  <!-- Network Conduits connecting Core (640, 200) to 14 Specialized Nodes -->
+  <g stroke-linecap="round">
+    <!-- Domain: Architecture & Backend (Cyan: Dmitry, Sergey, Anna) -->
+    <path d="M 640 200 L 480 100" stroke="url(#traceGrad1)" stroke-width="2"/>
+    <path d="M 640 200 L 360 160" stroke="url(#traceGrad1)" stroke-width="1.8"/>
+    <path d="M 640 200 L 460 290" stroke="url(#traceGrad1)" stroke-width="1.8"/>
+
+    <!-- Domain: Quality, Security & Compliance (Emerald: Viktor, Stanislav) -->
+    <path d="M 640 200 L 800 100" stroke="url(#traceGrad2)" stroke-width="2"/>
+    <path d="M 640 200 L 920 160" stroke="url(#traceGrad2)" stroke-width="2"/>
+
+    <!-- Domain: UI, 3D & Product UX (Purple: Elena, Gleb, Kritik) -->
+    <path d="M 640 200 L 640 60" stroke="url(#traceGrad3)" stroke-width="2.2"/>
+    <path d="M 640 200 L 260 240" stroke="url(#traceGrad3)" stroke-width="1.6"/>
+    <path d="M 640 200 L 780 300" stroke="url(#traceGrad3)" stroke-width="1.8"/>
+
+    <!-- Domain: Industrial Hardware, PLC & Enterprise (Amber: Alexey, Igor, Ruslan, Artem) -->
+    <path d="M 640 200 L 820 220" stroke="url(#traceGrad4)" stroke-width="1.8"/>
+    <path d="M 640 200 L 940 270" stroke="url(#traceGrad4)" stroke-width="1.8"/>
+    <path d="M 640 200 L 1020 180" stroke="url(#traceGrad4)" stroke-width="1.6"/>
+    <path d="M 640 200 L 520 340" stroke="url(#traceGrad4)" stroke-width="1.8"/>
+
+    <!-- Domain: AI Systems, DB & Context (Indigo/Blue: Mikhail, Denis) -->
+    <path d="M 640 200 L 350 310" stroke="url(#traceGrad1)" stroke-width="1.8"/>
+    <path d="M 640 200 L 640 340" stroke="url(#traceGrad1)" stroke-width="2"/>
+
+    <!-- Inter-Specialist Interconnect Traces (Peer Mesh) -->
+    <path d="M 480 100 L 640 60 L 800 100" stroke="#30363d" stroke-width="1.2" stroke-dasharray="4,4" fill="none"/>
+    <path d="M 360 160 L 260 240 L 350 310" stroke="#30363d" stroke-width="1.2" stroke-dasharray="4,4" fill="none"/>
+    <path d="M 920 160 L 1020 180 L 940 270" stroke="#30363d" stroke-width="1.2" stroke-dasharray="4,4" fill="none"/>
+    <path d="M 460 290 L 520 340 L 640 340 L 780 300" stroke="#30363d" stroke-width="1.2" stroke-dasharray="4,4" fill="none"/>
+  </g>
+
+  <!-- Orbital Ring Structure around Core (Lead Orchestrator) -->
+  <g fill="none">
+    <!-- Outer Dashed Orbit -->
+    <circle cx="640" cy="200" r="140" stroke="#58a6ff" stroke-width="1" stroke-dasharray="6,8" opacity="0.4"/>
+    <!-- Middle Precision Reticle Ring -->
+    <circle cx="640" cy="200" r="105" stroke="#30363d" stroke-width="1.5" opacity="0.6"/>
+    <!-- Inner High-Tech Pulse Ring -->
+    <circle cx="640" cy="200" r="70" stroke="#79c0ff" stroke-width="2" stroke-dasharray="24,12,6,12" opacity="0.75"/>
+    <circle cx="640" cy="200" r="45" stroke="#58a6ff" stroke-width="1.5" opacity="0.9"/>
+  </g>
+
+  <!-- Central Orchestrator Core Node (Lead) -->
+  <g filter="url(#glowCyan)">
+    <circle cx="640" cy="200" r="26" fill="#0d1117" stroke="#58a6ff" stroke-width="3"/>
+    <circle cx="640" cy="200" r="16" fill="#1f6feb" opacity="0.8"/>
+    <polygon points="640,189 649,195 649,205 640,211 631,205 631,195" fill="#f0f6fc"/>
+  </g>
+
+  <!-- 14 Satellite Specialist Nodes with High-Precision Geometric Halos -->
+
+  <!-- Node 1: (480, 100) Backend Architecture -->
+  <g filter="url(#glowCyan)">
+    <circle cx="480" cy="100" r="12" fill="#0d1117" stroke="#58a6ff" stroke-width="2.5"/>
+    <circle cx="480" cy="100" r="5" fill="#58a6ff"/>
+  </g>
+
+  <!-- Node 2: (640, 60) Frontend & UI Design -->
+  <g filter="url(#glowPurple)">
+    <circle cx="640" cy="60" r="12" fill="#0d1117" stroke="#bc8cff" stroke-width="2.5"/>
+    <circle cx="640" cy="60" r="5" fill="#bc8cff"/>
+  </g>
+
+  <!-- Node 3: (800, 100) Lead QA & AppSec -->
+  <g filter="url(#glowGreen)">
+    <circle cx="800" cy="100" r="13" fill="#0d1117" stroke="#3fb950" stroke-width="2.5"/>
+    <circle cx="800" cy="100" r="6" fill="#3fb950"/>
+  </g>
+
+  <!-- Node 4: (920, 160) Chief Compliance Auditor -->
+  <g filter="url(#glowGreen)">
+    <circle cx="920" cy="160" r="12" fill="#0d1117" stroke="#3fb950" stroke-width="2.5"/>
+    <circle cx="920" cy="160" r="5" fill="#3fb950"/>
+  </g>
+
+  <!-- Node 5: (1020, 180) SAP & Enterprise Automation -->
+  <g filter="url(#glowAmber)">
+    <circle cx="1020" cy="180" r="11" fill="#0d1117" stroke="#d29922" stroke-width="2"/>
+    <circle cx="1020" cy="180" r="4.5" fill="#d29922"/>
+  </g>
+
+  <!-- Node 6: (940, 270) Industrial Equipment Research -->
+  <g filter="url(#glowAmber)">
+    <circle cx="940" cy="270" r="11" fill="#0d1117" stroke="#d29922" stroke-width="2"/>
+    <circle cx="940" cy="270" r="4.5" fill="#d29922"/>
+  </g>
+
+  <!-- Node 7: (820, 220) Hardware Simulation & Chaos -->
+  <g filter="url(#glowAmber)">
+    <circle cx="820" cy="220" r="10" fill="#0d1117" stroke="#d29922" stroke-width="2"/>
+    <circle cx="820" cy="220" r="4" fill="#d29922"/>
+  </g>
+
+  <!-- Node 8: (780, 300) 360 Product UX Critic -->
+  <g filter="url(#glowPurple)">
+    <circle cx="780" cy="300" r="13" fill="#0d1117" stroke="#bc8cff" stroke-width="2.5"/>
+    <circle cx="780" cy="300" r="6" fill="#bc8cff"/>
+  </g>
+
+  <!-- Node 9: (640, 340) High-Load Database Architect -->
+  <g filter="url(#glowCyan)">
+    <circle cx="640" cy="340" r="12" fill="#0d1117" stroke="#58a6ff" stroke-width="2.5"/>
+    <circle cx="640" cy="340" r="5" fill="#58a6ff"/>
+  </g>
+
+  <!-- Node 10: (520, 340) Reverse Engineering (REA) -->
+  <g filter="url(#glowAmber)">
+    <circle cx="520" cy="340" r="11" fill="#0d1117" stroke="#d29922" stroke-width="2"/>
+    <circle cx="520" cy="340" r="4.5" fill="#d29922"/>
+  </g>
+
+  <!-- Node 11: (460, 290) Code Refactoring & Modernization -->
+  <g filter="url(#glowCyan)">
+    <circle cx="460" cy="290" r="11" fill="#0d1117" stroke="#58a6ff" stroke-width="2"/>
+    <circle cx="460" cy="290" r="4.5" fill="#58a6ff"/>
+  </g>
+
+  <!-- Node 12: (350, 310) AI, RAG & LLM Ops -->
+  <g filter="url(#glowCyan)">
+    <circle cx="350" cy="310" r="12" fill="#0d1117" stroke="#79c0ff" stroke-width="2.5"/>
+    <circle cx="350" cy="310" r="5" fill="#79c0ff"/>
+  </g>
+
+  <!-- Node 13: (260, 240) Procedural 3D & Digital Twin -->
+  <g filter="url(#glowPurple)">
+    <circle cx="260" cy="240" r="12" fill="#0d1117" stroke="#bc8cff" stroke-width="2.5"/>
+    <circle cx="260" cy="240" r="5" fill="#bc8cff"/>
+  </g>
+
+  <!-- Node 14: (360, 160) Technical Documentation & C4 -->
+  <g filter="url(#glowCyan)">
+    <circle cx="360" cy="160" r="11" fill="#0d1117" stroke="#58a6ff" stroke-width="2"/>
+    <circle cx="360" cy="160" r="4.5" fill="#58a6ff"/>
+  </g>
+
+  <!-- Dynamic Data Packet Pulses on Conduits -->
+  <circle cx="560" cy="150" r="3" fill="#58a6ff" opacity="0.9"/>
+  <circle cx="720" cy="150" r="3" fill="#3fb950" opacity="0.9"/>
+  <circle cx="640" cy="130" r="3.5" fill="#bc8cff" opacity="0.9"/>
+  <circle cx="730" cy="210" r="2.5" fill="#d29922" opacity="0.8"/>
+  <circle cx="550" cy="245" r="2.5" fill="#58a6ff" opacity="0.8"/>
+  <circle cx="640" cy="270" r="3" fill="#79c0ff" opacity="0.85"/>
+  <circle cx="450" cy="220" r="2.5" fill="#bc8cff" opacity="0.8"/>
+</svg>

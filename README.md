@@ -1,114 +1,37 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.0.0)
+[English](README.md) | [Русский](README.ru.md)
 
-Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 22 профессиональных скилла**.
+![Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology](assets/banner.svg)
 
-Команда Hermes спроектирована как **универсальные разработчики промышленных систем**: мы не привязаны к конкретным брендам станков или контроллеров, а работаем с любым промышленным оборудованием, автоматизированными линиями и вендорами по всему миру.
+# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.0.0)
 
----
+> A fleet of 14 autonomous AI specialists and 22 industrial skills for Google Antigravity that prevents coding agents from fixing 1 of 4 places, self-signing PRs, and hardcoding IPs.
 
-## 👥 Полный штаб специалистов Hermes (Lead + 14 экспертов):
-* 👑 **Lead (Оркестратор)** — архитектурная декомпозиция, канбан, двухконтурное исполнение (Read-Only `agents/*.md` аудит + Act/Write через Lead / `define_subagent(EnableWriteTools: true)` / `self`-пул), ограниченные волны (3–5), `manage_subagents` preflight & GC, встроенный «Глаз Критика» (Zero-Cost продуктовый и инженерный фильтр на каждом ТЗ: 4 состояния UI, человечные ошибки, Dry-Run, авто-бэкап, Channel<T>/WAL).
-* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 15 правил флота, аудит соблюдения всех 22 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
-* 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
-* 🎨 **Elena** — Frontend Lead & UI/UX (Anthropic Frontend Design, Web & Desktop GUI WinForms/WPF, контракт 4 состояний, анимации и формы настроек GUI, иконки через `generate_image`, A11y).
-* 🌐 **Gleb** — Lead 3D Graphics & Industrial Digital Twin Engineer (`procedural-3d-digital-twin`: процедурные 3D-модели Three.js/WebGL, цифровые двойники станков, 3D-карта цеха T01–T20 через `InstancedMesh`, привязка телеметрии к 3D-кинематике и шейдерам, WebView2-мост, нулевые утечки VRAM).
-* 🔥 **Критик (`kritik`)** — 360° Product Critic, Global Tech Trend Scout, Post-Audit Challenger & UX Inspector (`product-ux-scouting`: 360° самостоятельная разведка мировых продуктовых и инженерных трендов, киллер-фич, Doctor-mode, ускорения ядра и эргономики по RU/CN/BE/EU/JP/Global форумам через `search_web` и Read-Only `browser` + роль замыкающего супер-рецензента аудита с выбором лучшего мирового решения + беспощадная прожарка интерфейса по `P0–P3` и эвристикам Нильсена `0–4` + проверенные библиотеки и паттерны `Adopt/Trial/Hold`; строго Read-Only Scout в изолированном контексте для экономии токенов и защиты главного чата).
-* 🛡️ **Viktor** — Lead QA Automation & AppSec Reviewer (7-векторный барьер: `qa-test-automation` + прокачанный `security-audit` — Cloudflare 6-Phase Fresh-Verifier, Trail of Bits `differential-review`/`sharp-edges`, OWASP Auth/JWT/IDOR/SSRF/Crypto, DevSecOps SCA/Docker/CI, TDD, E2E и Zero-Hardcode).
-* ⚙️ **Alexey** — Lead Industrial Hardware, Equipment & Protocol Systems Engineer (универсальное исследование оборудования и вендоров, даташиты, мануалы, регистровые карты, Modbus, Profinet, EtherCAT, OPC UA, сокеты, безопасность станка).
-* 📊 **Ruslan** — Principal SAP & Enterprise Integration Architect (Все 5 столпов интеграции: SAP .NET Connector NCo 3.0/3.1.x, BAPI/RFC транзакции, SAP GUI Scripting без утечек COM, асинхронные IDoc/ALE очереди, современные OData/REST API).
-* 🔍 **Artem** — Reverse Engineering (REA methodology, реверс бинарных протоколов, декомпиляция .NET/CIL и ASAR/JS, Evidence Ledger).
-* 🧠 **Mikhail** — AI/ML & LLM Systems Engineer (полный стек AI: `ai-rag-engineering` Hybrid RAG + HNSW + Langfuse/RAGAS + Polars/DuckDB, `agent-context-memory-engineering` контекст/память/LLM-as-a-Judge/Promptfoo+Garak red-team, `llm-finetuning-multimodal-ops` LoRA/Unsloth/TRL/vLLM/Docling/Whisper).
-* 🧹 **Sergey** — Senior Refactoring Architect & Code Modernizer (`code-refactoring-modernization`: CRAP-Score triage, Characterization Tests, Strangler Fig, SOLID-декомпозиция < 300-400 строк без патчеров).
-* 🏭 **Igor** — Industrial Hardware & Protocol Simulation Engineer (`hardware-protocol-simulation` + `socket-network-diagnostics`: stateful FSM эмуляторы PLC/TCP/UDP, `--seed` воспроизводимость, fault injection и CRC-валидный фаззинг).
-* 📝 **Anna** — Principal Technical Writer & Architecture Documentation Architect (`technical-documentation-adr` + `c4-architecture-mermaid`: grounded truth по коду, Diátaxis, `ADR-NNNN`, OpenAPI, паспорта бинарных протоколов, цеховые runbook).
-* 🗄️ **Denis** — Senior Database Architect & High-Load DBA (SQLite/libSQL, PostgreSQL, MSSQL, MySQL/InnoDB, Redis/MongoDB, ClickHouse/DuckDB: WAL/`BEGIN IMMEDIATE`, MVCC/Vacuum, RCSI, InnoDB Gap Locks, SARGable-индексы, пулы и миграции).
-
-> 💡 **Где находится «мозг» Lead Orchestrator?**  
-> В каталоге `agents/` находятся 14 узкопрофильных специалистов-субагентов (`agents/*.md`).  
-> Сам **Lead Orchestrator** — это **хост-агент Antigravity (родительская сессия чата)**. Его правила, регламент оркестрации и алгоритмы декомпозиции зафиксированы в мастер-скилле [`skills/hermes/SKILL.md`](skills/hermes/SKILL.md) и регламенте [`skills/hermes/references/fleet-protocol.md`](skills/hermes/references/fleet-protocol.md), а активируются автоматически через PreInvocation-хук [`hooks/context-injector.mjs`](hooks/context-injector.mjs) при вызове `/hermes` или `@имя`.
+[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](plugin.json)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-332%2F332%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
 ---
 
-## 🛠️ Встроенная библиотека профессиональных скиллов (22 скилла):
+## 🎯 The Problem → How Hermes Solves It
 
-1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v4.0.0): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
-3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
-4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
-5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
-6. **`sap-enterprise-automation`** — Промышленная интеграция со всеми модулями SAP (NCo 3.0/3.1.x, BAPI-транзакции, SAP GUI Scripting без утечек COM, IDoc очереди, OData REST).
-7. **`frontend-design`** — Официальный авторский дизайн от Anthropic (борьба с AI-клише, токен-палитры из 4–6 цветов, правило Коко Шанель).
-8. **`reverse-engineer-anything` (REA)** — Мировой стандарт реверса закрытых программ, .NET/CIL сборок, Electron/ASAR и протоколов.
-9. **`security-audit`** — Продвинутый AppSec и аудит кибербезопасности: Cloudflare 6-Phase **Fresh-Verifier** (`confirmed` vs `needs_validation` vs `rejected`), Trail of Bits `differential-review` / `sharp-edges` / `insecure-defaults`, OWASP Top 10 / ASVS (Auth, JWT, OAuth2, IDOR/BOLA, SSRF, XSS/CSRF, криптография, TLS), сокет/DoS-защита, DevSecOps (`Semgrep`/`Trivy`/`Gitleaks`, Docker, GitHub Actions) и `findings.json` с CWE.
-10. **`c4-architecture-mermaid`** — Инженерная C4-модель и интерактивные диаграммы Mermaid для наглядного картирования системы.
-11. **`high-load-db-tuning`** — Мультидвижковый промышленный тюнинг БД (SQLite `WAL + BEGIN IMMEDIATE` + UNC-защита, PostgreSQL MVCC/Vacuum/PgBouncer, MSSQL RCSI/DMV/deadlock `1205`, MySQL/InnoDB PK/Gap Locks, Redis/MongoDB/ClickHouse/DuckDB, SARGability и zero-downtime миграции).
-12. **`ai-rag-engineering`** — End-to-end AI, Hybrid RAG (Dense + BM25 + RRF, Cross-Encoder reranking), тюнинг Qdrant/`pgvector`/Chroma (HNSW, quantization, payload indexes), Langfuse/OTel трассировка, RAGAS-эвалы, Structured Outputs (Pydantic/Zod), Semantic Caching, Polars/DuckDB и локальный ONNX/GGUF инференс.
-13. **`code-refactoring-modernization`** — Безопасная декомпозиция монолитов (CRAP-Score triage, 300-400 строк на модуль, Seam extraction, устранение циклов и мертвого кода), Characterization Tests (>=80% baseline), Strangler Fig поэтапный cutover, Branch by Abstraction и атомарные правки без патч-скриптов.
-14. **`qa-test-automation`** — Строгий 7-векторный барьер `[QA PASS]` (включая Zero-Hardcode Вектор 7), Iron Law TDD, Systematic Root-Cause Debugging, устранение тест-антипаттернов и CRAP-рейтинг, Property-Based тестирование (Roundtrip, Idempotence, Oracle, Invariants), flaky-free Playwright/E2E и стресс-тесты гонок/утечек.
-15. **`technical-documentation-adr`** — Документация строго по коду (grounded truth без выдуманных символов), система Diátaxis (4 квадранта), `ADR-NNNN` решения, OpenAPI/AsyncAPI (RFC 7807), паспорта бинарных сокет-протоколов (байты, endianness, CRC), цеховые runbook-регламенты (в связке с **`c4-architecture-mermaid`**).
-16. **`hardware-protocol-simulation`** — Универсальные stateful FSM эмуляторы оборудования и PLC (Modbus TCP, OPC UA, бинарные/ASCII сокеты), Zero-Hardcode динамические порты, детерминированный `--seed`, fault injection (байтовая фрагментация, TCP `RST` vs `FIN`, jitter) и CRC-валидный фаззинг пакетов.
-17. **`agent-context-memory-engineering`** — Инженерия контекста и архитектуры автономных ИИ-агентов: борьба с деградацией внимания (*lost-in-the-middle*, poisoning), оптимизация KV-cache, сжатие с якорями, многоуровневая память агентов, изоляция субагентов, непредвзятый LLM-as-a-Judge (position swap) и автоматический LLM Red-Teaming (`Promptfoo` / `Garak`).
-18. **`llm-finetuning-multimodal-ops`** — Fine-Tuning и Post-Training (`Unsloth`, `LLaMA-Factory`, `TRL` SFT/DPO/GRPO), гигиена синтетических датасетов и паритет chat-template/EOS, высоконагруженный GPU-сервинг (`vLLM` / `SGLang`, Continuous Batching, prefix caching, FP8/AWQ/GGUF), сложный парсинг PDF/таблиц (`Docling`) и мультимодальные пайплайны (`Whisper` VAD / VLM).
-19. **`product-ux-scouting`** — 360° продуктовая критика, разведка мировых инженерных и продуктовых трендов (RU/CN/BE/EU/JP/US), киллер-фичи, ускорение ядра, Doctor-mode и аудит эргономики/UI глазами обычного пользователя (Нильсен `0–4`, приоритеты `P0–P3`, режим «прожарки» `Roast Mode` с `File:Line`, иконки через `image-generator`/SVG, анимации с `Dispose()`, 5-пунктовая проверка `Adopt/Trial/Hold`, строго Read-Only Scout).
-20. **`procedural-3d-digital-twin`** — Процедурное 3D-моделирование (Three.js/WebGL), цифровые двойники оборудования, визуализация телеметрии станков (обороты, обрыв нити, аварии, термокарты), интерактивная 3D-карта цеха (T01–T20, InstancedMesh, Raycaster), WebGL VRAM гигиена (dispose) и интеграция с WinForms/WPF через WebView2.
-21. **`cognitive-discipline`** — Протокол трезвости и когнитивной дисциплины HERMES-COGNITION v1.1: факты только [ПРОВЕРЕНО] со ссылкой файл:строка, физика среды до архитектуры, дешевейшая опровергающая проверка, второй порядок последствий и пре-мортем планов (3 причины провала).
-22. **`office-documents`** — Корпоративная автоматизация и аудит документов Microsoft Excel (.xlsx) и Word (.docx) на Python: формульно-ориентированный подход (formula-first `=SUM(...)`), zero-error формулы, финансовая палитра, типографика заголовков (`keep_with_next`), повтор шапок таблиц и защита от Formula Injection.
+Coding assistants often stumble on complex production tasks: they perform partial edits, hallucinate passing tests, hardcode local environments, and cause cascading regressions. Hermes Fleet enforces a disciplined multi-agent engineering protocol.
+
+| The Problem | How Hermes Solves It | Key Defense |
+| :--- | :--- | :--- |
+| 🔴 **Fixes 1 of 4 places:** The AI fixes a bug in one file, leaving 3 identical places broken across the codebase. | 🟢 **`REQ-1..REQ-N` Registry & N-of-N Sweep:** Tasks are broken into atomic Spec Law requirements; Viktor rejects partial fixes with `[QA REJECT]`. | [Rule 4 / Anti-Regression](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
+| 🔴 **Self-Signs `[QA PASS]`:** The agent hallucinates approval in its own prose without running tests. | 🟢 **Symmetric UUID Verdicts & `ackToken`:** Gates enforce authentic subagent delivery strictly from verified session UUIDs (`viktor`, `stanislav`, `kritik`). | [Rule 3 / Anti-Self-Signing](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
+| 🔴 **Hardcodes IPs & Secrets:** Raw IPs (`127.0.0.1`), dev ports, and credentials leak directly into committed code. | 🟢 **Rule 9 Zero-Hardcode PreToolUse Guard:** Intercepts and denies hardcoded paths, IPs, and secrets before execution with an audited escape hatch. | [Rule 9 / PreToolUse Guard](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
+| 🔴 **Breaks Neighboring Features:** Rapid AI edits introduce silent regressions and circular dependencies. | 🟢 **Regression Locks & Dual-Contour Pipeline:** Read-only scouts (Contour A) design blueprints; write waves (Contour B) merge via Bors-style Refinery queue. | [Rule 12 / Refinery Queue](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
 
 ---
 
-## ⚡ Доступные команды:
+## ⚡ Quickstart in 30 Seconds
 
-| Команда | Назначение |
-| :--- | :--- |
-| **/hermes [задача]** | Запуск оркестратора, декомпозиция цели и координация специалистов |
-| **/hermes feature [описание]** | 🚀 7-фазный протокол проектирования фич (Discovery, 3 архитектуры, Quality Review, Fast-Path) |
-| **/hermes board** | 📊 Вывод живой интерактивной Канбан-доски прямо в чат через Generative UI |
-| **/hermes fix-warnings [--loop]** | 🧹 Пакетное устранение предупреждений компилятора до нуля (Zero Warnings Policy; `--loop` включает ограниченный цикл сходимости) |
-| **/hermes loop [задача]** | 🔄 Автономный ограниченный цикл сходимости (Bounded Convergence Loop, потолок 25 итераций, L2 в финале) |
-| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 15 правил флота и 22 скиллов силами Stanislav (Compliance) |
-| **/hermes save** | 💾 Мгновенный снимок спринта в `.hermes/checkpoint.md` |
-| **/hermes resume** | 🔄 Восстановление контекста, задач и договоренностей из Memory Bank |
-| **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |
-| **/hermes report** | 📊 Отчёт о метриках активности сессии, правках файлов и решениях гейта (Data Honesty) |
-| **/hermes rules** | 📜 Сводка и валидация активных декларативных правил флота (`.hermes/rules/*.md`) |
-| **/hermes standup** | 📋 Стендап-синхронизация команды с фиксацией в `.hermes/standups.md` |
-| **@имя [запрос]** | Прямой вызов конкретного специалиста (`@kritik` / `@критик`, `@elena`, `@stanislav`, `@alexey`, `@dmitry`, `@viktor`, `@ruslan` и др.) |
+### 1. Installation
 
-> **Когда Hermes включается.** Только по явному запросу: сообщение начинается с `/hermes`, просьба «включи режим Hermes» или обращение `@имя`. Упоминание `/hermes` в середине вопроса режим не включает. Вне режима плагин ничего не добавляет в контекст (always-on правила нет), а хуки Clean Edits / Zero-Hardcode / QA Gate пропускают всё без проверок.
-
----
-
-## 🛡️ Локальный CI без биллинга (Local Pre-Push CI)
-
-Для публичных репозиториев на GitHub стандартные раннеры бесплатны и не имеют лимита минут. Ошибка «account is locked due to a billing issue» относится исключительно к блокировкам профиля оплаты аккаунта (например, прошлые подписки или неоплаченные услуги), а не к коду или лимитам минут.
-
-Чтобы не зависеть от облачных сервисов и гарантировать 100% зелёный код перед пушем, в Hermes встроен **автономный локальный CI-гейт**:
-
-1. **Ручной запуск валидации (проверка Node >= 20, манифестов и всех 10 тест-сьютов):**
-   * **Windows (PowerShell):**
-     ```powershell
-     .\verify.ps1
-     ```
-   * **macOS / Linux / Git Bash:**
-     ```bash
-     ./verify.sh
-     ```
-   * **Универсально через npm:**
-     ```bash
-     npm test
-     ```
-
-2. **Автоматическая защита перед `git push` (Git Pre-Push Hook):**
-   ```bash
-   git config core.hooksPath .githooks
-   ```
-   *(Также активируется автоматически при `npm run prepare`)*. При любой попытке `git push` хук `.githooks/pre-push` запускает локальный гейт: если хотя бы один тест упал — пуш немедленно блокируется, защищая ветку `main`.
-
----
-
-## 📦 Быстрая установка на любой ПК:
-
-**Кроссплатформенно (Windows / macOS / Linux — рекомендуемый способ через CLI):**
+**Recommended (Cross-platform via Antigravity CLI):**
 ```bash
 git clone https://github.com/neon1301/hermes-mode-antigravity.git
 cd hermes-mode-antigravity
@@ -116,9 +39,206 @@ agy plugin install .
 agy plugin validate . --strict
 ```
 
-**Windows (через PowerShell-инсталлятор с автопроверкой хуков):**
+**Linux / macOS (Bash installer with automated hook configuration):**
+```bash
+git clone https://github.com/neon1301/hermes-mode-antigravity.git
+cd hermes-mode-antigravity
+chmod +x install.sh && ./install.sh
+```
+
+**Windows (PowerShell installer with automated hook configuration):**
 ```powershell
 git clone https://github.com/neon1301/hermes-mode-antigravity.git
 cd hermes-mode-antigravity
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+### 2. Run Your First Task
+
+In the Google Antigravity chat, start your prompt with `/hermes`:
+```text
+/hermes Build a resilient WebSocket telemetry client with reconnection backoff and zero memory allocations
+```
+
+---
+
+## 🔄 How It Works
+
+Hermes operates as a **Dual-Contour Multi-Agent Fleet**: the Lead Orchestrator coordinates specialized subagents across isolated read-only exploration and bounded write execution.
+
+### Architectural Dual-Contour Pipeline
+
+```mermaid
+flowchart TD
+    User["👤 User Request (/hermes)"] --> Lead["👑 Lead Orchestrator"]
+    Lead --> Step0["🚨 Step 0: Model Handshake (ask_question)"]
+    Step0 --> Dmitry["💻 Dmitry (Backend)"]
+    Step0 --> Viktor["🛡️ Viktor (QA/AppSec)"]
+    Step0 --> Elena["🎨 Elena (UI/UX)"]
+    Step0 --> Kritik["🔥 Kritik (Product Roast)"]
+    
+    subgraph ContourA ["Contour A: Read-Only Audit & Scouting"]
+        Dmitry
+        Viktor
+        Elena
+        Kritik
+    end
+    
+    ContourA --> Blueprint["📋 Patch Blueprints (Path, StartLine, Replacement)"]
+    Blueprint --> CB["✍️ Contour B: Bounded Write Waves (3–5 Workers)"]
+    
+    subgraph ContourB ["Contour B: Act/Write & Integration"]
+        CB --> SBG["🧱 Single Build Gate (npm test / verify)"]
+        SBG --> Refinery["🔀 Gas Town Refinery (Bors Merge Queue & Bisection)"]
+    end
+    
+    Refinery --> Gate["🔒 Three-Layer Security & UUID Gate"]
+    Gate --> Delivery["🚀 Verified Delivery [QA PASS] [SECURITY PASS]"]
+```
+
+### Task Lifecycle Flow
+
+```mermaid
+flowchart LR
+    A["/hermes [task]"] --> B["REQ Registry (Spec Law)"]
+    B --> C["Contour A (Scouts)"]
+    C --> D["Contour B (Write)"]
+    D --> E["Local CI (verify.ps1 / .sh)"]
+    E --> F["L2 Diff-Review"]
+    F --> G["Git Push Gate"]
+```
+
+---
+
+## 💬 Interactive Demonstration
+
+```text
+User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
+
+👑 Lead Orchestrator:
+  - Step 0: Model Handshake locked (Gemini 3.8 Flash, Medium Tier)
+  - REQ-1: Replace string splitting with Span<byte> slices in BinaryFrameParser.cs
+  - REQ-2: Ensure 100% backward compatibility with framing test fixtures
+  - REQ-3: N-of-N sweep across all 4 machine protocol drivers
+
+🔍 Contour A (Read-Only Scout Dmitry @dmitry):
+  - Generated Patch Blueprint for BinaryFrameParser.cs (lines 45–98)
+  - Zero-alloc guarantee verified: 0 heap allocations per telemetry frame
+
+✍️ Contour B (Lead Act/Write):
+  - Applied Patch Blueprint via edit_file
+  - Single Build Gate executed: 332/332 tests passed (3.4s)
+
+🛡️ Verification Gate (UUID-bound deliveries):
+  - @viktor: 🟢 [QA PASS] — Frame parser verified against all 4 drivers
+  - @viktor: 🟢 [SECURITY PASS] — Buffer overflow and boundary checks passed
+  - @stanislav: 🟢 [COMPLIANCE PASS] — 15 Rules of Hermes Fleet satisfied
+```
+
+<!-- SCREENSHOT_PLACEHOLDER: Add real Kanban UI screenshot here (run /hermes board in chat) -->
+> 📷 *Tip: Run `/hermes board` in Antigravity chat to render the real-time Generative UI Kanban board.*
+
+---
+
+## 🎮 Command Reference
+
+| Command | Purpose |
+| :--- | :--- |
+| **/hermes [task]** | Launch orchestrator, decompose goal into `REQ-1..REQ-N`, and coordinate specialists |
+| **/hermes feature [description]** | 🚀 7-Phase feature development protocol (Discovery, 3 options, Fast-Path) |
+| **/hermes board** | 📊 Display live interactive Kanban board in chat via Generative UI |
+| **/hermes fix-warnings [--loop]** | 🧹 Batch eliminate compiler/linter warnings (Zero Warnings Policy; `--loop` enables convergence) |
+| **/hermes loop [task]** | 🔄 Autonomous bounded convergence loop (ceiling of 25 iterations, L2 review at finale) |
+| **/hermes audit** | ⚖️ Independent compliance audit of all 15 rules and 22 skills by Stanislav |
+| **/hermes save / resume** | 💾 Snapshot sprint state to `.hermes/checkpoint.md` / Restore context from Memory Bank |
+| **/hermes review** | 🛡️ Comprehensive code audit by Viktor across 7 vectors (`qa-test-automation` + `security-audit`) |
+| **/hermes report** | 📊 Output session activity metrics, file edits, and gate decisions (Data Honesty) |
+| **/hermes rules / standup** | 📜 Fleet declarative rules summary (`.hermes/rules/*.md`) / Team standup (`standups.md`) |
+| **@name [query]** | Direct invocation of a specialist (`@dmitry`, `@elena`, `@viktor`, `@kritik`...) |
+
+> 💡 **Zero-Context Activation:** Hermes activates only on explicit user triggers (`/hermes`, `@specialist`, or phrase «Hermes Mode»). Outside of active mode, hooks fail-open with zero token overhead.
+
+---
+
+## 👥 Specialist Roster & Skill Ecosystem
+
+Hermes Fleet comprises **14 specialized agents** and **22 professional skills** designed as universal industrial and software engineers:
+
+* 👑 **[Lead Orchestrator](skills/hermes/SKILL.md)** ([`hermes`](skills/hermes/SKILL.md)): Dual-contour governance, Spec Law, bounded write waves, and gate coordination.
+
+<details>
+<summary><b>🏗️ Architecture, Backend & Systems Engineering (Click to expand)</b></summary>
+
+* **[💻 Dmitry](agents/dmitry.md)** ([`backend-architecture`](skills/backend-architecture/SKILL.md)): Clean & Hexagonal architecture, .NET/C#, Python/FastAPI, Go, Node.js, RFC 7807 APIs, Outbox, and zero-allocation performance.
+* **[🧹 Sergey](agents/sergey.md)** ([`code-refactoring-modernization`](skills/code-refactoring-modernization/SKILL.md)): Safe decomposition of monoliths (>300–400 lines), CRAP-Score triage, Strangler Fig pattern, and zero patch scripts.
+* **[📝 Anna](agents/anna.md)** ([`technical-documentation-adr`](skills/technical-documentation-adr/SKILL.md), [`c4-architecture-mermaid`](skills/c4-architecture-mermaid/SKILL.md)): Grounded technical writing, Diátaxis framework, Architecture Decision Records (ADRs), and executable Mermaid/C4 maps.
+* **[🗄️ Denis](agents/denis.md)** ([`high-load-db-tuning`](skills/high-load-db-tuning/SKILL.md)): Multi-engine database architecture (SQLite WAL, PostgreSQL MVCC, MSSQL RCSI, MySQL/InnoDB, DuckDB), deadlock elimination, and pool hygiene.
+</details>
+
+<details>
+<summary><b>🛡️ Quality Assurance, Security & Compliance (Click to expand)</b></summary>
+
+* **[🛡️ Viktor](agents/viktor.md)** ([`qa-test-automation`](skills/qa-test-automation/SKILL.md), [`security-audit`](skills/security-audit/SKILL.md)): 7-vector review barrier, TDD Iron Law, Playwright/E2E, OWASP Top 10/ASVS, Cloudflare Fresh-Verifier, and Trail of Bits diff audits (`[QA PASS]`, `[SECURITY PASS]`).
+* **[⚖️ Stanislav](agents/stanislav.md)** ([`compliance-policy-as-code`](skills/compliance-policy-as-code/SKILL.md), [`cognitive-discipline`](skills/cognitive-discipline/SKILL.md)): Independent fleet auditor, Policy as Code, 15 rules enforcement, contract arbitration, and cognitive sobriety checklist (`[COMPLIANCE PASS]`).
+</details>
+
+<details>
+<summary><b>🎨 Frontend, 3D Digital Twins & Product Experience (Click to expand)</b></summary>
+
+* **[🎨 Elena](agents/elena.md)** ([`frontend-design`](skills/frontend-design/SKILL.md)): Bespoke design systems (Anthropic Frontend Design), Web & Desktop GUI (WinForms/WPF), 4-state contracts, and WCAG 2.2 AA accessibility.
+* **[🌐 Gleb](agents/gleb.md)** ([`procedural-3d-digital-twin`](skills/procedural-3d-digital-twin/SKILL.md)): Procedural 3D modeling (Three.js/WebGL), factory floor digital twins (T01–T20), telemetry animation, and zero VRAM leaks.
+* **[🔥 Kritik](agents/kritik.md)** ([`product-ux-scouting`](skills/product-ux-scouting/SKILL.md)): 360° product critic, global tech forum scouting (RU/CN/BE/EU/JP/US), Nielsen 0–4 UX roast, and killer-feature evaluation (`[UX PASS]`).
+</details>
+
+<details>
+<summary><b>🏭 Industrial Hardware, PLC & Enterprise Systems (Click to expand)</b></summary>
+
+* **[⚙️ Alexey](agents/alexey.md)** ([`industrial-equipment-research`](skills/industrial-equipment-research/SKILL.md), [`socket-network-diagnostics`](skills/socket-network-diagnostics/SKILL.md)): Universal machinery research, PLCs, sensors, register maps, Modbus, Profinet, EtherCAT, and socket stream resilience (`CA2022`).
+* **[🏭 Igor](agents/igor.md)** ([`hardware-protocol-simulation`](skills/hardware-protocol-simulation/SKILL.md)): Stateful FSM mock servers, multi-vendor telemetry emulators, packet fuzzing, and deterministic fault injection (`--seed`).
+* **[📊 Ruslan](agents/ruslan.md)** ([`sap-enterprise-automation`](skills/sap-enterprise-automation/SKILL.md), [`office-documents`](skills/office-documents/SKILL.md)): Enterprise SAP integration (NCo 3.0/3.1.x, BAPI, GUI Scripting, IDoc, OData) and formula-first Excel/Word automation.
+* **[🔍 Artem](agents/artem.md)** ([`reverse-engineer-anything`](skills/reverse-engineer-anything/SKILL.md)): Reverse engineering (REA), binary frame disassembly, .NET/CIL and Electron/ASAR decompilation, and Evidence Ledger.
+</details>
+
+<details>
+<summary><b>🧠 AI Systems, RAG & Context Memory Engineering (Click to expand)</b></summary>
+
+* **[🧠 Mikhail](agents/mikhail.md)** ([`ai-rag-engineering`](skills/ai-rag-engineering/SKILL.md), [`agent-context-memory-engineering`](skills/agent-context-memory-engineering/SKILL.md), [`llm-finetuning-multimodal-ops`](skills/llm-finetuning-multimodal-ops/SKILL.md)): Hybrid RAG, HNSW vector indexes, context compaction, long-term memory architectures, LLM Red-Teaming, and LoRA/vLLM ops.
+</details>
+
+---
+
+## 🗺️ Engineering Roadmap
+
+Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and [`.hermes/tasks.json`](.hermes/tasks.json):
+
+- **[TASK-004] (P1, v4.0.1):** Narrow `hermes-hardcode-ignore` scope to the exact violation line (±1 line) and formalize schema compatibility shim in [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
+- **[TASK-005] (P2, v4.0.1):** Verify subagent UUID FIFO assignment resilience in multi-invoke steps and bind via `tool_call_id`.
+- **[TASK-006] (P3, Post-v4.0.1):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
+
+---
+
+## 🔒 Local CI & Pre-Push Verification
+
+Hermes Fleet includes a **Zero-Billing Local CI Gate**:
+
+```bash
+# Run all 10 test suites locally (332 tests)
+npm test
+
+# Windows PowerShell Local CI
+powershell -ExecutionPolicy Bypass -File .\verify.ps1
+
+# Linux / macOS / Git Bash Local CI
+./verify.sh
+```
+
+Pre-push hook is active via `.githooks/pre-push` (`git config core.hooksPath .githooks`). Every push is verified locally before reaching remote branches.
+
+---
+
+## 📜 Legal, Attribution & Support
+
+- **License:** [MIT License](LICENSE)
+- **Attribution & Open Source Notices:** [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (Apache-2.0 donor mechanics)
+- **Troubleshooting Guide:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Release History:** [CHANGELOG.md](CHANGELOG.md)
