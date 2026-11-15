@@ -56,6 +56,14 @@ The following concepts have been re-implemented in native Node.js (ECMAScript Mo
     - Platform design guidelines (HIG/MD3/WCAG 2.2 AA), Playwright E2E patterns, and PICT fault matrices.
     - *Original sources:* `ehmo/platform-design-skills`, `testdino-hq/playwright-skill`, `omkamal/pypict-skill` under the MIT License.
 
+11. **Scale-Adaptive Planning & Spec Law (`BMAD-METHOD`)**
+    - Scale-adaptive planning ladder, decisions & assumptions ledger (`.hermes/decisions.md` with stakes), and Spec Law «Done when».
+    - *Original source:* [`bmad-code-org/BMAD-METHOD`](https://github.com/bmad-code-org/BMAD-METHOD) under the MIT License.
+
+12. **Refinery Merge Queue, Task Graph & Watchdog (`Gas Town`)**
+    - Bors-style bisecting merge queue for parallel write workers, structured Beads task graph (`.hermes/tasks.json`), and worker health watchdog recovery ladder.
+    - *Original source:* [`gastownhall/gastown`](https://github.com/gastownhall/gastown) under the MIT License.
+
 ---
 
 ## 📄 Apache License 2.0 Text

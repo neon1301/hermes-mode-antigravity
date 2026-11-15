@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.9.0] - 2026-11-15
+
+### Orchestrator Upgrade — BMAD & Gas Town Methodologies (TASK-001)
+- **Modular Protocol Architecture (TASK-001):** Split `skills/hermes/references/fleet-protocol.md` from 30,305 bytes (~30 KB) into an eager Core Kernel of 12,248 bytes (11.96 KB <= 12 KB budget, **-59.58% reduction**) and modular, on-demand reference specifications.
+- **Specialist Dispatch Matrix (`specialist-dispatch-matrix.md`):** Extracted the complete 14-specialist cross-agent chain-reaction matrix ("What did you change -> whom to dispatch") and Two-Tier Kritik 3-mode specification into a dedicated stack-first reference file.
+- **BMAD Methodology Integration (`orchestrator-planning.md`):**
+  - *Scale-Adaptive Planning Ladder:* 3-tier planning ceremony (Micro/Fast-Path for 1-2 files; Standard/Feature for 3-10 files; Complex/Enterprise for macro-architecture with full ceremony and stakes evaluation).
+  - *Decisions & Assumptions Ledger (`.hermes/decisions.md`):* Explicit tracking of `[ASSUMPTION]` items across High/Medium/Low stakes with verification status and cross-sprint continuity via `/hermes save` & `/hermes resume`.
+  - *Spec Law «Done when»:* Mandatory objective, verifiable acceptance probe for every requirement in `REQ-1..REQ-N` (prohibiting vague or subjective completion claims).
+  - *Attribution:* Added attribution for `bmad-code-org/BMAD-METHOD` (MIT License) in `THIRD_PARTY_NOTICES.md`.
+- **Gas Town Methodology Integration (`orchestrator-parallel.md`):**
+  - *Refinery Merge Queue:* Bors-style serial integration pipeline for parallel write workers (isolated branch/worktree execution -> candidate staging -> Single Build Gate -> automated/manual bisection upon red builds).
+  - *Beads Task Graph Ledger (`.hermes/tasks.json`):* Structured JSON graph with explicit `blockedBy` dependencies, worker assignment, and execution states surviving restarts.
+  - *Worker Health Watchdog (Witness/Deacon/Dogs):* Formal health classification (`HEALTHY`, `STALLED`, `STUCK`, `ZOMBIE`) and 3-step recovery ladder (`Nudge ➔ Handoff ➔ GC`) strictly adhering to the Anti-Premature Kill invariant.
+  - *Séance Protocol:* Cross-session transcript diagnostic query standard via `grep_search`.
+  - *Attribution:* Added attribution for `gastownhall/gastown` (MIT License) in `THIRD_PARTY_NOTICES.md`.
+- **Engineering Backlog & Rejected Donor Registry:**
+  - Marked [TASK-001] as COMPLETED.
+  - Registered [TASK-003] (Refinery Merge-Queue Hook) and [TASK-004] (Convoy Stall Detection Hook).
+  - Registered explicit `HOLD` rejections with rationale for `ruvnet/ruflo` (unbounded swarms violate token economy), `itqan-engineering` (duplicates feature-dev), and `NeoLabHQ/sdd` (duplicates spec-driven development).
+- **Version Alignment across 7 Targets:** Synchronized version 3.9.0 across `plugin.json`, `package.json`, `README.md`, `skills/hermes/references/fleet-protocol.md`, `skills/hermes/SKILL.md`, `install.ps1`, and `install.sh`.
+
 ## [3.8.0] - 2026-11-15
 
 ### Fleet Skills Upgrade & World-Class Methodology Integration

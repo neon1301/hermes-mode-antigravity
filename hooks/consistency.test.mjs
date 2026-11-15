@@ -315,7 +315,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 16,
+    'consistency': 17,
     'context-injector': 18,
     'clean-edits-guard': 102,
     'qa-gate': 63,
@@ -331,8 +331,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 299 || summary.passed !== 299) {
-    throw new Error(`test-summary.json expected total=299, passed=299, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 300 || summary.passed !== 300) {
+    throw new Error(`test-summary.json expected total=300, passed=300, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -449,6 +449,40 @@ await test('donor_skills_references_and_attribution_integrity', () => {
   const backlogContent = fs.readFileSync(backlogPath, 'utf-8');
   if (!backlogContent.includes('TASK-002') || !backlogContent.includes('Deferred Skill Candidates Registry')) {
     throw new Error('docs/backlog.md missing TASK-002 Deferred Skill Candidates Registry');
+  }
+});
+
+// 17. Verify v3.9.0 modular protocol core budget (<= 12 KB), orchestrator references & attribution
+await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () => {
+  const coreProtoPath = path.join(rootDir, 'skills', 'hermes', 'references', 'fleet-protocol.md');
+  const coreStat = fs.statSync(coreProtoPath);
+  if (coreStat.size > 12288) {
+    throw new Error(`fleet-protocol.md (${coreStat.size} bytes) exceeds 12 KB budget (12288 bytes)`);
+  }
+
+  const newRefs = [
+    'skills/hermes/references/specialist-dispatch-matrix.md',
+    'skills/hermes/references/orchestrator-planning.md',
+    'skills/hermes/references/orchestrator-parallel.md'
+  ];
+  for (const rel of newRefs) {
+    const full = path.join(rootDir, rel);
+    if (!fs.existsSync(full)) {
+      throw new Error(`Missing expected modular reference file: ${rel}`);
+    }
+  }
+
+  const noticesContent = fs.readFileSync(path.join(rootDir, 'THIRD_PARTY_NOTICES.md'), 'utf-8');
+  if (!noticesContent.includes('BMAD-METHOD') || !noticesContent.includes('gastownhall/gastown')) {
+    throw new Error('THIRD_PARTY_NOTICES.md missing BMAD-METHOD or gastownhall/gastown attribution');
+  }
+
+  const backlogContent = fs.readFileSync(path.join(rootDir, 'docs', 'backlog.md'), 'utf-8');
+  if (!backlogContent.includes('TASK-001') || !backlogContent.includes('COMPLETED in v3.9.0')) {
+    throw new Error('docs/backlog.md missing TASK-001 completion status');
+  }
+  if (!backlogContent.includes('TASK-003') || !backlogContent.includes('TASK-004') || !backlogContent.includes('TASK-005')) {
+    throw new Error('docs/backlog.md missing TASK-003, TASK-004, or TASK-005 entries');
   }
 });
 

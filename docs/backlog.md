@@ -1,21 +1,20 @@
 # 📌 Hermes Fleet Enterprise — Engineering Backlog
 
-This backlog tracks architectural tasks and technical debt deferred from minor releases to dedicated feature releases.
+This backlog tracks architectural tasks, technical debt, and external donor evaluations across Hermes Fleet releases.
 
 ---
 
 ### [TASK-001] Split 30-KB Fleet Protocol into Core + Modular References
-* **Priority:** P2
-* **Target Version:** v3.8.0
-* **Scope & Context:** 
-  `skills/hermes/references/fleet-protocol.md` currently sizes ~30 KB. While PreInvocation injection operates with strict deduplication (`<!-- HERMES_PROTOCOL_LOADED -->`), injecting the full 30 KB on the initial `/hermes` turn consumes ~7,500 tokens of the initial context window.
-* **Proposed Architecture:**
-  1. **Core Kernel (`fleet-core.md` ~8-10 KB):** Rules 1–15, Phase 0 Handshake, Single Build Gate, Subagent GC, and Quality Gate boundaries.
-  2. **Modular References (`references/*.md`):** Deep tables, Convergence Loop state machines, and ADR links loaded on-demand by specific specialists.
-* **Acceptance Criteria:**
-  - Initial injection payload reduced to <= 10 KB.
-  - Zero loss of rule enforcement across all 8 test suites.
-  - Test suites and consistency checks updated in lockstep.
+* **Priority:** P1
+* **Status:** ✅ COMPLETED in v3.9.0
+* **Resolution:** 
+  - `skills/hermes/references/fleet-protocol.md` reduced from 30,305 bytes (~30 KB) to 12,008 bytes (11.73 KB <= 12 KB budget).
+  - Initial injection payload reduced by **-60.38%** (-18,297 bytes saved eager per session).
+  - Specialized content extracted to modular references:
+    * `skills/hermes/references/specialist-dispatch-matrix.md` (Chain-reaction matrix, Two-tier Kritik, Model matrix).
+    * `skills/hermes/references/orchestrator-planning.md` (BMAD planning ladder, `.hermes/decisions.md` ledger, Spec Law «Done when»).
+    * `skills/hermes/references/orchestrator-parallel.md` (Gas Town Refinery merge queue, Beads `.hermes/tasks.json`, Watchdog recovery).
+  - All 18 tests in `context-injector.test.mjs` pass cleanly.
 
 ---
 
@@ -47,3 +46,41 @@ This backlog tracks architectural tasks and technical debt deferred from minor r
   8. **`anthropics/skills` (`webapp-testing`, `mcp-builder`)**:
      - *Verdict:* `HOLD`.
      - *Rationale:* Web app testing is unified under Viktor (`playwright-e2e-patterns.md`), and MCP authoring is covered under Antigravity built-in `agy-customizations`.
+
+---
+
+### [TASK-003] Lightweight Merge-Queue Hook (Gas Town Refinery Automation)
+* **Priority:** P2
+* **Target Version:** v4.0.0
+* **Scope & Context:** 
+  Automate the Refinery Bors-style merge queue currently specified in `skills/hermes/references/orchestrator-parallel.md`.
+* **Proposed Architecture:**
+  - Hook analyzing branch workspaces upon worker completion.
+  - Serial merge into a temporary staging branch with automated invocation of `verify.sh` / `verify.ps1`.
+  - Automated git bisect script to reject the failing branch worker without Lead manual intervention.
+
+---
+
+### [TASK-004] Convoy Stall & Distributed Deadlock Detection Hook
+* **Priority:** P3
+* **Target Version:** Post-v4.0.0 Evaluation
+* **Scope & Context:**
+  Dynamic detection of circular dependency chains (`Worker A awaits Worker B awaits Worker A`) in multi-agent swarms using `.hermes/tasks.json` dependency graph.
+
+---
+
+### [TASK-005] External Scout Audit & Rejected Donors Registry (v3.9.0)
+* **Priority:** P3
+* **Audit Verdict Ledger:**
+  1. **`ruvnet/ruflo` (ex-Claude-Flow, ~66k★)**:
+     - *Verdict:* `HOLD` (Rejected).
+     - *Rationale:* Unbounded swarm auto-spawning contradicts Hermes Fleet Rule 12 (bounded waves 3–5) and Rule 3 (Token Economy Post-Edit Gate). Would lead to uncontrolled token expenditure and quota exhaustion.
+  2. **`itqan-engineering`**:
+     - *Verdict:* `HOLD` (Rejected).
+     - *Rationale:* Duplicates existing 7-Phase feature development protocol (`skills/hermes/references/feature-dev-protocol.md`). Zero unique delta.
+  3. **`NeoLabHQ/sdd` (Spec-Driven Development)**:
+     - *Verdict:* `HOLD` (Rejected).
+     - *Rationale:* Redundant. Contract First (Rule 1), Spec Law «Done when» (BMAD), and REQ-1..REQ-N already enforce strict spec-driven verification.
+  4. **`spec-kit` (Template Catalog)**:
+     - *Verdict:* `TRIAL` (Backlog).
+     - *Rationale:* Template-only catalog. Deferred to future evaluation as potential boilerplate snippets for new skills without altering core fleet mechanics.

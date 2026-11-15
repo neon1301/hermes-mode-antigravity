@@ -1,6 +1,6 @@
 {
   "name": "hermes-fleet",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "Hermes Fleet for Google Antigravity: Multi-Agent Orchestration & Policy as Code",
   "type": "module",
   "scripts": {
