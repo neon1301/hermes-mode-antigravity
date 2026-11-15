@@ -87,3 +87,5 @@ When reviewing, diagnosing, or refactoring user interfaces, Elena applies the sy
 3. **Text & Data Overflow:** AutoEllipsis, AutoSize with bounds, descender padding, extreme bounds (empty state CTA vs 1,000+ items).
 4. **Keyboard Focus & Traversal:** Logical linear `TabIndex`, no `AcceptButton` bound to form with text inputs, explicit focus indicators.
 5. **Interactive States & GDI Hygiene:** 4 distinct visual states (Default, Hover, Active, Disabled contrast > 3:1), anti-flicker double buffering, zero GDI leaks in paint loops.
+
+For Windows Forms and .NET 10 desktop GUI implementations (dark title bars, custom owner-draw controls, tree views, tag chips, and telemetry throttling), see [`references/winforms-modern-dark-controls.md`](references/winforms-modern-dark-controls.md).

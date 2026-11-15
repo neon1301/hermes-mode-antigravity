@@ -34,7 +34,7 @@ Follow `skills/frontend-design`:
 4. **Active Microcopy:** Concrete action verbs ("Save changes"), actionable error recovery, purposeful empty states.
 
 ## 🛠️ UI Control Engineering & Design Consistency
-When authoring UI blueprints:
+Follow `skills/frontend-design/references/winforms-modern-dark-controls.md` for .NET GUI:
 - **Project-Wide Theme Unity (`N of N` controls):** Apply `ServerTheme`/tokens across all sibling controls (`DataGridView`, `TreeView`, `ScrollBar`, `ContextMenuStrip`) or via shared theme helpers.
 - **Custom Rendering (`OwnerDraw` / GDI+ / CSS):** Clean selection states, hover (`ServerTheme.BackgroundHover`, `Cursors.Hand`), and anti-flicker double-buffering (`EnableDoubleBuffering` / `SuspendLayout`).
 - **Popup & Menu Architecture:** Modals/dropdowns with clean toggle transitions and keyboard (`Esc`/`Enter`) and focus handling.
