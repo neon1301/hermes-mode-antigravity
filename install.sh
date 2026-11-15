@@ -61,7 +61,7 @@ node "${TARGET_DIR}/hooks/test-runner.mjs"
 
 echo ""
 echo "=========================================="
-echo "Hermes Fleet v3.7.2 installed successfully!"
+echo "Hermes Fleet v3.7.3 installed successfully!"
 echo "1. Open a new chat in Google Antigravity."
 echo "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav"
 echo "=========================================="
