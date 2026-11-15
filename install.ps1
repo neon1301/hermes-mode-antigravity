@@ -76,7 +76,7 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "test-runner.mjs failed" }
 }
 
-$pluginJson = Get-Content (Join-Path $scriptDir "plugin.json") -Raw | ConvertFrom-Json
+$pluginJson = Get-Content (Join-Path $sourceDir "plugin.json") -Raw | ConvertFrom-Json
 $version = $pluginJson.version
 
 Write-Host "`nHermes Fleet v$version installed successfully!" -ForegroundColor Green
