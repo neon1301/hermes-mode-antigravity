@@ -81,6 +81,6 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   3. **`NeoLabHQ/sdd` (Spec-Driven Development)**:
      - *Verdict:* `HOLD` (Rejected).
      - *Rationale:* Redundant. Contract First (Rule 1), Spec Law «Done when» (BMAD), and REQ-1..REQ-N already enforce strict spec-driven verification.
-  4. **`spec-kit` (Template Catalog)**:
-     - *Verdict:* `TRIAL` (Backlog).
-     - *Rationale:* Template-only catalog. Deferred to future evaluation as potential boilerplate snippets for new skills without altering core fleet mechanics.
+  4. **`github/spec-kit` (Specification-Driven Development)**:
+     - *Verdict:* `ADOPT` (Templates) / `HOLD` (`specify-cli`).
+     - *Rationale:* Clean markdown templates (`spec.md`, `plan.md`, `tasks.md`) ported to `skills/hermes/references/spec-driven-templates.md` under Apache 2.0 for Anna and Lead on Enterprise tasks. Heavy CLI tool (`specify-cli`) and orchestration logic are held to avoid external Python dependencies and keep Hermes zero-context outside `/hermes`.

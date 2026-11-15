@@ -7,10 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.10.0] - 2026-11-15
+
+### Marketplace Readiness & Polish
+- **Antigravity Marketplace Technical Validation (REQ-3):**
+  - Fully validated against `agy plugin validate --strict .` and `agy plugin validate --strict --json .` with exit code 0 and `findings: []` (0 errors, 0 warnings).
+  - Trimmed `suggestedPrompts` in `plugin.json` from 6 to the top 3 core prompts (`/hermes`, `@kritik`, `@viktor`) to satisfy platform display limits.
+  - Calibrated `plugin.json` description to 139 characters (within 120–160 character recommended window).
+  - Verified `assets/logo.svg` square high-contrast 128x128 SVG format.
+- **Dedicated `doc-lint` Test Suite (REQ-1):**
+  - Added formal named `doc-lint` test suite (`hooks/doc-lint.test.mjs`) executing all 15 skill pattern verification scripts (`skills/*/scripts/verify-*-patterns.mjs`).
+  - Integrated `doc-lint` into `hooks/test-runner.mjs` `SUITES` registry, expanding test execution from 8 to 9 suites and baseline from 300 to 315 tests.
+- **Specification-Driven Development Templates (REQ-4, TASK-005):**
+  - Created `skills/hermes/references/spec-driven-templates.md` containing standardized feature specification (`spec.md`), technical architecture plan (`plan.md`), and task breakdown (`tasks.md`) templates adapted from `github/spec-kit` (Apache License 2.0).
+  - Added Section 13 attribution for `github/spec-kit` in `THIRD_PARTY_NOTICES.md`.
+  - Evaluated and recorded `ADOPT (Templates) / HOLD (specify-cli runtime)` decision in `docs/backlog.md` [TASK-005], preventing unnecessary Python runtime dependency.
+- **Test Boundary Delineation & Documentation Precision (REQ-2):**
+  - Explicitly delineated test responsibilities across documentation and `docs/release-checklist.md`: consistency test 17 validates modular protocol core size budget (`<= 12,288 B`), references, attribution, and backlog status; `context-injector` tests 3 & 5 and `consistency` tests 3 & 5 validate triggers, markers, counters, and version alignment.
+  - Corrected protocol core size calculation in documentation down to exact byte measurements.
+- **Universal Version Alignment (REQ-5):**
+  - Synchronized version `3.10.0` across all 7 targets: `plugin.json`, `package.json`, `README.md`, `skills/hermes/references/fleet-protocol.md`, `skills/hermes/SKILL.md`, `install.ps1`, and `install.sh`.
+
 ## [3.9.0] - 2026-11-15
 
 ### Orchestrator Upgrade — BMAD & Gas Town Methodologies (TASK-001)
-- **Modular Protocol Architecture (TASK-001):** Split `skills/hermes/references/fleet-protocol.md` from 30,305 bytes (~30 KB) into an eager Core Kernel of 12,248 bytes (11.96 KB <= 12 KB budget, **-59.58% reduction**) and modular, on-demand reference specifications.
+- **Modular Protocol Architecture (TASK-001):** Split `skills/hermes/references/fleet-protocol.md` from 30,305 bytes (~30 KB) into an eager Core Kernel of 12,008 bytes (11.73 KB <= 12 KB budget, **-60.38% reduction**) and modular, on-demand reference specifications.
 - **Specialist Dispatch Matrix (`specialist-dispatch-matrix.md`):** Extracted the complete 14-specialist cross-agent chain-reaction matrix ("What did you change -> whom to dispatch") and Two-Tier Kritik 3-mode specification into a dedicated stack-first reference file.
 - **BMAD Methodology Integration (`orchestrator-planning.md`):**
   - *Scale-Adaptive Planning Ladder:* 3-tier planning ceremony (Micro/Fast-Path for 1-2 files; Standard/Feature for 3-10 files; Complex/Enterprise for macro-architecture with full ceremony and stakes evaluation).

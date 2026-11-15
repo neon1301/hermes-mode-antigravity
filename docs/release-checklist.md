@@ -12,8 +12,13 @@
 - [ ] `skills/hermes/references/fleet-protocol.md`: заголовок протокола `Protocol vX.Y.Z`.
 - [ ] `install.ps1`: заголовок инсталлятора `(vX.Y.Z)`.
 - [ ] `install.sh`: заголовок инсталлятора `(vX.Y.Z)`.
-- [ ] Тест `version_alignment` в `hooks/consistency.test.mjs` проходит успешно (зелёный).
 - [ ] Исторические файлы (`CHANGELOG.md`, `docs/adr/*`) исключены из проверок устаревших счётчиков.
+
+### 🎯 Разграничение зон тестовой ответственности (Test Responsibility Boundaries)
+- **`consistency.test.mjs` (тест 3, `no_stale_counters_in_docs`):** Проверяет отсутствие устаревших счетчиков (12 правил ➔ 15 правил, 22 скилла) и наличие декларации 15 правил в `fleet-protocol.md`.
+- **`consistency.test.mjs` (тест 5, `version_alignment`):** Проверяет строгую синхронизацию версии по всем 7 таргетам манифестов и документации.
+- **`consistency.test.mjs` (тест 17, `fleet_core_protocol_size_and_orchestrator_references_integrity`):** Проверяет соблюдение лимита размера ядра протокола (`<= 12 288 байт`), наличие модульных файлов `references/*`, атрибуцию доноров в `THIRD_PARTY_NOTICES.md` и целостность задач в `docs/backlog.md`.
+- **`context-injector.test.mjs` (тесты 3 и 5):** Проверяют инжекцию системного маркера `<!-- HERMES_PROTOCOL_LOADED -->`, инвариантов `Zero-Hardcode` и срабатывание триггеров при вызове `/hermes` или активационных фраз.
 
 ---
 
@@ -63,11 +68,15 @@
 ---
 
 ## 6. 🧪 Локальный CI-гейт (Zero Billing Dependency)
-- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом:
-  - `consistency.test.mjs`
-  - `context-injector.test.mjs`
-  - `clean-edits-guard.test.mjs`
-  - `qa-gate.test.mjs`
-  - `rule-engine.test.mjs`
+- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (9 сьютов, 315 тестов):
+  - `context-injector.test.mjs` (18 тестов)
+  - `clean-edits-guard.test.mjs` (102 теста)
+  - `qa-gate.test.mjs` (63 теста)
+  - `rule-engine.test.mjs` (20 тестов)
+  - `session-report.test.mjs` (3 теста)
+  - `eval-harness.test.mjs` (68 тестов)
+  - `contract-validator.test.mjs` (9 тестов)
+  - `doc-lint.test.mjs` (15 тестов)
+  - `consistency.test.mjs` (17 тестов)
 - [ ] Pre-push хук `.githooks/pre-push` активен (`git config core.hooksPath .githooks`).
 - [ ] Инсталляция `install.ps1` / `install.sh` синхронизирована с каталогом плагина Antigravity.

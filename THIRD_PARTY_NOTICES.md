@@ -64,6 +64,10 @@ The following concepts have been re-implemented in native Node.js (ECMAScript Mo
     - Bors-style bisecting merge queue for parallel write workers, structured Beads task graph (`.hermes/tasks.json`), and worker health watchdog recovery ladder.
     - *Original source:* [`gastownhall/gastown`](https://github.com/gastownhall/gastown) under the MIT License.
 
+13. **Specification-Driven Development Templates (`spec-kit`)**
+    - Standardized feature specification (`spec.md`), technical architecture plan (`plan.md`), and task decomposition (`tasks.md`) templates.
+    - *Original source:* [`github/spec-kit`](https://github.com/github/spec-kit) under the Apache License 2.0.
+
 ---
 
 ## 📄 Apache License 2.0 Text

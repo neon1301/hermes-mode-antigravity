@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v3.9.0)
+# Регламент HERMES (Hermes Fleet Protocol v3.10.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 
@@ -98,6 +98,7 @@
 
 * **Маршрутизация и цепная реакция:** [`specialist-dispatch-matrix.md`](specialist-dispatch-matrix.md)
 * **Адаптивное планирование (BMAD, Spec Law, Decisions Ledger):** [`orchestrator-planning.md`](orchestrator-planning.md)
+* **Шаблоны спецификаций и планов (Spec-Driven Templates):** [`spec-driven-templates.md`](spec-driven-templates.md)
 * **Параллельная разработка (Refinery Merge Queue, Beads Ledger, Watchdog):** [`orchestrator-parallel.md`](orchestrator-parallel.md)
 * **Проектирование фич по 7 фазам:** [`feature-dev-protocol.md`](feature-dev-protocol.md)
 * **Системный дебаггинг:** [`systematic-debugging.md`](systematic-debugging.md)

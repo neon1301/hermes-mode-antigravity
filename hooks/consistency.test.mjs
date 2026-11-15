@@ -311,8 +311,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error('.hermes/test-summary.json missing! Run npm test or verify.ps1/sh to generate.');
   }
   const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  if (!Array.isArray(summary.suites) || summary.suites.length !== 8) {
-    throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
+  if (!Array.isArray(summary.suites) || summary.suites.length !== 9) {
+    throw new Error(`Expected 9 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
     'consistency': 17,
@@ -322,7 +322,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     'rule-engine': 20,
     'session-report': 3,
     'eval-harness': 68,
-    'contract-validator': 9
+    'contract-validator': 9,
+    'doc-lint': 15
   };
   for (const [suiteName, expTotal] of Object.entries(expectedBreakdown)) {
     const s = summary.suites.find(x => x.name === suiteName);
@@ -331,8 +332,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 300 || summary.passed !== 300) {
-    throw new Error(`test-summary.json expected total=300, passed=300, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 315 || summary.passed !== 315) {
+    throw new Error(`test-summary.json expected total=315, passed=315, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -463,7 +464,8 @@ await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () 
   const newRefs = [
     'skills/hermes/references/specialist-dispatch-matrix.md',
     'skills/hermes/references/orchestrator-planning.md',
-    'skills/hermes/references/orchestrator-parallel.md'
+    'skills/hermes/references/orchestrator-parallel.md',
+    'skills/hermes/references/spec-driven-templates.md'
   ];
   for (const rel of newRefs) {
     const full = path.join(rootDir, rel);
@@ -473,8 +475,8 @@ await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () 
   }
 
   const noticesContent = fs.readFileSync(path.join(rootDir, 'THIRD_PARTY_NOTICES.md'), 'utf-8');
-  if (!noticesContent.includes('BMAD-METHOD') || !noticesContent.includes('gastownhall/gastown')) {
-    throw new Error('THIRD_PARTY_NOTICES.md missing BMAD-METHOD or gastownhall/gastown attribution');
+  if (!noticesContent.includes('BMAD-METHOD') || !noticesContent.includes('gastownhall/gastown') || !noticesContent.includes('github/spec-kit')) {
+    throw new Error('THIRD_PARTY_NOTICES.md missing BMAD-METHOD, gastownhall/gastown, or github/spec-kit attribution');
   }
 
   const backlogContent = fs.readFileSync(path.join(rootDir, 'docs', 'backlog.md'), 'utf-8');
