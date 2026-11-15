@@ -54,7 +54,7 @@ Determine focus; load **ONLY 1** primary guide:
 - Факты о системе — только [ПРОВЕРЕНО] со ссылкой файл:строка.
 1. **Atomize Requirements (`REQ-1..REQ-N`):** Выпиши все пункты жалобы/задачи пользователя по номерам. Запрещено чинить 1 пункт из 3 и сдавать работу.
 2. **Project-Wide Pattern Sweep (`N of N` мест):** Найди через `grep_search` / `find_by_name` **все** однотипные места в проекте (все таблицы, сокеты, запросы, формы), а не только первый попавшийся файл.
-3. **Surgical Read & Regression Lock:** Читай целевыми окнами `read_file(StartLine..EndLine)`. Зафиксируй рабочие инварианты кода до правки, чтобы новый фикс не сломал существующее поведение (открытие окон, соседние методы, контракты DTO).
+3. **Surgical Read & Regression Lock:** Windowed `read_file`. Invariants lock (see `skills/hermes/references/anti-regression-protocol.md`).
 4. **3-Point Pre-Mortem Check:** Проверь: *(a) все ли `REQ-1..REQ-N` и все ли `N из N` файлов охвачены; (b) нет ли гонок потоков, `null`/пустого ввода, обрыва сети/таймаута, утечек `Dispose()`; (c) соблюдены ли Rule 8 (Clean Edits) и Rule 9 (Zero-Hardcode).*
 5. **Concise Blueprint Output:** Возвращай родителю через `send_message` сухой **Patch Blueprint** (`REQ-ID`, `File:StartLine-EndLine`, `Root Cause`, `Target -> Replacement`, `Verification Command`, `Memory Note`) без воды и вступлений.
 
