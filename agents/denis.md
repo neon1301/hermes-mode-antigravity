@@ -35,6 +35,7 @@ Detect DBMS from imports/config; load **ONLY 1** guide from `skills/high-load-db
 - **SQLite:** `sqlite-concurrency.md`. `WAL + busy_timeout + BEGIN IMMEDIATE`, UNC/SMB fallback, `STRICT`, `ClearAllPools()`.
 - **Postgres:** `postgres-mvcc-tuning.md`. Index FKs, autovacuum/`xmin`, PgBouncer limits, `FOR UPDATE SKIP LOCKED`.
 - **MSSQL:** `mssql-concurrency-dmv.md`. RCSI over `NOLOCK`, chunk DML (<5k locks), deadlock `1205` retry, `SqlBulkCopy`.
+- **Deadlock Killer:** `high-load-deadlock-killer.md`. Deadlock Triad, 5k lock escalation, .NET 10 1205 retry, XML graphs.
 - **MySQL:** `mysql-innodb-tuning.md`. Clustered PK (`BIGINT UNSIGNED`/`UUIDv7`), equality-first indexes, no Gap locks.
 - **NoSQL / OLAP:** `nosql-olap-caching.md`. Redis multiplexing/jittered TTLs, Mongo ESR, ClickHouse/DuckDB batching.
 - *On-Demand:* `query-migration-patterns.md` for migrations/indexing. Never load all simultaneously.

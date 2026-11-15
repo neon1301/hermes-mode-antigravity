@@ -53,3 +53,9 @@ In factory environments, machinery power cycles or cable cuts often disconnect w
 - **`CLOSE_WAIT` Trap:** Indicates the remote machine closed the connection, but the local application failed to call `socket.Close()` or `stream.Dispose()`.
 - **`TIME_WAIT` Accumulation:** Avoid rapid connect/disconnect cycles. Use persistent, long-lived TCP connections with reconnect backoff (Exponential Backoff + Jitter).
 - **Socket Backlog:** Set `serverSocket.Listen(100)` sufficiently high to absorb simultaneous reconnection storms after plant power restoration.
+
+---
+
+## 4. High-Throughput Zero-Copy Streaming (System.IO.Pipelines)
+For zero-alloc telemetry ingestion, continuous industrial streams, and frame decoders, consult:
+- [references/socket-pipeline-streaming.md](references/socket-pipeline-streaming.md): `PipeReader` read-parse-advance loop, `ReadOnlySequence<byte>`, delimiter/length-prefixed framing, and `MemoryPool<byte>.Shared` pooling.

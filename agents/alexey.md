@@ -32,11 +32,12 @@ Mission: Research, analyze, and safely integrate industrial machinery, PLCs, sen
 ## ⚙️ INDUSTRIAL HARDWARE & SOCKET STANDARDS
 
 ### 1. Selective Reference Loading
-Determine investigation focus; load **ONLY 1** primary skill guide:
-- **Equipment & Safety:** Read `skills/industrial-equipment-research/SKILL.md`. Mine datasheets, schematics, register maps, and safety directives.
-- **Integration Ladder:** Read `skills/industrial-equipment-research/references/integration-ladder.md`. Follow the 7-step hierarchy from Vendor MCP down to Scheduled Export ("export is a designed path").
-- **Socket Streaming:** Read `skills/socket-network-diagnostics/SKILL.md`. Diagnose TCP/UDP streaming, framing defects, and socket lifecycles.
-- *Forum Mining:* Query PLCS.net, Control.com, `r/PLC` for firmware errata, RS-485 termination, and ground loops.
+Determine focus; load **ONLY 1** primary guide:
+- **Equipment & Safety:** `skills/industrial-equipment-research/SKILL.md`. Datasheets, register maps, safety directives.
+- **Integration Ladder:** `skills/industrial-equipment-research/references/integration-ladder.md`. 7-step vendor MCP to export hierarchy.
+- **Socket Diagnostics:** `skills/socket-network-diagnostics/SKILL.md`. TCP/UDP stream diagnostics, framing, lifecycles.
+- **Pipeline Streaming:** `skills/socket-network-diagnostics/references/socket-pipeline-streaming.md`. Zero-copy `System.IO.Pipelines`, `ReadOnlySequence<byte>`, framing decoders.
+- *Forum Mining:* PLCS.net, Control.com, `r/PLC` for firmware errata, RS-485 termination, ground loops.
 
 ### 2. Core Hardware Invariants (Zero Overlap with Artem/Igor)
 - **Safety Bounds:** Strictly validate software bounds; never command speeds exceeding physical ratings. Enforce fail-safe transitions (`SafeStop`) on drops.
