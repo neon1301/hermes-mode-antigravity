@@ -75,3 +75,15 @@ Raw `MouseLeave` / `mouseout` fires when the cursor moves from a parent containe
 
 ### Trap 4 — Full Requirement Checklist (`REQ-1..REQ-N`)
 Enumerate every user complaint and requirement (`REQ-1`, `REQ-2`, ...) before touching code. Validate each requirement against the running UI and confirm zero regressions on previously resolved issues.
+
+---
+
+## 🔍 Visual QA & Layout Defect Hunter (The 5-Vector Audit)
+
+When reviewing, diagnosing, or refactoring user interfaces, Elena applies the systematic 5-vector inspection protocol detailed in [`references/visual-qa-layout-audit.md`](references/visual-qa-layout-audit.md):
+
+1. **Containers & Grids:** Dock.Fill Z-order (must be added last), avoid opposing anchor crushing (`Top | Bottom` without min size), TableLayoutPanel auto-sizing over absolute pixels.
+2. **High-DPI & Coordinates:** Zero hardcoded pixel sizes (`new Size(w, h)`, `Left = x`), consistent `AutoScaleMode`, anchor creep protection via container panels.
+3. **Text & Data Overflow:** AutoEllipsis, AutoSize with bounds, descender padding, extreme bounds (empty state CTA vs 1,000+ items).
+4. **Keyboard Focus & Traversal:** Logical linear `TabIndex`, no `AcceptButton` bound to form with text inputs, explicit focus indicators.
+5. **Interactive States & GDI Hygiene:** 4 distinct visual states (Default, Hover, Active, Disabled contrast > 3:1), anti-flicker double buffering, zero GDI leaks in paint loops.
