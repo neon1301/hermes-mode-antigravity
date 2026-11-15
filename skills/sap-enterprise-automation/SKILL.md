@@ -136,3 +136,9 @@ private void DismissUnexpectedModalDialog(GuiSession session)
   1. `GET` request with header `X-CSRF-Token: Fetch` + capture response cookie.
   2. `POST` request with the returned `X-CSRF-Token` header and session cookies.
 - **Batching:** Use `$batch` endpoints to bundle multiple telemetry updates into a single HTTP roundtrip.
+
+---
+
+## 6. 📚 Reference Playbooks
+- [references/sap-nco-com-hygiene.md](references/sap-nco-com-hygiene.md): COM memory leak elimination (`Marshal.FinalReleaseComObject`), BAPI transaction management with `WAIT = 'X'`, and RFC connection pool hygiene.
+- [references/integration-ladder.md](references/integration-ladder.md): 7-step enterprise ERP integration ladder.

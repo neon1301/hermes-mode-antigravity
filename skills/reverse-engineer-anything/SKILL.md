@@ -197,6 +197,7 @@ as complete while required questions remain open.
 
 ## Included & Upstream Reference Guides
 
+- Binary protocol framing & MSIL opcode reversing: [`references/binary-frame-disassembly.md`](references/binary-frame-disassembly.md)
 - Complete target-type routing table (packed locally): [`references/target-routing-reference.md`](references/target-routing-reference.md)
 - Hermes REA workflow & Evidence Ledger checklist: [`../hermes/references/rea-investigation.md`](../hermes/references/rea-investigation.md)
 - Upstream REA domain guides (native binaries, JS/ASAR, Android APK, runtime capture, environments): https://github.com/morluto/rea/tree/main/docs/guides

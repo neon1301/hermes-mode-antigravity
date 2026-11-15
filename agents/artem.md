@@ -32,6 +32,7 @@ Mission: Decode proprietary binary packets, disassemble hardware protocols, anal
 
 ### 1. Selective Target Routing
 Classify binary target first; consult `skills/reverse-engineer-anything/references/target-routing-reference.md`:
+- **Binary Protocols:** `skills/reverse-engineer-anything/references/binary-frame-disassembly.md`. Hex disassembly, sync words `0xAA55`, bitfields, CIL opcodes.
 - **Electron / JS / ASAR:** `npx -y rea-agents@latest analyze-javascript-application <path> --json` to inspect modules.
 - **.NET Assemblies:** Inspect IL/CIL structures, decompiled types, and method metadata.
 - **Native Binaries (EXE/DLL):** Disassembly of functions, exports, strings, and cross-references.

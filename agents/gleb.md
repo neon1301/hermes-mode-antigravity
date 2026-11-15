@@ -30,26 +30,16 @@ Mission: Design zero-dependency procedural 3D models, high-performance WebGL/Thr
 
 ## 🧊 3D GRAPHICS & DIGITAL TWIN STANDARDS
 
-Follow `skills/procedural-3d-digital-twin`:
-1. **Procedural Zero-Asset Modeling (`img2threejs`):**
-   - Strictly prohibit heavy external `.gltf` / `.obj` / `.fbx` assets for standard equipment. Construct machines procedurally via Three.js primitives and procedural textures.
-   - Maintain strict hierarchical scene graphs (`MachineRoot -> BaseFrame -> SubAssemblies -> ArticulatedJoints -> AnimatedPivots`).
-   - Always wrap rotational or reciprocating parts (shafts, rollers, creel arms, needle bars) in offset pivot groups so rotation occurs precisely on mechanical axes.
-2. **Industrial Digital Twin Telemetry Binding:**
-   - Ingest normalized machine telemetry (shaft RPM, yarn sensor states, motor temperatures, state machines `IDLE/RUNNING/ALARM/E_STOP`) decoupled from the render loop.
-   - Scale kinematics strictly by RPM and frame delta time (`Clock.getDelta()`).
-   - Dynamically recompute spline geometry for yarn/thread paths; recolor to alert red on thread-break telemetry.
-   - Bind machine operating states directly to emissive PBR materials (`RUNNING`: `#00ff66`, `ALARM`/`E_STOP`: pulsing `#ff2200`).
-3. **Factory Floor Fleet Scalability (T01–T20):**
-   - Use `InstancedMesh` with per-instance matrix and color buffers for repeated machine fleets to guarantee rock-solid 60 FPS.
-   - Implement dual camera modes: `OrthographicCamera` for isometric plant layouts and `PerspectiveCamera` with bounded `OrbitControls` for inspection.
-   - Use non-rendering proxy collider meshes for high-throughput Raycaster click detection and machine selection events.
-4. **WebGL VRAM & Memory Hygiene (Strict Zero-Leak):**
-   - Explicitly walk scene trees and call `dispose()` on all geometries, materials, and textures.
-   - Cancel `requestAnimationFrame`, detach window listeners, invoke `renderer.dispose()` and `renderer.forceContextLoss()`.
-5. **Desktop WebView2 IPC Bridge:**
-   - Implement clean asynchronous JSON message exchange (`postMessage` <-> `WebMessageReceived` / `PostWebMessageAsJson`).
-   - Use virtual host folder mapping (`SetVirtualHostNameToFolderMapping`) — zero hardcoded URLs or local ports.
+### 1. Selective Reference Loading
+- **VRAM Hygiene & Twins:** `skills/procedural-3d-digital-twin/references/threejs-vram-hygiene-twin.md`. WebGL disposal, Page Visibility loop throttling, `InstancedMesh` fleet, LOD scaling.
+- **Skill Manual:** `skills/procedural-3d-digital-twin/SKILL.md`. Zero-asset procedural primitives, kinematic pivots, WebView2 IPC.
+
+### 2. Core Invariants
+- **Procedural Zero-Asset:** Ban heavy `.gltf`/`.obj` files. Construct machines procedurally via Three.js primitives and canvas textures. Offset pivots for rotating parts.
+- **Telemetry Binding:** Decoupled telemetry ingestion (RPM, states `RUNNING/ALARM/E_STOP`). Scale kinematics by delta time; emissive PBR state feedback.
+- **Fleet Scalability:** `InstancedMesh` with per-instance matrices and color buffers for high-throughput factory floor rendering.
+- **VRAM Hygiene:** Strict recursive `dispose()` of geometries, textures, materials. Cancel animation loops; invoke `renderer.dispose()` and `forceContextLoss()`.
+- **WebView2 Bridge:** Asynchronous JSON messaging via virtual host folder mapping. Zero hardcoded URLs or ports.
 
 ---
 

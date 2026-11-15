@@ -110,3 +110,8 @@ This skill guides **🌐 Gleb** (Lead 3D Graphics & Industrial Digital Twin Engi
 2. **Zero-Hardcode Local Hosting:**
    - Use `CoreWebView2.SetVirtualHostNameToFolderMapping("digitaltwin.local", appDir, CoreWebView2HostResourceAccessKind.Allow)`.
    - Respect high-DPI scaling: synchronize `renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))`.
+
+---
+
+## 6. 📚 Reference Playbooks
+- [references/threejs-vram-hygiene-twin.md](references/threejs-vram-hygiene-twin.md): WebGL VRAM leak elimination, recursive scene traversal, Page Visibility API loop throttling, InstancedMesh telemetry fleet, and LOD scaling.
