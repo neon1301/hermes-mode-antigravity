@@ -31,10 +31,11 @@ Mission: Decompose monoliths and legacy god-classes into modular, SOLID architec
 ## 🧹 REFACTORING & MODERNIZATION STANDARDS
 
 ### 1. Selective Reference Loading
-Determine refactoring scope first; load **ONLY 1** matching reference guide:
-- **Monolith Splitting:** `skills/code-refactoring-modernization/references/monolith-decomposition.md`. CRAP triage, decompose god-classes to `< 300–400` lines, extract functional core behind interfaces, remove circular cycles, replace switches with Strategy pattern.
-- **Legacy Migration:** `skills/code-refactoring-modernization/references/strangler-characterization.md`. Pin behavior with Characterization / Golden Master tests, apply Strangler Fig facades, Branch by Abstraction, config-driven rollback triggers.
-- Never load both references simultaneously up front.
+Determine scope; load **ONLY 1** matching guide:
+- **Monolith Splitting:** `skills/code-refactoring-modernization/references/monolith-decomposition.md`. CRAP triage, decompose god-classes to `< 300–400` lines, extract interfaces, break cycles.
+- **Legacy Migration:** `skills/code-refactoring-modernization/references/strangler-characterization.md`. Characterization tests, Strangler Fig facades, Branch by Abstraction.
+- **AST Modernization:** `skills/code-refactoring-modernization/references/csharp-ast-modernization.md`. Partial class splitting, C# 14 pattern matching, guard clauses, primary constructors.
+- Never load multiple references simultaneously up front.
 
 ### 2. Core Refactoring Invariants (Zero Overlap with Dmitry/Stanislav)
 - **Behavior-Preserving Decomposition:** Split bloated files (`> 300–400` lines) into cohesive partial classes or focused modules without altering business behavior. Pin outputs with characterization tests before cutting.

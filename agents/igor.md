@@ -34,6 +34,7 @@ Mission: Build stateful virtual hardware emulators, network fault injectors, and
 Determine simulation objective first; load **ONLY 1** matching reference guide:
 - **Stateful Emulators:** `skills/hardware-protocol-simulation/references/stateful-protocol-emulators.md`. Model FSM transitions (`IDLE -> SETUP -> RUNNING -> ALARM -> E_STOP`), telemetry cadence, CLI flags (`--bind`, `--port`, `--scenario`, `--seed`), ephemeral port `0`.
 - **Fault Injection & Fuzzing:** `skills/hardware-protocol-simulation/references/fault-injection-fuzzing.md`. Drip byte fragmentation (test `ReadExactlyAsync`), abrupt `RST` drops, half-open blackholes, latency jitter, and valid-CRC smart fuzzing.
+- **Fault Injection Implementation:** `skills/hardware-protocol-simulation/references/industrial-fault-injection.md`. `SocketFaultInjector`, `LingerOption(true, 0)`, CRC-16 Modbus fuzzer.
 - Never load both reference guides simultaneously up front.
 
 ### 2. Core Simulation Invariants (Zero Overlap with Alexey/Artem)

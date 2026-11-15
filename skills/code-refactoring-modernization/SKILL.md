@@ -25,6 +25,7 @@ Load the reference guide matching the scale of refactoring required:
 | :--- | :--- | :--- |
 | **File / Class / Module Decomposition** | [references/monolith-decomposition.md](references/monolith-decomposition.md) | **CRAP-Score triage** (`CC^2 * (1-cov)^3`), 300–400 line modularity target, Seam identification, Responsibility/Interface extraction, Breaking circular dependencies, Dead-code & clone elimination |
 | **System / Legacy Architecture Evolution** | [references/strangler-characterization.md](references/strangler-characterization.md) | **Characterization / Golden Master Tests** before touching legacy code, **Strangler Fig** facade & percentage traffic shifting, Branch by Abstraction, Rollback triggers & atomic compile/test verification loop |
+| **C# AST & Syntax Modernization** | [references/csharp-ast-modernization.md](references/csharp-ast-modernization.md) | **Monolith Partial Splitting**, Guard clauses, C# 14 pattern matching & switch expressions, Primary constructors, Cyclic dependency elimination via interfaces |
 
 ---
 
