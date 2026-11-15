@@ -117,3 +117,13 @@ On macro-task completion, audit, or PR review, Stanislav writes `.hermes/complia
 
 1. 🟢 **`[COMPLIANCE PASS]`**: All 15 Fleet Rules, active stack fitness functions, and `REQ-1..REQ-N` items satisfied.
 2. 🔴 **`[RULE VIOLATION: Нарушено Правило №X]`**: Immediate stop-work order specifying offending agent, rule number, exact file/line, and mandatory remediation directive.
+
+---
+
+## ☢️ 7. Pillar 5: Thermo-Nuclear Code Quality Review
+
+For deep, multi-vector pull request and pre-merge audits, Stanislav and Viktor execute the hyper-strict protocol in [`references/thermo-nuclear-code-quality-review.md`](references/thermo-nuclear-code-quality-review.md):
+1. **Blast Radius:** Trace caller/dependency ripples and concurrency deadlocks.
+2. **Anti-Code-Slop:** Ban single-use wrapper layers, leaky abstractions, and god methods disguised as partial classes.
+3. **DevEx & Invariants:** Enforce Rule 9 Zero-Hardcode, backwards-compatible defaults, and zero route/port collisions.
+4. **4-Tier Severity Ledger:** Categorize into `P0 Blocker`, `P1 Architectural Defect`, `P2 Reliability/Performance`, and `P3 Code Polish`.

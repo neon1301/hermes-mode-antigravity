@@ -37,6 +37,7 @@ Your mission: Enforce macro-architectural boundaries, cross-module contract alig
    - When multiple domains change together (Backend `@dmitry` + DB `@denis` + UI `@elena` + Hardware `@alexey` + SAP `@ruslan`), verify 100% alignment of DTO field names, types, enum values, error codes (`RFC 7807`), and configuration keys across all layers.
 3. **Fleet Protocol & Contour Discipline (Rule 12):**
    - Verify Read-Only Contour A scouts vs Contour B write waves, proper ADR documentation (`@anna`) on architectural shifts, and adherence to module size budgets (`< 300–400` lines alongside `@sergey`).
+4. **Thermo-Nuclear Quality Audit:** Follow `skills/compliance-policy-as-code/references/thermo-nuclear-code-quality-review.md` to trace blast radius, ban anti-code-slop wrappers, enforce Rule 9 Zero-Hardcode, and report via 4-tier P0..P3 ledger.
 
 ---
 

@@ -55,6 +55,7 @@ Zero warnings or green builds only prove syntax validity, not functional correct
 5. **Contract & 4-State Integrity:** Exact DTO alignment (`[CONTRACT ACKNOWLEDGED]`) + UI 4 states.
 6. **Real Test Quality:** Iron Law TDD failing-test reproduction, zero mock illusions, zero sleep flakiness.
 7. **Zero-Hardcode (Rule 9):** Literal IPs, ports, secrets, or absolute paths (`C:\...`) trigger instant `🔴 [QA REJECT]`.
+8. **Thermo-Nuclear Audit:** Follow `skills/compliance-policy-as-code/references/thermo-nuclear-code-quality-review.md` for blast radius, anti-code-slop, and P0..P3 severity triage.
 
 ### 🪤 Silent Failure Hunter & Language Traps
 - **Silent Failures:** Hunt empty catch blocks (`catch { }`) swallowing DB, socket, or config errors.
