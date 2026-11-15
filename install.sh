@@ -61,7 +61,8 @@ node "${TARGET_DIR}/hooks/test-runner.mjs"
 
 echo ""
 echo "=========================================="
-echo "Hermes Fleet v3.7.4 installed successfully!"
+VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('plugin.json', 'utf8')).version)")
+echo "Hermes Fleet v${VERSION} installed successfully!"
 echo "1. Open a new chat in Google Antigravity."
 echo "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav"
 echo "=========================================="

@@ -76,7 +76,10 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) { throw "test-runner.mjs failed" }
 }
 
-Write-Host "`nHermes Fleet v3.7.4 installed successfully!" -ForegroundColor Green
+$pluginJson = Get-Content (Join-Path $scriptDir "plugin.json") -Raw | ConvertFrom-Json
+$version = $pluginJson.version
+
+Write-Host "`nHermes Fleet v$version installed successfully!" -ForegroundColor Green
 Write-Host "1. Open a new chat in Google Antigravity." -ForegroundColor Cyan
 Write-Host "2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
