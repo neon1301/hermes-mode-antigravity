@@ -350,13 +350,11 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     // 1. Explicit user input
     const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
 
-    // 2. Harness metadata: status === 'DONE' and tool_call_id matching ask_question
+    // 2. Harness metadata: status === 'DONE' and tool_call_id matching ask_question (or unbound if platform omits tool_call_id)
     const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-    const isBoundToAskTool = Boolean(
-      postEditAskToolCallId &&
-      stepToolCallId &&
-      stepToolCallId === postEditAskToolCallId
-    );
+    const isBoundToAskTool = postEditAskToolCallId
+      ? Boolean(stepToolCallId && stepToolCallId === postEditAskToolCallId)
+      : !stepToolCallId;
     const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
     const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
 
@@ -546,13 +544,10 @@ logCostMetrics({
 
 // REQ-6: Bounded Convergence Loop (--loop / /hermes fix-warnings --loop / /hermes loop)
 const LOOP_COMMAND_RE = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))/i;
-const isLoopRequested = LOOP_COMMAND_RE.test(payload?.lastUserInput || '') ||
-  steps.some((s) => {
-    const isUserStep = s?.source === 'USER_EXPLICIT' || s?.type === 'USER_INPUT';
-    if (!isUserStep) return false;
-    const content = typeof s?.content === 'string' ? s.content : (s?.content?.text || '');
-    return LOOP_COMMAND_RE.test(content);
-  });
+const lastUserContent = lastUserIdx >= 0
+  ? (typeof steps[lastUserIdx]?.content === 'string' ? steps[lastUserIdx].content : (steps[lastUserIdx]?.content?.text || ''))
+  : '';
+const isLoopRequested = LOOP_COMMAND_RE.test(payload?.lastUserInput || '') || LOOP_COMMAND_RE.test(lastUserContent);
 const LOOP_CEILING = 25;
 
 const isSecReviewEnabled = process.env.HERMES_SEC_REVIEW !== '0';
