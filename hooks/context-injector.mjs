@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detectHermesInSteps, isCognitiveTrigger, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
+import { resolveWorkspaceDir } from './workspace.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -13,7 +14,7 @@ const COMPACT_BYTE_THRESHOLD = Number(process.env.HERMES_COMPACT_BYTE_THRESHOLD 
 const COMPACT_COOLDOWN_STEPS = 25;
 const MAX_INSTINCTS = Number(process.env.HERMES_MAX_INSTINCTS || 8);
 const MIN_INSTINCT_CONFIDENCE = Number(process.env.HERMES_INSTINCT_MIN_CONFIDENCE || 0.7);
-// A single @specialist call does not need the full 15 KB fleet protocol (token budget).
+// A single @specialist call does not need the full ~30 KB fleet protocol (token budget).
 const TRIGGER_OPTIONS = { includeMentions: false };
 
 function readStdin() {
@@ -87,23 +88,6 @@ function loadProjectInstincts(workspaceDir) {
 
   if (lines.length === 0) return '';
   return `\n\n---\n## 🧠 Выученные инстинкты проекта (.hermes/instincts — применяй автоматически без напоминаний!)\n${lines.join('\n')}`;
-}
-
-function resolveWorkspaceDir(payload) {
-  let rawDir = payload?.cwd;
-  if (!rawDir && Array.isArray(payload?.workspacePaths) && payload.workspacePaths.length > 0) {
-    rawDir = payload.workspacePaths[0];
-  }
-  if (!rawDir || typeof rawDir !== 'string') return null;
-  const trimmed = rawDir.trim();
-  if (trimmed.startsWith('file://')) {
-    try {
-      return fileURLToPath(trimmed);
-    } catch {
-      return null;
-    }
-  }
-  return trimmed;
 }
 
 const raw = readStdin().trim();

@@ -88,5 +88,17 @@ test('session_report_flags_stale_data_warning_when_last_event_older_than_24h', (
   }
 });
 
+test('session_report_resolves_workspacePaths_payload', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-report-ws-'));
+  try {
+    const report = generateSessionReport({ workspacePaths: [tmpDir] });
+    if (!report.includes(tmpDir)) {
+      throw new Error('Workspace path from payload not resolved in report');
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 console.log(`SESSION-REPORT SUMMARY: ${total - failed}/${total} passed`);
 if (failed > 0) process.exit(1);

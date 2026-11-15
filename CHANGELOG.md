@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.2] - 2026-11-15
+
+### Platform Contract Hardening & Hygiene Audit Closure (REQ-1..REQ-10)
+- **Universal Workspace Resolution (`resolveWorkspaceDir`, REQ-1):** Extracted `resolveWorkspaceDir(payload, fallbackCwd)` into `hooks/workspace.mjs` with priority `payload.workspacePaths[0]` (converts `file://` URI to OS path) → `payload.cwd` → `fallbackCwd` (`process.cwd()`). Used across all hooks (`context-injector.mjs`, `clean-edits-guard.mjs`, `qa-gate.mjs`) and `session-report.mjs`. Command hooks safely resolve `.hermes`, gate logs, checkpoints, profiles, and custom rules even when spawned with `cwd=<plugin-root>`.
+- **Dual Tool Naming Support (`view_file` & `read_file`, REQ-2):** Official platform tool list uses `view_file` with `AbsolutePath`, while assistant runtime uses `read_file` with `Path`. Added `view_file` to `hooks.json` matcher, normalized parameter extraction in `clean-edits-guard.mjs`, preserved `read_file` as full alias, supported Step-0 exception for skills/agents docs under both names, and added `view_file` to `tools:` across all 14 `agents/*.md`.
+- **Subagent Array Normalization (`Subagents: [...]`, REQ-3):** Implemented `extractSubagentSpecs(args)` in `clean-edits-guard.mjs` supporting both flat (`TypeName`, `Model`) and batched multi-agent array specs (`Subagents: [...]`). Applied Rule 12 model validation, tier constraints, and forbidden name checks across every element.
+- **Markdown Reference Links Integrity & Link Fix (REQ-4):** Corrected broken link to `hooks/context-injector.mjs` in `README.md`. Expanded `markdown_reference_links_integrity` in `hooks/consistency.test.mjs` to validate all markdown links across `README.md` and `TROUBLESHOOTING.md`.
+- **Agent Card Budget Enforcement (<= 5120 bytes, REQ-5):** Streamlined `agents/kritik.md` from 9,094 bytes to 5,014 bytes by offloading verbose tables to `skills/product-ux-scouting/references/` while preserving full persona, 3 modes, and 6 radars. Expanded `specialized_agent_cards_size_budget` in `hooks/consistency.test.mjs` to enforce the 5 KB limit across all 14 agent cards.
+- **Strictly Read-Only Kritik (REQ-6):** Removed `invoke_subagent` from `agents/kritik.md` `tools:`, aligning Kritik strictly with Contour A Read-Only Scout.
+- **Marketplace Manifest & Logo Standardization (REQ-7):** Updated `plugin.json` with `"$schema"`, `"license": "MIT"`, and `"keywords"`. Shortened `description` to 136 characters (within 120–160 limit) and added length assertion to `consistency.test.mjs`. Updated `assets/logo.svg` to square `viewBox="0 0 128 128" width="128" height="128"` with dark container ensuring contrast across both light and dark IDE themes.
+- **Single-Pass Transcript Performance Optimization (REQ-8):** Implemented memoized `getTranscriptData(transcriptPath)` in `clean-edits-guard.mjs`. Slices and JSONL steps are read and parsed once per execution instead of 3-4 times. Verified 4.92x speedup (79.7% faster, 35.72 ms → 7.26 ms on a 4.0 MB synthetic transcript).
+- **Hardened Model Tier Heuristics (REQ-9):** Anchored `detectSelectedTier` in `clean-edits-guard.mjs` strictly to Step 0 Handshake questions (`A2:`, `Answer 2:`, `Ответ 2:`, bullet tiers, and `ask_question` user replies), preventing false positives from ordinary conversational prose discussing low/high modes. Added negative test fixtures.
+- **Documentation Honesty & IDE Execution Smoke Check (REQ-10):** Corrected "15 KB" comment in `context-injector.mjs` to "~30 KB". Added Section 10 in `TROUBLESHOOTING.md` documenting step-by-step smoke verification of hook execution across CLI, App, and IDE surfaces via `<!-- HERMES_PROTOCOL_LOADED -->` and `.hermes/gate-log.jsonl`. Registered 30-KB protocol split task into `docs/backlog.md` for v3.8.0.
+
 ## [3.7.1] - 2026-11-14
 
 ### HERMES-COGNITION Protocol & Cognitive Discipline (REQ-1..REQ-6)

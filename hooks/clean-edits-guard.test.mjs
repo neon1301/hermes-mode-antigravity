@@ -127,7 +127,21 @@ const cases = [
   { name: 'allow_l1_test_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'tests/test_loader.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
   { name: 'allow_l1_simulator_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'simulators/modbus_sim.py', Content: 'function_code = 0x06' } } } },
   { name: 'allow_l1_igor_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/igor/mock.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
-  { name: 'allow_l1_when_pattern_rules_env_disabled', expected: 'allow', env: { HERMES_PATTERN_RULES: '0' }, payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput;' } } } }
+  { name: 'allow_l1_when_pattern_rules_env_disabled', expected: 'allow', env: { HERMES_PATTERN_RULES: '0' }, payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput;' } } } },
+
+  // REQ-2: Dual tool naming view_file & read_file
+  { name: 'deny_view_file_project_file_before_model_handshake', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'view_file', args: { AbsolutePath: 'E:\\PRO\\SERVER_Modernized\\LoomConnectionSettingsForm.cs' } } } },
+  { name: 'allow_view_file_skill_doc_before_model_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'view_file', args: { AbsolutePath: 'C:\\Users\\User\\.gemini\\config\\plugins\\hermes-fleet\\skills\\hermes\\SKILL.md' } } } },
+
+  // REQ-3: invoke_subagent array form (Subagents: [...])
+  { name: 'allow_invoke_subagent_array_form_valid', expected: 'allow', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (High)`', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'kritik', Model: 'inherit' }] } } } },
+  { name: 'deny_invoke_subagent_array_form_tier_high_downgrade', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (High)`', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'kritik', Model: 'flash' }] } } } },
+  { name: 'deny_invoke_subagent_array_form_mixed_second_downgrade', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', checkpointText: '- **Subagent Model:** `Gemini 3.8 Flash (High)`', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'elena', Model: 'inherit' }, { TypeName: 'viktor', Model: 'flash' }] } } } },
+  { name: 'deny_invoke_subagent_array_form_invalid_model_enum', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'viktor', Model: 'custom-model' }] } } } },
+  { name: 'deny_invoke_subagent_array_form_forbidden_name', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'mozgoeb', Model: 'inherit' }] } } } },
+
+  // REQ-9: Tier heuristics false positive immunity
+  { name: 'allow_tier_heuristics_ignores_prose_mention_of_low_mode', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes мы работаем в режиме low overhead и высокой производительности\n</USER_REQUEST>' }, { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] }], payload: { lastUserInput: 'продолжай', toolCall: { name: 'invoke_subagent', args: { TypeName: 'viktor', Model: 'flash' } } } }
 ];
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-guard-test-'));
@@ -175,6 +189,34 @@ try {
     }
   } finally {
     fs.rmSync(isolatedDir, { recursive: true, force: true });
+  }
+
+  // REQ-1: Verify gate-log is written to workspacePaths[0], not process.cwd() or payload.cwd
+  totalChecks++;
+  const customWsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-ws-custom-'));
+  const dummyCwdDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-ws-dummy-'));
+  try {
+    execFileSync('node', [hookPath], {
+      cwd: dummyCwdDir,
+      input: JSON.stringify({
+        lastUserInput: '/hermes check',
+        workspacePaths: [customWsDir],
+        cwd: dummyCwdDir,
+        toolCall: { name: 'run_command', args: { CommandLine: 'git status' } }
+      }),
+      encoding: 'utf-8'
+    });
+    const logInCustom = fs.existsSync(path.join(customWsDir, '.hermes', 'gate-log.jsonl'));
+    const logInDummy = fs.existsSync(path.join(dummyCwdDir, '.hermes', 'gate-log.jsonl'));
+    if (logInCustom && !logInDummy) {
+      console.log('PASS workspacePaths_precedence_in_gate_log');
+    } else {
+      failed++;
+      console.log(`FAIL workspacePaths_precedence_in_gate_log: logInCustom=${logInCustom}, logInDummy=${logInDummy}`);
+    }
+  } finally {
+    fs.rmSync(customWsDir, { recursive: true, force: true });
+    fs.rmSync(dummyCwdDir, { recursive: true, force: true });
   }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });

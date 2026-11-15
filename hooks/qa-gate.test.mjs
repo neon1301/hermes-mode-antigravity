@@ -1131,6 +1131,39 @@ try {
   } finally {
     fs.rmSync(isolatedDir, { recursive: true, force: true });
   }
+
+  // REQ-1: Verify qa-gate writes gate-log to workspacePaths[0], not cwd
+  totalChecks++;
+  const customWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-qa-ws-custom-'));
+  const dummyCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-qa-ws-dummy-'));
+  try {
+    execFileSync('node', [gatePath], {
+      cwd: dummyCwd,
+      input: JSON.stringify({
+        conversationId: 'c_ws_test',
+        workspacePaths: [customWs],
+        cwd: dummyCwd,
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_ws_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/file.cs' } }] }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: customWs }
+    });
+    const logInCustom = fs.existsSync(path.join(customWs, '.hermes', 'gate-log.jsonl'));
+    const logInDummy = fs.existsSync(path.join(dummyCwd, '.hermes', 'gate-log.jsonl'));
+    if (logInCustom && !logInDummy) {
+      console.log('PASS qa_gate_workspacePaths_precedence_in_gate_log');
+    } else {
+      failed++;
+      console.log(`FAIL qa_gate_workspacePaths_precedence_in_gate_log: inCustom=${logInCustom}, inDummy=${logInDummy}`);
+    }
+  } finally {
+    fs.rmSync(customWs, { recursive: true, force: true });
+    fs.rmSync(dummyCwd, { recursive: true, force: true });
+  }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }

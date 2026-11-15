@@ -109,3 +109,17 @@ This guide explains the most common guard and gate notices, why they occur, and 
 10. **Token Economy Gate:** After source edits, verify `ask_question` asks whether to run review.
 11. **Anti-Premature Kill:** Verify `manage_subagents(kill)` is blocked while subagents are running.
 12. **Session Persistence:** Call `/hermes save` -> verify `.hermes/checkpoint.md` & `.hermes/profile.json` are updated.
+
+---
+
+### 10. `Как проверить, что хуки реально исполняются в вашей поверхности (App / IDE / CLI)`
+* **Официальный контекст:** В официальной документации Antigravity плагинные хуки (`hooks.json`) гарантированно активируются для CLI-интерфейса (`agy`). В некоторых графических поверхностях (IDE / App) механизмы диспетчеризации хуков могут вести себя иначе (или работать в режиме fail-open).
+* **Пошаговый смоук-чек:**
+  1. **Инъекция протокола (PreInvocation):** Отправьте в чат команду `/hermes статус`. В первом же ответе модели или системном контексте должен присутствовать невидимый маркер `<!-- HERMES_PROTOCOL_LOADED -->`.
+  2. **Создание директории и лога гейта (PreToolUse):** Выполните чтение файла (`view_file` или `read_file`) или запуск команды (`run_command`). Проверьте корень текущего воркспейса (`workspacePaths[0]`): там должна появиться скрытая папка `.hermes/` и файл `.hermes/gate-log.jsonl`.
+  3. **Проверка содержимого лога:** Откройте `.hermes/gate-log.jsonl` — в нём должны быть записи с полями `{"hook":"clean-edits-guard","decision":"allow|deny",...}`.
+  4. **Шлюз при завершении (Stop):** Отредактируйте исходный код (`src/...`). При попытке завершить ход без вызова `ask_question` или проверки субагентом Stop-хук вернёт `continue` и запишет решение в `.hermes/gate-log.jsonl`.
+  5. **Что делать, если `.hermes/gate-log.jsonl` не появляется:**
+     - Убедитесь, что плагин установлен и включен: `agy plugin list` или перезапустите сессию.
+     - Проверьте, что в `hooks.json` пути к скриптам относительны (`node ./hooks/...`).
+     - Если ваша графическая оболочка IDE временно не поддерживает локальные command-хуки, используйте CLI `agy` либо запускайте проверки вручную через `./verify.ps1` (Windows) / `./verify.sh` (Linux/macOS) и `node hooks/session-report.mjs`.

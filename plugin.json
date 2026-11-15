@@ -1,15 +1,26 @@
 {
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "hermes-fleet",
   "displayName": "Hermes Fleet Enterprise",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "category": "Development",
+  "license": "MIT",
+  "keywords": [
+    "hermes",
+    "multi-agent",
+    "orchestration",
+    "quality-gate",
+    "tdd",
+    "code-review",
+    "clean-architecture"
+  ],
   "author": {
     "name": "neon1301",
     "url": "https://github.com/neon1301"
   },
   "homepage": "https://github.com/neon1301/hermes-mode-antigravity",
   "repository": "https://github.com/neon1301/hermes-mode-antigravity",
-  "description": "Мультиагентный комплекс HERMES Enterprise (v3.7.1): Lead с встроенным глазом Критика, 14 специалистов (включая @gleb — 3D/Digital Twin, @kritik с 360° мировым скаутингом трендов и замыкающим аудитом решений, и @stanislav), 21 скилл, 15 правил по триггеру (PreInvocation), защита Rule 8/9/Security L1-L2 и Model Tier Policy as Code (PreToolUse) и Stop QA/Compliance-шлюз.",
+  "description": "Мультиагентный комплекс Hermes Fleet Enterprise (v3.7.2): 14 ролей, 21 скилл, архитектурный контроль и детерминированные шлюзы качества.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "/hermes декомпозируй проект и запусти команду в работу",

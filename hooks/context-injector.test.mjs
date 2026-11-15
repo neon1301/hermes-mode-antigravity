@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveWorkspaceDir } from './workspace.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const hookPath = path.join(__dirname, 'context-injector.mjs');
@@ -189,6 +190,45 @@ const cases = [
         lastUserInput: 'ok',
         transcriptPath: writeTranscript('cooldown_session', steps)
       });
+    }
+  },
+  {
+    name: 'workspace_resolve_from_workspacePaths_array',
+    check: (res) => res === '/test/project/dir',
+    run: () => resolveWorkspaceDir({ workspacePaths: ['/test/project/dir'] }, '/fallback')
+  },
+  {
+    name: 'workspace_resolve_from_workspacePaths_file_uri',
+    check: (res) => path.resolve(res) === path.resolve('/some/test/path'),
+    run: () => {
+      const targetDir = path.resolve('/some/test/path');
+      const fileUri = pathToFileURL(targetDir).href;
+      return resolveWorkspaceDir({ workspacePaths: [fileUri] }, '/fallback');
+    }
+  },
+  {
+    name: 'workspace_workspacePaths_takes_precedence_over_plugin_root_cwd',
+    check: (res) => res === '/user/actual/workspace',
+    run: () => resolveWorkspaceDir({
+      workspacePaths: ['/user/actual/workspace'],
+      cwd: '/plugin/root/directory'
+    }, '/fallback')
+  },
+  {
+    name: 'workspace_fallback_to_payload_cwd_when_workspacePaths_absent',
+    check: (res) => res === '/user/workspace/from/cwd',
+    run: () => resolveWorkspaceDir({ cwd: '/user/workspace/from/cwd' }, '/fallback')
+  },
+  {
+    name: 'workspace_fallback_to_process_cwd_when_payload_empty_or_null',
+    check: (res) => res.nullOk && res.emptyOk && res.emptyArrOk,
+    run: () => {
+      const fb = '/custom/fallback/dir';
+      return {
+        nullOk: resolveWorkspaceDir(null, fb) === fb,
+        emptyOk: resolveWorkspaceDir({}, fb) === fb,
+        emptyArrOk: resolveWorkspaceDir({ workspacePaths: [] }, fb) === fb
+      };
     }
   }
 ];

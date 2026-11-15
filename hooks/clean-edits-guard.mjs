@@ -10,9 +10,37 @@ import {
   readTranscriptSlices
 } from './hermes-trigger.mjs';
 import { evaluateRules } from './rule-engine.mjs';
+import { resolveWorkspaceDir } from './workspace.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
+
+let cachedTranscriptPath = null;
+let cachedHeadSteps = null;
+let cachedTailSteps = null;
+let cachedCombinedSteps = null;
+
+function getTranscriptData(transcriptPath) {
+  if (!transcriptPath || !fs.existsSync(transcriptPath)) {
+    return { combinedSteps: [], tailSteps: [], headSteps: [] };
+  }
+  if (cachedTranscriptPath === transcriptPath && cachedCombinedSteps) {
+    return { combinedSteps: cachedCombinedSteps, tailSteps: cachedTailSteps, headSteps: cachedHeadSteps };
+  }
+  try {
+    cachedTranscriptPath = transcriptPath;
+    const slices = readTranscriptSlices(transcriptPath, {
+      maxTailBytes: MAX_TAIL_BYTES,
+      headScanBytes: HEAD_SCAN_BYTES
+    });
+    cachedHeadSteps = parseJsonl(slices.headText);
+    cachedTailSteps = parseJsonl(slices.tailText);
+    cachedCombinedSteps = [...cachedHeadSteps, ...cachedTailSteps];
+    return { combinedSteps: cachedCombinedSteps, tailSteps: cachedTailSteps, headSteps: cachedHeadSteps };
+  } catch {
+    return { combinedSteps: [], tailSteps: [], headSteps: [] };
+  }
+}
 
 function readStdin() {
   try {
@@ -25,25 +53,18 @@ function readStdin() {
 function isHermesActive(payload) {
   if (isHermesTrigger(payload?.lastUserInput)) return true;
   const transcriptPath = payload?.transcriptPath;
-  if (!transcriptPath || !fs.existsSync(transcriptPath)) return false;
-  try {
-    const { headText, tailText } = readTranscriptSlices(transcriptPath, {
-      maxTailBytes: MAX_TAIL_BYTES,
-      headScanBytes: HEAD_SCAN_BYTES
-    });
-    return detectHermesInSteps([...parseJsonl(headText), ...parseJsonl(tailText)]);
-  } catch {
-    return false;
-  }
+  if (!transcriptPath) return false;
+  const { combinedSteps } = getTranscriptData(transcriptPath);
+  return detectHermesInSteps(combinedSteps);
 }
 
 let isHermesSession = false;
+let activeWorkspaceDir = process.cwd();
 
 function logGateDecision({ toolName, decision, reason, model, tier, subType } = {}) {
   if (!isHermesSession) return;
   try {
-    const cwd = process.cwd();
-    const hermesDir = path.join(cwd, '.hermes');
+    const hermesDir = path.join(activeWorkspaceDir, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
     const logFile = path.join(hermesDir, 'gate-log.jsonl');
     try {
@@ -117,7 +138,7 @@ function detectSelectedTier({ checkpointPath, checkpointText, profilePath, profi
   for (let i = steps.length - 1; i >= 0; i--) {
     const s = steps[i];
     const text = typeof s?.content === 'string' ? s.content : JSON.stringify(s || '');
-    const mAns = text.match(/(?:A2|Answer\s*2|режим|уровень)[:\s*`]+[^\n]*\b(high|medium|low)\b/i);
+    const mAns = text.match(/(?:(?:A2|Answer\s*2|Ответ\s*2|Вопрос\s*2|Question\s*2)[:\s*`]+|(?:^|\n)\s*[-*]\s*(?:Режим|Уровень|Tier)[:\s*`]+)[^\n]*\b(high|medium|low)\b/i);
     if (mAns) return mAns[1].toLowerCase();
 
     const mInj = text.match(/Subagent Model:[^`\n]*\([^)]*\b(high|medium|low)\b/i);
@@ -148,6 +169,19 @@ function detectSelectedTier({ checkpointPath, checkpointText, profilePath, profi
   return null;
 }
 
+function extractSubagentSpecs(args) {
+  if (Array.isArray(args?.Subagents) && args.Subagents.length > 0) {
+    return args.Subagents.filter(Boolean);
+  }
+  if (Array.isArray(args?.subagents) && args.subagents.length > 0) {
+    return args.subagents.filter(Boolean);
+  }
+  if (args && (args.TypeName || args.typeName || args.Role || args.role)) {
+    return [args];
+  }
+  return [];
+}
+
 function collectWrittenText(args) {
   const parts = [];
   for (const key of ['Content', 'CodeContent', 'Replacement', 'ReplacementContent', 'content', 'replacement']) {
@@ -174,6 +208,8 @@ try {
   allow();
   process.exit(0);
 }
+
+activeWorkspaceDir = resolveWorkspaceDir(payload, process.cwd());
 
 const toolName = String(payload?.toolCall?.name || '').toLowerCase();
 const args = payload?.toolCall?.args || {};
@@ -361,8 +397,7 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
 
     // Declarative Rule Engine (.hermes/rules/*.md)
     try {
-      const cwd = process.cwd();
-      const hermesRulesDir = path.join(cwd, '.hermes', 'rules');
+      const hermesRulesDir = path.join(activeWorkspaceDir, '.hermes', 'rules');
       const ruleEval = evaluateRules({
         event: 'PreToolUse',
         context: {
@@ -402,8 +437,7 @@ if (toolName === 'run_command') {
 
   // Declarative Rule Engine (.hermes/rules/*.md)
   try {
-    const cwd = process.cwd();
-    const hermesRulesDir = path.join(cwd, '.hermes', 'rules');
+    const hermesRulesDir = path.join(activeWorkspaceDir, '.hermes', 'rules');
     const ruleEval = evaluateRules({
       event: 'PreToolUse',
       context: {
@@ -421,112 +455,112 @@ if (toolName === 'run_command') {
 }
 
 if (toolName === 'invoke_subagent') {
-  const subType = String(args.TypeName || args.typeName || '').toLowerCase();
-  if (subType === 'mozgoeb' || subType === 'мозгоеб') {
-    deny(
-      'Hermes Fleet: специалист @mozgoeb переименован в @kritik. Файл agents/mozgoeb.md удалён. Вызовите invoke_subagent с TypeName: "kritik".'
-    );
-    process.exit(0);
-  }
-  if (HERMES_AGENTS.has(subType) || subType === 'self') {
-    const hasExplicitModel = Boolean(args.Model || args.model);
-    const reqModel = String(args.Model || args.model || 'inherit').toLowerCase().replace(/["']/g, '');
-    const validModels = new Set(['inherit', 'flash', 'flash_lite', 'pro']);
-    if (!validModels.has(reqModel)) {
+  const specs = extractSubagentSpecs(args);
+  for (const spec of specs) {
+    const subType = String(spec.TypeName || spec.typeName || '').toLowerCase();
+    if (subType === 'mozgoeb' || subType === 'мозгоеб') {
       deny(
-        `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".`
+        'Hermes Fleet: специалист @mozgoeb переименован в @kritik. Файл agents/mozgoeb.md удалён. Вызовите invoke_subagent с TypeName: "kritik".',
+        { subType }
       );
       process.exit(0);
     }
-
-    const hostModel = String(payload?.modelName || '').toLowerCase();
-    const cwd = String(payload?.cwd || process.cwd() || '');
-    const checkpointPath = path.join(cwd, '.hermes', 'checkpoint.md');
-    const profilePath = path.join(cwd, '.hermes', 'profile.json');
-
-    let transcriptSteps = [];
-    const transcriptPath = payload?.transcriptPath;
-    if (transcriptPath && fs.existsSync(transcriptPath)) {
-      try {
-        const { headText, tailText } = readTranscriptSlices(transcriptPath, {
-          maxTailBytes: MAX_TAIL_BYTES,
-          headScanBytes: HEAD_SCAN_BYTES
-        });
-        transcriptSteps = [...parseJsonl(headText), ...parseJsonl(tailText)];
-      } catch {}
-    }
-
-    const detectedTier = detectSelectedTier({
-      checkpointPath,
-      profilePath,
-      checkpointText: payload?.checkpointText,
-      steps: transcriptSteps
-    });
-
-    if (detectedTier === 'high') {
-      if (hostModel.includes('flash') && reqModel === 'flash') {
+    if (HERMES_AGENTS.has(subType) || subType === 'self') {
+      const hasExplicitModel = Boolean(spec.Model || spec.model);
+      const reqModel = String(spec.Model || spec.model || 'inherit').toLowerCase().replace(/["']/g, '');
+      const validModels = new Set(['inherit', 'flash', 'flash_lite', 'pro']);
+      if (!validModels.has(reqModel)) {
         deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High (зафиксирован в Handshake/checkpoint). Запрещено занижать модель субагента до Model: "flash"! Для сохранения уровня High передайте Model: "inherit" (или "pro" для сложных задач дизайна/архитектуры).'
+          `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".`,
+          { model: reqModel, subType }
         );
         process.exit(0);
       }
-      if (reqModel === 'flash_lite') {
-        deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High. Запрещено передавать Model: "flash_lite"! Передайте Model: "inherit" (или "pro").'
-        );
-        process.exit(0);
-      }
-    } else if (detectedTier === 'medium') {
-      if (hostModel.includes('flash-high') && (!hasExplicitModel || reqModel === 'inherit')) {
-        deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium, а хост работает на Flash High. Во избежание перерасхода токенов передайте явно Model: "flash" вместо "inherit".'
-        );
-        process.exit(0);
-      }
-      if (reqModel === 'flash_lite') {
-        deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium. Передайте Model: "flash".'
-        );
-        process.exit(0);
-      }
-    } else if (detectedTier === 'low') {
-      const isProEscalation = reqModel === 'pro' && (subType === 'elena' || subType === 'self');
-      if (reqModel !== 'flash_lite' && !isProEscalation) {
-        deny(
-          'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite" (эскалация до "pro" разрешена только для @elena и сложных write-воркеров self).'
-        );
-        process.exit(0);
+
+      const hostModel = String(payload?.modelName || '').toLowerCase();
+      const checkpointPath = path.join(activeWorkspaceDir, '.hermes', 'checkpoint.md');
+      const profilePath = path.join(activeWorkspaceDir, '.hermes', 'profile.json');
+
+      const { combinedSteps } = getTranscriptData(payload?.transcriptPath);
+
+      const detectedTier = detectSelectedTier({
+        checkpointPath,
+        profilePath,
+        checkpointText: payload?.checkpointText,
+        steps: combinedSteps
+      });
+
+      if (detectedTier === 'high') {
+        if (hostModel.includes('flash') && reqModel === 'flash') {
+          deny(
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High (зафиксирован в Handshake/checkpoint). Запрещено занижать модель субагента до Model: "flash"! Для сохранения уровня High передайте Model: "inherit" (или "pro" для сложных задач дизайна/архитектуры).',
+            { model: reqModel, tier: detectedTier, subType }
+          );
+          process.exit(0);
+        }
+        if (reqModel === 'flash_lite') {
+          deny(
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High. Запрещено передавать Model: "flash_lite"! Передайте Model: "inherit" (или "pro").',
+            { model: reqModel, tier: detectedTier, subType }
+          );
+          process.exit(0);
+        }
+      } else if (detectedTier === 'medium') {
+        if (hostModel.includes('flash-high') && (!hasExplicitModel || reqModel === 'inherit')) {
+          deny(
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium, а хост работает на Flash High. Во избежание перерасхода токенов передайте явно Model: "flash" вместо "inherit".',
+            { model: reqModel, tier: detectedTier, subType }
+          );
+          process.exit(0);
+        }
+        if (reqModel === 'flash_lite') {
+          deny(
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium. Передайте Model: "flash".',
+            { model: reqModel, tier: detectedTier, subType }
+          );
+          process.exit(0);
+        }
+      } else if (detectedTier === 'low') {
+        const isProEscalation = reqModel === 'pro' && (subType === 'elena' || subType === 'self');
+        if (reqModel !== 'flash_lite' && !isProEscalation) {
+          deny(
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite" (эскалация до "pro" разрешена только для @elena и сложных write-воркеров self).',
+            { model: reqModel, tier: detectedTier, subType }
+          );
+          process.exit(0);
+        }
       }
     }
   }
 }
 
 // Step 0 Model Handshake & Post-Edit Token Economy Gate (transcript-aware checks)
-const subType = toolName === 'invoke_subagent' ? String(args.TypeName || args.typeName || '').toLowerCase() : '';
-const readTarget = toolName === 'read_file' ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '') : '';
-const isSkillOrAgentDocRead = toolName === 'read_file' && /[\\/](?:skills|agents)[\\/]/i.test(readTarget);
+const subagentSpecs = toolName === 'invoke_subagent' ? extractSubagentSpecs(args) : [];
+const hasHermesSubagent = subagentSpecs.some((s) => {
+  const t = String(s.TypeName || s.typeName || '').toLowerCase();
+  return HERMES_AGENTS.has(t) || t === 'self';
+});
+const isFileRead = toolName === 'read_file' || toolName === 'view_file';
+const readTarget = isFileRead ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || args.absolutePath || '') : '';
+const isSkillOrAgentDocRead = isFileRead && /[\\/](?:skills|agents)[\\/]/i.test(readTarget);
 const requiresStep0Handshake =
-  (toolName === 'read_file' && !isSkillOrAgentDocRead) ||
+  (isFileRead && !isSkillOrAgentDocRead) ||
   toolName === 'run_command' ||
   FILE_WRITE_TOOLS.has(toolName) ||
-  (toolName === 'invoke_subagent' && (HERMES_AGENTS.has(subType) || subType === 'self'));
+  hasHermesSubagent;
 
 if (requiresStep0Handshake) {
   const transcriptPath = payload?.transcriptPath;
-  if (transcriptPath && fs.existsSync(transcriptPath)) {
+  if (transcriptPath) {
     try {
-      const { headText, tailText } = readTranscriptSlices(transcriptPath, {
-        maxTailBytes: MAX_TAIL_BYTES,
-        headScanBytes: HEAD_SCAN_BYTES
-      });
-      const steps = [...parseJsonl(headText), ...parseJsonl(tailText)];
-      const isParentSession = steps.some(isRealUserStep);
+      const { combinedSteps, tailSteps } = getTranscriptData(transcriptPath);
+      const isParentSession = combinedSteps.some(isRealUserStep);
       const slashHermesSession =
         isHermesTrigger(payload?.lastUserInput, { includeMentions: false }) ||
-        detectHermesInSteps(steps, { includeMentions: false });
+        detectHermesInSteps(combinedSteps, { includeMentions: false });
 
       if (isParentSession && slashHermesSession) {
-        const hasHandshake = steps.some((s) =>
+        const hasHandshake = combinedSteps.some((s) =>
           collectToolCalls(s).some((tc) => String(tc?.name || '').toLowerCase() === 'ask_question')
         );
         if (!hasHandshake) {
@@ -537,8 +571,7 @@ if (requiresStep0Handshake) {
         }
       }
 
-      if (toolName === 'invoke_subagent' && HERMES_AGENTS.has(subType)) {
-        const tailSteps = parseJsonl(tailText);
+      if (toolName === 'invoke_subagent' && subagentSpecs.some((s) => HERMES_AGENTS.has(String(s.TypeName || s.typeName || '').toLowerCase()))) {
         let lastUserIdx = -1;
         for (let i = 0; i < tailSteps.length; i++) {
           if (isRealUserStep(tailSteps[i])) lastUserIdx = i;
@@ -579,13 +612,9 @@ if (toolName === 'manage_subagents') {
   const action = String(args.Action || args.action || '').toLowerCase().replace(/["']/g, '');
   if (action === 'kill' || action === 'kill_all') {
     const transcriptPath = payload?.transcriptPath;
-    if (transcriptPath && fs.existsSync(transcriptPath)) {
+    if (transcriptPath) {
       try {
-        const { tailText } = readTranscriptSlices(transcriptPath, {
-          maxTailBytes: MAX_TAIL_BYTES,
-          headScanBytes: 0
-        });
-        const tailSteps = parseJsonl(tailText);
+        const { tailSteps } = getTranscriptData(transcriptPath);
         let lastUserIdx = -1;
         for (let i = 0; i < tailSteps.length; i++) {
           if (isRealUserStep(tailSteps[i])) lastUserIdx = i;

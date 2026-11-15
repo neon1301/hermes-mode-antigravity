@@ -8,8 +8,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { resolveWorkspaceDir } from './workspace.mjs';
 
-export function generateSessionReport(cwd = process.cwd()) {
+export function generateSessionReport(dirOrPayload = null) {
+  let cwd;
+  if (typeof dirOrPayload === 'string') {
+    cwd = dirOrPayload;
+  } else if (dirOrPayload && typeof dirOrPayload === 'object') {
+    cwd = resolveWorkspaceDir(dirOrPayload, process.cwd());
+  } else {
+    cwd = resolveWorkspaceDir(null, process.cwd());
+  }
   const generatedAt = new Date().toISOString();
   const hermesDir = path.join(cwd, '.hermes');
   const gateLogPath = path.join(hermesDir, 'gate-log.jsonl');

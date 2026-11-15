@@ -11,6 +11,7 @@ import {
   readTranscriptSlices
 } from './hermes-trigger.mjs';
 import { evaluateRules } from './rule-engine.mjs';
+import { resolveWorkspaceDir } from './workspace.mjs';
 
 const MAX_RETURNS = 2;
 const MAX_TAIL_BYTES = 8 * 1024 * 1024;
@@ -93,12 +94,12 @@ function readStdin() {
 }
 
 let isHermesSession = false;
+let activeWorkspaceDir = process.cwd();
 
 function logGateDecision({ decision, reason, missing } = {}) {
   if (!isHermesSession) return;
   try {
-    const cwd = process.cwd();
-    const hermesDir = path.join(cwd, '.hermes');
+    const hermesDir = path.join(activeWorkspaceDir, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
     const logFile = path.join(hermesDir, 'gate-log.jsonl');
     try {
@@ -192,6 +193,8 @@ try {
   allow();
   process.exit(0);
 }
+
+activeWorkspaceDir = resolveWorkspaceDir(payload, process.cwd());
 
 if (payload?.fullyIdle === false) {
   allow();
@@ -465,8 +468,7 @@ function computeDiffHash(snapshots = []) {
 function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCount = 0, event = 'Stop' } = {}) {
   if (!isHermesSession) return;
   try {
-    const cwd = process.cwd();
-    const hermesDir = path.join(cwd, '.hermes');
+    const hermesDir = path.join(activeWorkspaceDir, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
     const costFile = path.join(hermesDir, 'cost-log.jsonl');
     try {
@@ -494,7 +496,7 @@ function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCou
 }
 
 const currentDiffHash = computeDiffHash(touchedSnapshots);
-const secVerdictFile = path.join(process.cwd(), '.hermes', 'security-verdict.json');
+const secVerdictFile = path.join(activeWorkspaceDir, '.hermes', 'security-verdict.json');
 if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
   try {
     const verdictData = JSON.parse(fs.readFileSync(secVerdictFile, 'utf-8'));
@@ -569,7 +571,7 @@ if (needSecurity && !hasSecurityPass) missing.push('[SECURITY PASS] (Viktor / Ap
 
 // Declarative Rule Engine on Stop event
 try {
-  const hermesRulesDir = path.join(process.cwd(), '.hermes', 'rules');
+  const hermesRulesDir = path.join(activeWorkspaceDir, '.hermes', 'rules');
   const ruleEval = evaluateRules({
     event: 'Stop',
     context: {
@@ -593,7 +595,7 @@ if (missing.length === 0) {
 
 if (isLoopRequested) {
   const safeId = String(convId).replace(/[^a-zA-Z0-9_-]/g, '_');
-  const hermesDir = path.join(process.cwd(), '.hermes');
+  const hermesDir = path.join(activeWorkspaceDir, '.hermes');
   if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
   const loopFile = path.join(hermesDir, `loop-state-${safeId}.json`);
   let loopIteration = 0;

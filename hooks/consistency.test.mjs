@@ -95,6 +95,9 @@ await test('version_alignment', () => {
   if (!plugin.description.includes(`(v${plugin.version})`)) {
     throw new Error(`plugin.json description does not contain current version (v${plugin.version})`);
   }
+  if (plugin.description.length < 120 || plugin.description.length > 160) {
+    throw new Error(`plugin.json description length (${plugin.description.length}) must be between 120 and 160 characters`);
+  }
   const fleetProtocol = fs.readFileSync(path.join(rootDir, 'skills', 'hermes', 'references', 'fleet-protocol.md'), 'utf-8');
   if (!fleetProtocol.includes(`Protocol v${plugin.version}`)) {
     throw new Error(`fleet-protocol.md header does not contain current version (Protocol v${plugin.version})`);
@@ -127,6 +130,8 @@ await test('license_alignment', () => {
   if (!/MIT License/i.test(licenseText)) throw new Error('LICENSE is not MIT');
   const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'));
   if (pkg.license !== 'MIT') throw new Error(`package.json license (${pkg.license}) must be MIT`);
+  const plugin = JSON.parse(fs.readFileSync(path.join(rootDir, 'plugin.json'), 'utf-8'));
+  if (plugin.license !== 'MIT') throw new Error(`plugin.json license (${plugin.license}) must be MIT`);
 });
 
 // 7. Verify agent frontmatter schema and name uniqueness
@@ -170,6 +175,8 @@ await test('skill_frontmatter_and_unique_names', () => {
 // 9. Verify markdown reference links integrity
 await test('markdown_reference_links_integrity', () => {
   const refFiles = [
+    path.join(rootDir, 'README.md'),
+    path.join(rootDir, 'TROUBLESHOOTING.md'),
     path.join(rootDir, 'skills', 'hermes', 'SKILL.md'),
     ...fs.readdirSync(path.join(rootDir, 'skills', 'hermes', 'references'))
       .filter((f) => f.endsWith('.md'))
@@ -240,10 +247,13 @@ await test('wave2_artifacts_and_adr_integrity', () => {
   }
 });
 
-// 12. Verify specialized agent cards size budget (<= 5 KB)
+// 12. Verify specialized agent cards size budget (<= 5 KB across all 14 agents)
 await test('specialized_agent_cards_size_budget', () => {
-  const agentsToCheck = ['alexey.md', 'ruslan.md', 'stanislav.md', 'viktor.md', 'dmitry.md', 'anna.md'];
-  for (const file of agentsToCheck) {
+  const agentFiles = fs.readdirSync(path.join(rootDir, 'agents')).filter((f) => f.endsWith('.md'));
+  if (agentFiles.length !== 14) {
+    throw new Error(`Expected 14 agent cards, found ${agentFiles.length}`);
+  }
+  for (const file of agentFiles) {
     const p = path.join(rootDir, 'agents', file);
     const size = fs.statSync(p).size;
     if (size > 5120) {
@@ -306,11 +316,11 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
   }
   const expectedBreakdown = {
     'consistency': 14,
-    'context-injector': 13,
-    'clean-edits-guard': 93,
-    'qa-gate': 58,
+    'context-injector': 18,
+    'clean-edits-guard': 102,
+    'qa-gate': 59,
     'rule-engine': 20,
-    'session-report': 2,
+    'session-report': 3,
     'eval-harness': 68,
     'contract-validator': 9
   };
@@ -321,8 +331,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 277 || summary.passed !== 277) {
-    throw new Error(`test-summary.json expected total=277, passed=277, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 293 || summary.passed !== 293) {
+    throw new Error(`test-summary.json expected total=293, passed=293, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
