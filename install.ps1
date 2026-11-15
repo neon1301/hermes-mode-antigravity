@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.7.2)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v3.7.3)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v3.7.2 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v3.7.3 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue

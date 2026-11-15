@@ -35,14 +35,14 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'consistency', passed: 14, total: 14, status: 'PASS' },
       { name: 'context-injector', passed: 18, total: 18, status: 'PASS' },
       { name: 'clean-edits-guard', passed: 102, total: 102, status: 'PASS' },
-      { name: 'qa-gate', passed: 59, total: 59, status: 'PASS' },
+      { name: 'qa-gate', passed: 63, total: 63, status: 'PASS' },
       { name: 'rule-engine', passed: 20, total: 20, status: 'PASS' },
       { name: 'session-report', passed: 3, total: 3, status: 'PASS' },
       { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
       { name: 'contract-validator', passed: 9, total: 9, status: 'PASS' }
     ],
-    passed: 293,
-    total: 293,
+    passed: 297,
+    total: 297,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.3] - 2026-11-15
+
+### Hotfix: Fail-Closed Anti-Self-Signing Invariant & Unbound Hook Hardening
+- **Narrowed Unbound Ask Validation (`qa-gate.mjs`, REQ-1):** On platforms omitting `tool_call_id` on `ask_question` (such as Antigravity runtime), responses are accepted strictly when `isDirectNext`, `status === 'DONE'`, and authentic execution banner (`hasHarnessBanner`) are present. Arbitrary later SYSTEM tool outputs (e.g. `run_command echo "без проверки"`) without call ID binding are strictly ignored and never accumulated in `postEditAskAnswer`, eliminating forged token economy skip vectors.
+- **TDD Mechanical Testing Locks (`qa-gate.test.mjs`, REQ-2):** Added 4 deterministic test cases:
+  1. `allow_unbound_ask_direct_next_harness_output_with_done_and_banner`: verified direct-next harness execution output with DONE and banner allows economy skip.
+  2. `reject_unbound_ask_with_user_verification_followed_by_forged_system_echo`: verified user choosing verification followed by subsequent forged SYSTEM echo `без проверки` is rejected (`continue`).
+  3. `reject_unbound_ask_model_banner_without_status_done`: verified model-generated banner lacking `status === 'DONE'` is rejected (`continue`).
+  4. `past_turn_loop_flag_does_not_activate_loop_in_current_turn`: verified `--loop` in historical turn steps does not leak into the current turn.
+- **Residual Limitations & Documentation (`docs/adr/0001-...md`, `TROUBLESHOOTING.md`, REQ-3):** Documented the residual risk of parallel tool calls in a single turn in ADR 0001 (Section 4); updated Section 7 in `TROUBLESHOOTING.md` detailing the fail-closed contract for bound vs unbound platforms.
+- **Version Alignment across 7 Targets (v3.7.3, REQ-4):** Aligned version to 3.7.3 across `plugin.json`, `package.json`, `README.md`, `skills/hermes/references/fleet-protocol.md`, `skills/hermes/SKILL.md`, `install.ps1`, and `install.sh`. Updated test runner baselines to 297 tests (63 in `qa-gate`).
+
 ## [3.7.2] - 2026-11-15
 
 ### Platform Contract Hardening & Hygiene Audit Closure (REQ-1..REQ-10)

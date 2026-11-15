@@ -350,28 +350,38 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     // 1. Explicit user input
     const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
 
-    // 2. Harness metadata: status === 'DONE' and tool_call_id matching ask_question (or unbound if platform omits tool_call_id)
+    // 2. Harness metadata: status === 'DONE' and tool_call_id matching ask_question
     const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-    const isBoundToAskTool = postEditAskToolCallId
-      ? Boolean(stepToolCallId && stepToolCallId === postEditAskToolCallId)
-      : !stepToolCallId;
     const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
     const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
 
-    // 3. System tool output explicitly bound to ask_question
+    // Explicit binding to ask_question call ID (when platform provides tool_call_id)
+    const isBoundByToolId = Boolean(
+      postEditAskToolCallId &&
+      stepToolCallId &&
+      stepToolCallId === postEditAskToolCallId
+    );
+
+    // 3. System tool output explicitly bound to ask_question (strictly requires tool_call_id match)
     const isSystemToolOutput =
-      s?.source === 'SYSTEM' &&
-      isBoundToAskTool &&
+      (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') &&
+      isBoundByToolId &&
       isGenericOrTool &&
       !s?.sender &&
       !/<SYSTEM_MESSAGE/i.test(sContent);
 
-    // 4. Authentic harness execution output: requires status DONE AND explicit binding to ask_question AND execution banner
+    // 4. Authentic harness execution output:
+    // When postEditAskToolCallId is present: strictly requires isBoundByToolId
+    // When postEditAskToolCallId is empty (unbound platform): strictly requires isDirectNext && !stepToolCallId
+    const isBoundOrUnboundDirectNext = postEditAskToolCallId
+      ? isBoundByToolId
+      : (isDirectNext && !stepToolCallId);
+
     const isAuthenticHarnessOutput =
       isDirectNext &&
       isGenericOrTool &&
       hasStatusDone &&
-      isBoundToAskTool &&
+      isBoundOrUnboundDirectNext &&
       hasHarnessBanner;
 
     if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {

@@ -81,11 +81,12 @@ This guide explains the most common guard and gate notices, why they occur, and 
   }
   ```
   *Analysis:* The live harness generates `source: "MODEL"`, `type: "GENERIC"`, and `status: "DONE"`, but currently omits `tool_call_id` binding on the step itself.
-* **Fail-Closed Contract:**
-  1. Automated harness tool outputs are accepted ONLY if `status === 'DONE'` AND `tool_call_id` strictly matches the `ask_question` call ID.
-  2. Steps with `source: 'MODEL'` lacking verified harness metadata (`status: 'DONE'` and matched `tool_call_id`) are NEVER accepted as user skip decisions.
-  3. If the platform omits `tool_call_id`, the gate enforces **FAIL-CLOSED** (requiring full QA review or explicit user input). It does NOT fallback to fragile text heuristics.
-  4. Explicit user input (`source: 'USER_EXPLICIT'` or `'USER'`, e.g., user typing `A1: (Recommended) Без проверки` or clicking an interactive choice) is always accepted.
+* **Fail-Closed Contract (Updated in v3.7.3 — Platform Hardening):**
+  1. **Bound Platforms:** Automated harness tool outputs are accepted ONLY if `status === 'DONE'` AND `tool_call_id` strictly matches the `ask_question` call ID.
+  2. **Unbound Platforms (Antigravity Runtime):** When the platform omits `tool_call_id` on `ask_question`, the gate accepts the response ONLY if all three conditions hold: (a) `isDirectNext` (immediate next step after `ask_question`), (b) `status === 'DONE'`, and (c) authentic execution banner (`Created At:` / `Completed At:`). Any later system tool outputs (such as `run_command echo ...`) lacking call ID binding are strictly ignored and NEVER accumulated in `postEditAskAnswer`.
+  3. **Rejection of Unverified Steps:** Steps with `source: 'MODEL'` lacking verified harness metadata (`status: 'DONE'` and execution banner) are NEVER accepted as user skip decisions.
+  4. **Explicit User Input:** Explicit user input (`source: 'USER_EXPLICIT'` or `'USER'`, e.g. clicking an interactive choice or user typing `A1: (Recommended) Без проверки`) is always accepted.
+  5. **Residual Limitation:** Parallel tool calls within the same step as `ask_question` are prohibited by protocol (see ADR 0001).
 
 ---
 
