@@ -103,3 +103,15 @@ function disposeMaterial(mat: THREE.Material) {
   }
 }
 ```
+
+---
+
+## 5. Industrial HUD Overlays & Telemetry UI Security
+
+When rendering DOM-based HUD overlays (telemetry badges, sensor tooltips, status ribbons) atop the WebGL canvas:
+- Prefer `textContent`, `document.createElement`, or safe UI templating.
+- If raw DOM injection is required for rich telemetry formatting, Hermes Security Layer 1 blocks unannotated `innerHTML`. Add the inline escape comment with mandatory reason:
+  ```typescript
+  // hermes-security-ignore: safe sanitized telemetry badge markup
+  hudOverlay.innerHTML = renderTelemetryBadge(sensorData);
+  ```

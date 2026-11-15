@@ -17,18 +17,8 @@
 
 ## 🎮 Команды Hermes
 
-| Команда | Назначение |
-| :--- | :--- |
-| **/hermes [задача]** | Оркестрация, реестр `REQ-1..REQ-N`, декомпозиция и контроль |
-| **/hermes feature [описание]** | 🚀 7-фазный протокол фич (Discovery, 3 альтернативы, Fast-Path) |
-| **/hermes board** | Канбан-доска в чате (Generative UI) |
-| **/hermes loop / fix-warnings** | 🔄 Цикл сходимости компилятора/задач (потолок 25 итераций) |
-| **/hermes audit** | Ревизия 15 правил флота Hermes и стековых скиллов (Stanislav) |
-| **/hermes save / resume** | Снимок контекста и графа задач (`checkpoint.md`, `tasks.json`) и восстановление |
-| **/hermes learn [правило]** | Сохранить инстинкт в `.hermes/instincts.json` |
-| **/hermes review / report** | 7-векторный аудит диффа (Viktor) и отчёт сессии (Data Honesty) |
-| **/hermes rules / standup** | Сводка правил (`rules/*.md`) и стендап (`standups.md`) |
-| **@имя [запрос]** | Прямой вызов эксперта (`@dmitry`, `@kritik`...) |
+Основные команды: `/hermes [задача]` (оркестрация), `/hermes feature` (7 фаз), `/hermes loop` (сходимость), `/hermes audit` (Stanislav), `/hermes review` (Viktor), `@имя` (прямой вызов).
+Полная интерактивная таблица команд: [`hermes-commands-reference.md`](hermes-commands-reference.md).
 
 ---
 
@@ -57,11 +47,8 @@
 ## 🛡️ Протокол защиты от регрессий и 100% полноты правок (Anti-Regression & Complete-Fix)
 
 > [!IMPORTANT]
-> **Compiles != Works:** Успешная компиляция — допуск к ревью, а не доказательство работы. Перед выдачей плана обязательна сверка с [Чеклистом Lead (`skills/cognitive-discipline/SKILL.md`)](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
-
-1. **Реестр требований (`[REQ-1..REQ-N]`):** Запрос делится на `REQ-1..REQ-N` с критериями Spec Law «Done when». Частичный фикс ➔ `🔴 [QA REJECT]`.
-2. **Сквозной аудит (`N of N`):** `grep_search` однотипных мест. Правка 1 из N ➔ `🔴 [QA REJECT]`.
-3. **Регрессионный замок:** Фиксация инвариантов, трассировка UI, `git diff`. Детали: [`qa-heuristics.md`](qa-heuristics.md).
+> **Compiles != Works:** Успешная компиляция — допуск к ревью, а не доказательство работы. Реестр `REQ-1..REQ-N`, сквозной аудит N-of-N и регрессионный замок обязательны.
+> Полный регламент: [`anti-regression-protocol.md`](anti-regression-protocol.md). Сверка с [Чеклистом Lead (`skills/cognitive-discipline/SKILL.md`)](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
 
 ---
 
@@ -71,7 +58,7 @@
 2. **Канбан (`blocked_by`):** Зависимости фиксируются в `blocked_by` и `.hermes/tasks.json` (Beads ledger). UI блокируется бэкендом, релиз — QA и комплаенсом.
 3. **Подтверждение запуска проверки (Token Economy & Post-Edit Gate, Rule 3):**
    - После правок кода и сборки (`Single Build Gate`) Lead вызывает **`ask_question`**: *«Запустить сотрудников на проверку (Viktor QA, Критик UX, Elena и др.)?»* с вариантами: `(Recommended) Без проверки (экономия токенов)`, `Да, запустить рекомендуемых сотрудников`, `Запустить только Критика + Елену`, `Запустить только Виктора`.
-   - При «Без проверки» не-UI код завершается сразу (0 токенов субагентов). При правках UI-файлов хук `qa-gate` требует вердикт `[UX PASS]` от `@kritik`.
+   - При «Без проверки» не-UI код завершается сразу (0 токенов). При правках UI-файлов `qa-gate` требует `[UX PASS]` от `@kritik`. Вердикты (`[QA/SECURITY PASS]`, `[COMPLIANCE PASS]`, `[UX PASS]`) валидируются строго по UUID субагентов (`ackToken`).
 4. **TDD, Self-Repair & Completeness (Rule 4):** Red-Green-Refactor. Воспроизведение дефекта тестом до правок. До 3 попыток автопочинки по стектрейсу.
 5. **Аудит, Чекпоинты, Инстинкты Проекта и Контроль Контекста (Rule 5):**
    - Чекпоинты — в `.hermes/checkpoint.md`, граф задач — в `.hermes/tasks.json`.
@@ -80,7 +67,7 @@
 6. **Прямые вызовы (@специалист, Rule 6):** Запрос перенаправляется адресату через `send_message`, ответ возвращается пользователю.
 7. **Git-Flow (`[TASK-ID]`, Rule 7):** Формат `[TASK-ID] <type>: <description>`. Пуш строго после верификации Viktor и Stanislav.
 8. **Clean Edits & No Patch Scripts (Rule 8):** Правки через `edit_file`, новые — `write_file`. Скрипты-патчи (`*.ps1`, `.bat`, `.py`) запрещены.
-9. **Zero-Hardcode & Dynamic Configuration (Rule 9):** Запрещены IP/порты (`127.0.0.1`, `8080`), креды, пути (`C:\...`), `Thread.Sleep`. Конфиг — в `.env`, `appsettings.json`, `.ini`. Хардкод ➔ `[QA REJECT]`.
+9. **Zero-Hardcode & Dynamic Configuration (Rule 9):** Запрещены IP/порты (`127.0.0.1`), креды, пути, `Thread.Sleep`. Конфиг — в `.env`/`appsettings.json`. Исключение: `// hermes-hardcode-ignore: <причина>`.
 10. **Investigation Routing (Rule 10):** Выбор между экспресс-поиском (Lead) и консилиумом команды (`@dmitry`, `@denis`, `@elena`, `@kritik`, `@viktor`...).
 11. **Комплаенс (Stanislav, Rule 11):** Ревизия 15 правил флота Hermes. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация строго при `🟢 [COMPLIANCE PASS]`.
 12. **Dual-Contour Lifecycle, Bounded Waves (3–5), Single Build Gate & Anti-Premature Kill (Rule 12):**
@@ -97,6 +84,8 @@
 ## 📚 Модульные регламенты и стандарты (Stack-First References)
 
 * **Маршрутизация и цепная реакция:** [`specialist-dispatch-matrix.md`](specialist-dispatch-matrix.md)
+* **Справочник команд Hermes:** [`hermes-commands-reference.md`](hermes-commands-reference.md)
+* **Защита от регрессий и 100% полнота:** [`anti-regression-protocol.md`](anti-regression-protocol.md)
 * **Адаптивное планирование (BMAD, Spec Law, Decisions Ledger):** [`orchestrator-planning.md`](orchestrator-planning.md)
 * **Шаблоны спецификаций и планов (Spec-Driven Templates):** [`spec-driven-templates.md`](spec-driven-templates.md)
 * **Параллельная разработка (Refinery Merge Queue, Beads Ledger, Watchdog):** [`orchestrator-parallel.md`](orchestrator-parallel.md)

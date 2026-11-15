@@ -35,7 +35,7 @@ This guide explains the most common guard and gate notices, why they occur, and 
 ### 4. `Hermes Rule 9 (Zero Hardcode & Dynamic Configuration)`
 * **Message:** `Обнаружен захардкоженный IP-адрес / порт / путь / секрет...`
 * **Why it happens:** Writing literal IP addresses (`192.168.x.x`), drive letters (`C:\...`), passwords, or API tokens directly into application source code.
-* **Resolution:** Move all environment-specific values to configuration providers (`appsettings.json`, `.env`, configuration classes, or environment variables).
+* **Resolution:** Move all environment-specific values to configuration providers (`appsettings.json`, `.env`, configuration classes, or environment variables). If a literal is truly unavoidable (e.g. local loopback in dev harness or fixed protocol constant), add an inline escape comment with a mandatory non-empty reason: `// hermes-hardcode-ignore: <причина>`. Note: empty reasons are strictly rejected, and this directive does not bypass Layer 1 security patterns (`innerHTML`, `eval`).
 
 ---
 

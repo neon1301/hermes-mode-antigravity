@@ -94,7 +94,7 @@ const secSchema = loadSchema('security-verdict.schema.json');
 test('valid_security_verdict', () => {
   const valid = {
     status: 'PASS',
-    signature: 'viktor-sec-review-v3.7.0',
+    ackToken: 'viktor-sec-review-v3.7.0',
     diffHash: 'a1b2c3d4e5f6',
     conversationId: 'conv-123',
     turnMarker: 1,
@@ -108,7 +108,7 @@ test('valid_security_verdict', () => {
 test('invalid_security_verdict_non_zero_unresolved', () => {
   const invalid = {
     status: 'PASS',
-    signature: 'viktor-sec-review-v3.7.0',
+    ackToken: 'viktor-sec-review-v3.7.0',
     diffHash: 'a1b2c3d4e5f6',
     conversationId: 'conv-123',
     reviewedAt: new Date().toISOString(),

@@ -270,38 +270,51 @@ let postEditAskToolCallId = '';
 
 const nonAuditorSubagentIds = new Set();
 const viktorSubagentUuids = new Set();
-let pendingNonAuditorCount = 0;
-let pendingViktorCount = 0;
+const stanislavSubagentUuids = new Set();
+const kritikSubagentUuids = new Set();
+const pendingSubagents = [];
 
-for (const s of turnSteps) {
+for (let i = 0; i < steps.length; i++) {
+  const s = steps[i];
   for (const tc of collectToolCalls(s)) {
     const name = String(tc?.name || '').toLowerCase();
     const args = tc?.args || {};
     if (name === 'invoke_subagent') {
       const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
-      if (typeName) invokedSpecialists.add(typeName);
+      if (i > lastUserIdx && typeName) invokedSpecialists.add(typeName);
       if (typeName === 'viktor') {
-        pendingViktorCount++;
-      } else if (typeName !== 'stanislav' && typeName !== 'kritik') {
-        pendingNonAuditorCount++;
+        pendingSubagents.push('viktor');
+      } else if (typeName === 'stanislav') {
+        pendingSubagents.push('stanislav');
+      } else if (typeName === 'kritik') {
+        pendingSubagents.push('kritik');
+      } else {
+        pendingSubagents.push('non_auditor');
+      }
+    } else if (name === 'send_message') {
+      const recipient = String(args.Recipient || args.recipient || '').toLowerCase();
+      if (recipient && viktorSubagentUuids.has(recipient)) {
+        if (i > lastUserIdx) invokedSpecialists.add('viktor');
+      } else if (recipient && stanislavSubagentUuids.has(recipient)) {
+        if (i > lastUserIdx) invokedSpecialists.add('stanislav');
+      } else if (recipient && kritikSubagentUuids.has(recipient)) {
+        if (i > lastUserIdx) invokedSpecialists.add('kritik');
       }
     }
   }
 
   const stepType = String(s?.type || '').toUpperCase();
   const textToScan = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
-  if (pendingViktorCount > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
-    const m = textToScan.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
-    if (m) {
-      viktorSubagentUuids.add(m[1].toLowerCase());
-      pendingViktorCount--;
-    }
-  }
-  if (pendingNonAuditorCount > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
-    const m = textToScan.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
-    if (m) {
-      nonAuditorSubagentIds.add(m[1].toLowerCase());
-      pendingNonAuditorCount--;
+  if (pendingSubagents.length > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
+    const matches = [...textToScan.matchAll(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)];
+    for (const m of matches) {
+      if (pendingSubagents.length === 0) break;
+      const kind = pendingSubagents.shift();
+      const uuid = m[1].toLowerCase();
+      if (kind === 'viktor') viktorSubagentUuids.add(uuid);
+      else if (kind === 'stanislav') stanislavSubagentUuids.add(uuid);
+      else if (kind === 'kritik') kritikSubagentUuids.add(uuid);
+      else nonAuditorSubagentIds.add(uuid);
     }
   }
 }
@@ -318,23 +331,33 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     if (!isStopReminder) {
       const senderMatch = sysText.match(/sender=["']?([0-9a-f-]{36})["']?/i);
       const senderUuid = senderMatch ? senderMatch[1].toLowerCase() : (String(s?.sender || '').match(/^[0-9a-f-]{36}$/i) ? String(s.sender).toLowerCase() : '');
-      const isFromNonAuditor = senderUuid && nonAuditorSubagentIds.has(senderUuid);
       const isViktorSender = Boolean(senderUuid && viktorSubagentUuids.has(senderUuid));
+      const isStanislavSender = Boolean(senderUuid && stanislavSubagentUuids.has(senderUuid));
+      const isKritikSender = Boolean(senderUuid && kritikSubagentUuids.has(senderUuid));
 
-      if (!isFromNonAuditor) {
-        if (isViktorSender) {
-          viktorDeliveryTexts.push(sysText);
-        }
-
+      if (isViktorSender) {
+        viktorDeliveryTexts.push(sysText);
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
           hasQaPass = true;
         }
-        if (isViktorSender && /\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
+        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
           hasSecurityPass = true;
         }
-        if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) hasUxPass = true;
-        if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) hasCompliancePass = true;
+      }
+
+      if (isStanislavSender) {
+        const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
+        if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) {
+          hasCompliancePass = true;
+        }
+      }
+
+      if (isKritikSender) {
+        const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
+        if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) {
+          hasUxPass = true;
+        }
       }
     }
   }
@@ -509,7 +532,7 @@ if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
   try {
     const verdictData = JSON.parse(fs.readFileSync(secVerdictFile, 'utf-8'));
     const isPass = verdictData?.status === 'PASS';
-    const hasSignature = Boolean(verdictData?.signature);
+    const hasAckToken = Boolean(verdictData?.ackToken || verdictData?.signature);
     // R1: unresolvedHighCritical must be explicitly === 0. Missing or non-zero = reject
     const noUnresolved = verdictData?.unresolvedHighCritical === 0;
 
@@ -530,13 +553,13 @@ if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
     const reviewedAtMs = Date.parse(verdictData?.reviewedAt || '');
     const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= 5 * 60 * 1000;
 
-    if (isPass && hasSignature && noUnresolved && hasTranscriptProof && hasViktorDeliveryWithHash && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
+    if (isPass && hasAckToken && noUnresolved && hasTranscriptProof && hasViktorDeliveryWithHash && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
       hasSecurityPass = true;
     } else {
       logGateDecision({
         decision: 'continue',
         reason: 'security-verdict.json rejected: anti-self-signing check failed',
-        checks: { isPass, hasSignature, noUnresolved, hasTranscriptProof, hasViktorDeliveryWithHash, hasDiffHashMatch, hasConvMatch, hasTurnMatch, isFresh }
+        checks: { isPass, hasAckToken, noUnresolved, hasTranscriptProof, hasViktorDeliveryWithHash, hasDiffHashMatch, hasConvMatch, hasTurnMatch, isFresh }
       });
     }
   } catch (err) {
@@ -653,7 +676,7 @@ const teamHint = recommendedTeam.size > 0
   : '';
 
 const blockReason = (isEconomySkipRequested && editedUiFiles.size > 0 && !hasUxPass)
-  ? `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): Режим экономии активирован (QA пропущен), но затронуты UI-файлы (${[...editedUiFiles].join(', ')}). Для исключения дефектов дизайна требуется вердикт [UX PASS] от Kritik.`
-  : `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку (${missing.join(', ')}) или завершить без проверки (экономия токенов)?» (Либо если пользователь уже подтвердил проверку — дождитесь ${missing.join(' и ')}).${teamHint}`;
+  ? `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): Режим экономии активирован (QA пропущен), но затронуты UI-файлы (${[...editedUiFiles].join(', ')}). Для исключения дефектов дизайна требуется вердикт [UX PASS] от Kritik.\n[EN: Hermes Gate (attempt ${attempt + 1}/${MAX_RETURNS}): Economy mode active (QA skipped), but UI files modified (${[...editedUiFiles].join(', ')}). [UX PASS] verdict from Kritik is required.]`
+  : `Hermes Gate (попытка ${attempt + 1}/${MAX_RETURNS}): изменено исходников: ${editedSourceFiles.size}. Чтобы не тратить токены на мелких правках, вызовите ask_question и спросите пользователя: «Я закончил доработку. Запустить сотрудников на проверку (${missing.join(', ')}) или завершить без проверки (экономия токенов)?» (Либо если пользователь уже подтвердил проверку — дождитесь ${missing.join(' и ')}).${teamHint}\n[EN: Hermes Gate (attempt ${attempt + 1}/${MAX_RETURNS}): ${editedSourceFiles.size} source files modified. To save tokens on small edits, invoke ask_question to ask user: "Finished modifications. Run verification (${missing.join(', ')}) or finish without verification (token economy)?" (Or if user already approved verification — await ${missing.join(' and ')}).]`;
 
 blockStop(blockReason);

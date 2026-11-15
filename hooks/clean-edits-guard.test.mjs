@@ -129,6 +129,11 @@ const cases = [
   { name: 'allow_l1_igor_file', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/igor/mock.py', Content: 'import pickle\ndata = pickle.loads(raw)' } } } },
   { name: 'allow_l1_when_pattern_rules_env_disabled', expected: 'allow', env: { HERMES_PATTERN_RULES: '0' }, payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput;' } } } },
 
+  // Rule 9 hermes-hardcode-ignore escape hatch (REQ-7)
+  { name: 'allow_hardcode_with_valid_ignore_reason', expected: 'allow', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: 'var url = "http://127.0.0.1:8080"; // hermes-hardcode-ignore: local dev server binding' } } } },
+  { name: 'deny_hardcode_with_empty_ignore_reason', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: 'var url = "http://127.0.0.1:8080"; // hermes-hardcode-ignore: ' } } } },
+  { name: 'deny_l1_inner_html_despite_hardcode_ignore', expected: 'deny', payload: { toolCall: { name: 'write_file', args: { Path: 'src/view.js', Content: 'elem.innerHTML = userInput; // hermes-hardcode-ignore: safe inner html' } } } },
+
   // REQ-2: Dual tool naming view_file & read_file
   { name: 'deny_view_file_project_file_before_model_handshake', expected: 'deny', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'view_file', args: { AbsolutePath: 'E:\\PRO\\SERVER_Modernized\\LoomConnectionSettingsForm.cs' } } } },
   { name: 'allow_view_file_skill_doc_before_model_handshake', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes проверь форму\n</USER_REQUEST>' }], payload: { lastUserInput: '/hermes проверь форму', toolCall: { name: 'view_file', args: { AbsolutePath: 'C:\\Users\\User\\.gemini\\config\\plugins\\hermes-fleet\\skills\\hermes\\SKILL.md' } } } },
@@ -217,6 +222,17 @@ try {
   } finally {
     fs.rmSync(customWsDir, { recursive: true, force: true });
     fs.rmSync(dummyCwdDir, { recursive: true, force: true });
+  }
+
+  // REQ-6: hooks.json matcher must not contain view_file or read_file
+  totalChecks++;
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'hooks.json'), 'utf-8'));
+  const preToolMatcher = hooksJson['hermes-clean-edits']?.PreToolUse?.[0]?.matcher || '';
+  if (!preToolMatcher.includes('view_file') && !preToolMatcher.includes('read_file')) {
+    console.log('PASS hooks_json_matcher_excludes_view_and_read_file');
+  } else {
+    failed++;
+    console.log(`FAIL hooks_json_matcher_excludes_view_and_read_file: matcher contains view_file or read_file: ${preToolMatcher}`);
   }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });

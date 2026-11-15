@@ -324,6 +324,15 @@ function hasSecurityIgnoreComment(text) {
   return /hermes-security-ignore\s*:/i.test(text);
 }
 
+function getHardcodeIgnoreReason(text) {
+  const m = String(text || '').match(/hermes-hardcode-ignore\s*:\s*([^\r\n*]+)/i);
+  if (m) {
+    const reason = m[1].trim();
+    if (reason.length > 0) return reason;
+  }
+  return null;
+}
+
 const L1_BLOCK_PATTERNS = [
   {
     name: 'Industrial Safety Interlock Override / Bypassing Emergency Stop',
@@ -356,19 +365,36 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
   const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
   if (PATCH_FILE_RE.test(targetPath)) {
     deny(
-      `Hermes Rule 8 (Clean Edits Policy): запрещено создавать или редактировать временные патч-скрипты (${targetPath}). Используйте edit_file / write_file напрямую.`
+      `Hermes Rule 8 (Clean Edits Policy): запрещено создавать или редактировать временные патч-скрипты (${targetPath}). Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating or modifying temporary patch scripts (${targetPath}) is forbidden. Use edit_file / write_file directly.]`
     );
     process.exit(0);
   }
 
   if (SOURCE_CODE_EXT_RE.test(targetPath) && !HARDCODE_SKIP_PATH_RE.test(targetPath)) {
     const written = collectWrittenText(args);
+    const hasHardcodeIgnoreDirective = /hermes-hardcode-ignore/i.test(written);
+    const hardcodeIgnoreReason = getHardcodeIgnoreReason(written);
+    if (hasHardcodeIgnoreDirective && !hardcodeIgnoreReason) {
+      deny(
+        'Hermes Rule 9 (Zero-Hardcode Policy): комментарий hermes-hardcode-ignore требует обязательного непустого обоснования (hermes-hardcode-ignore: <причина>).\n[EN: Hermes Rule 9: hermes-hardcode-ignore requires a mandatory non-empty reason (hermes-hardcode-ignore: <reason>).]'
+      );
+      process.exit(0);
+    }
+
     for (const rule of HARDCODE_RULES) {
       if (rule.test(written)) {
-        deny(
-          `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или пути от рабочей директории.`
-        );
-        process.exit(0);
+        if (hardcodeIgnoreReason) {
+          logGateDecision({
+            toolName,
+            decision: 'allow',
+            reason: `Rule 9 hardcode ignored: ${hardcodeIgnoreReason} (matched ${rule.name})`
+          });
+        } else {
+          deny(
+            `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или пути от рабочей директории.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath}. Extract value to config/environment variable or relative workspace path.]`
+          );
+          process.exit(0);
+        }
       }
     }
 
@@ -378,7 +404,7 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
         for (const rule of L1_BLOCK_PATTERNS) {
           if (rule.test(written)) {
             deny(
-              `Hermes Security Layer 1: в ${targetPath} обнаружен критический паттерн [${rule.name}]. Если вызов легитимен, добавьте inline-обоснование '// hermes-security-ignore: <причина>'.`
+              `Hermes Security Layer 1: в ${targetPath} обнаружен критический паттерн [${rule.name}]. Если вызов легитимен, добавьте inline-обоснование '// hermes-security-ignore: <причина>'.\n[EN: Hermes Security Layer 1: critical pattern [${rule.name}] detected in ${targetPath}. If legitimate, add inline '// hermes-security-ignore: <reason>'.]`
             );
             process.exit(0);
           }
@@ -422,14 +448,14 @@ if (toolName === 'run_command') {
   const cmd = stripGitCommitMessages(rawCmd);
   if (SHELL_PATCH_CREATE_RE.test(cmd)) {
     deny(
-      'Hermes Rule 8 (Clean Edits Policy): запрещено создавать временные патч-скрипты (patch_*.ps1/.bat/.py/.sh) через shell. Используйте edit_file / write_file напрямую.'
+      'Hermes Rule 8 (Clean Edits Policy): запрещено создавать временные патч-скрипты (patch_*.ps1/.bat/.py/.sh) через shell. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating temporary patch scripts via shell is forbidden. Use edit_file / write_file directly.]'
     );
     process.exit(0);
   }
   for (const mut of SHELL_MUTATE_PATTERNS) {
     if (mut.re.test(cmd)) {
       deny(
-        `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.`
+        `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: modifying source code via ${mut.name} is forbidden. Use edit_file / write_file directly.]`
       );
       process.exit(0);
     }
@@ -460,7 +486,7 @@ if (toolName === 'invoke_subagent') {
     const subType = String(spec.TypeName || spec.typeName || '').toLowerCase();
     if (subType === 'mozgoeb' || subType === 'мозгоеб') {
       deny(
-        'Hermes Fleet: специалист @mozgoeb переименован в @kritik. Файл agents/mozgoeb.md удалён. Вызовите invoke_subagent с TypeName: "kritik".',
+        'Hermes Fleet: специалист @mozgoeb переименован в @kritik. Файл agents/mozgoeb.md удалён. Вызовите invoke_subagent с TypeName: "kritik".\n[EN: Hermes Fleet: specialist @mozgoeb was renamed to @kritik. Invoke invoke_subagent with TypeName: "kritik".]',
         { subType }
       );
       process.exit(0);
@@ -471,7 +497,7 @@ if (toolName === 'invoke_subagent') {
       const validModels = new Set(['inherit', 'flash', 'flash_lite', 'pro']);
       if (!validModels.has(reqModel)) {
         deny(
-          `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".`,
+          `Hermes Rule 12: invoke_subagent принимает только enum Model: "inherit" (наследует уровень родителя, вкл. High), "flash" (Medium), "flash_lite" (Low), "pro" (Pro). Передано недопустимое значение: "${reqModel}". Для Flash High используйте Model: "inherit".\n[EN: Hermes Rule 12: invoke_subagent accepts only Model enum: "inherit", "flash", "flash_lite", "pro". Invalid value: "${reqModel}". For Flash High use Model: "inherit".]`,
           { model: reqModel, subType }
         );
         process.exit(0);
@@ -493,14 +519,14 @@ if (toolName === 'invoke_subagent') {
       if (detectedTier === 'high') {
         if (hostModel.includes('flash') && reqModel === 'flash') {
           deny(
-            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High (зафиксирован в Handshake/checkpoint). Запрещено занижать модель субагента до Model: "flash"! Для сохранения уровня High передайте Model: "inherit" (или "pro" для сложных задач дизайна/архитектуры).',
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High (зафиксирован в Handshake/checkpoint). Запрещено занижать модель субагента до Model: "flash"! Для сохранения уровня High передайте Model: "inherit" (или "pro" для сложных задач дизайна/архитектуры).\n[EN: Hermes Rule 12: High tier selected in current session. Downgrading subagent model to "flash" is forbidden. Pass Model: "inherit" or "pro".]',
             { model: reqModel, tier: detectedTier, subType }
           );
           process.exit(0);
         }
         if (reqModel === 'flash_lite') {
           deny(
-            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High. Запрещено передавать Model: "flash_lite"! Передайте Model: "inherit" (или "pro").',
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень High. Запрещено передавать Model: "flash_lite"! Передайте Model: "inherit" (или "pro").\n[EN: Hermes Rule 12: High tier selected in current session. Model: "flash_lite" is forbidden. Pass Model: "inherit" or "pro".]',
             { model: reqModel, tier: detectedTier, subType }
           );
           process.exit(0);
@@ -508,14 +534,14 @@ if (toolName === 'invoke_subagent') {
       } else if (detectedTier === 'medium') {
         if (hostModel.includes('flash-high') && (!hasExplicitModel || reqModel === 'inherit')) {
           deny(
-            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium, а хост работает на Flash High. Во избежание перерасхода токенов передайте явно Model: "flash" вместо "inherit".',
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium, а хост работает на Flash High. Во избежание перерасхода токенов передайте явно Model: "flash" вместо "inherit".\n[EN: Hermes Rule 12: Medium tier selected while host is Flash High. To avoid token waste, pass explicit Model: "flash".]',
             { model: reqModel, tier: detectedTier, subType }
           );
           process.exit(0);
         }
         if (reqModel === 'flash_lite') {
           deny(
-            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium. Передайте Model: "flash".',
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Medium. Передайте Model: "flash".\n[EN: Hermes Rule 12: Medium tier selected in current session. Pass Model: "flash".]',
             { model: reqModel, tier: detectedTier, subType }
           );
           process.exit(0);
@@ -524,7 +550,7 @@ if (toolName === 'invoke_subagent') {
         const isProEscalation = reqModel === 'pro' && (subType === 'elena' || subType === 'self');
         if (reqModel !== 'flash_lite' && !isProEscalation) {
           deny(
-            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite" (эскалация до "pro" разрешена только для @elena и сложных write-воркеров self).',
+            'Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень Low. Для экономии токенов передайте Model: "flash_lite" (эскалация до "pro" разрешена только для @elena и сложных write-воркеров self).\n[EN: Hermes Rule 12: Low tier selected in current session. To save tokens pass Model: "flash_lite".]',
             { model: reqModel, tier: detectedTier, subType }
           );
           process.exit(0);
@@ -565,7 +591,7 @@ if (requiresStep0Handshake) {
         );
         if (!hasHandshake) {
           deny(
-            'Hermes Rule 12 (Step 0 Model Handshake): В этом чате ещё не выполнен выбор модели для субагентов! ПЕРВЫМ действием в новой сессии /hermes (до чтения файлов проекта, запуска команд, правок или вызова субагентов) вызовите инструмент ask_question с 2 вопросами: (1) "Какую модель ИИ использовать для всех субагентов?" и (2) "Какой режим (уровень ума) поставить субагентам?" (Medium, High, Low). Старый .hermes/checkpoint.md от прошлых чатов не заменяет опрос в новом чате!'
+            'Hermes Rule 12 (Step 0 Model Handshake): В этом чате ещё не выполнен выбор модели для субагентов! ПЕРВЫМ действием в новой сессии /hermes (до чтения файлов проекта, запуска команд, правок или вызова субагентов) вызовите инструмент ask_question с 2 вопросами: (1) "Какую модель ИИ использовать для всех субагентов?" и (2) "Какой режим (уровень ума) поставить субагентам?" (Medium, High, Low). Старый .hermes/checkpoint.md от прошлых чатов не заменяет опрос в новом чате!\n[EN: Hermes Rule 12: Subagent model handshake not performed in this session. First action must be ask_question with model and tier options.]'
           );
           process.exit(0);
         }
@@ -597,7 +623,7 @@ if (requiresStep0Handshake) {
         }
         if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx) {
           deny(
-            'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»'
+            'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»\n[EN: Hermes Token Economy Rule: Code already modified in this turn. Do not launch verification automatically. First invoke ask_question to ask user.]'
           );
           process.exit(0);
         }
@@ -653,7 +679,7 @@ if (toolName === 'manage_subagents') {
 
         if (pendingIds.size > 0 || (dispatchedCount > replyCount) || (lastDispatchedIdx > lastReplyIdx)) {
           deny(
-            'Hermes Rule 12 (Anti-Premature Kill): ЗАПРЕЩЕНО вызывать manage_subagents(kill / kill_all), пока запущенные субагенты ещё работают и не прислали отчёт! После вызова invoke_subagent или send_message НЕМЕДЛЕННО ЗАВЕРШИТЕ СВОЙ ХОД (не вызывайте больше инструментов и НЕ выдумывайте отчёт за сотрудников) — система сама разбудит вас, когда субагенты ответят.'
+            'Hermes Rule 12 (Anti-Premature Kill): ЗАПРЕЩЕНО вызывать manage_subagents(kill / kill_all), пока запущенные субагенты ещё работают и не прислали отчёт! После вызова invoke_subagent или send_message НЕМЕДЛЕННО ЗАВЕРШИТЕ СВОЙ ХОД (не вызывайте больше инструментов и НЕ выдумывайте отчёт за сотрудников) — система сама разбудит вас, когда субагенты ответят.\n[EN: Hermes Rule 12: Calling manage_subagents(kill / kill_all) while subagents are running is forbidden. Await subagent responses.]'
           );
           process.exit(0);
         }

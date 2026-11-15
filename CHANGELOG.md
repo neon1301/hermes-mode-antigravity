@@ -32,6 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Synchronized MAJOR version `4.0.0` across all 7 targets: `plugin.json`, `package.json`, `README.md`, `skills/hermes/references/fleet-protocol.md`, `skills/hermes/SKILL.md`, `install.ps1`, and `install.sh`.
   - Added `"scripts"` directory to `install.ps1` and `install.sh` distribution payload.
 
+### Security Hardening, Anti-Self-Signing & Platform Alignment
+- **Symmetric UUID Verdict Binding (qa-gate.mjs, REQ-4):**
+  - Bound verdict recognition strictly to authentic incoming `SYSTEM` deliveries from verified subagent session UUIDs: `[QA PASS]` and `[SECURITY PASS]` strictly from `@viktor`, `[COMPLIANCE PASS]` strictly from `@stanislav`, and `[UX PASS]` strictly from `@kritik`.
+  - Prohibited name and string fallbacks (`sender="viktor"`, `s.sender`) and model prose spoofing; enforced TDD negative locks.
+- **Verdict Confirmation Token Renaming (ackToken, REQ-5):**
+  - Renamed `signature` to `ackToken` across JSON schemas (`security-verdict.schema.json`), contract validators, hooks, tests, and ADR 0001, clarifying its role as an audit acknowledgment token rather than an asymmetric cryptographic signature.
+- **Hook Matcher Optimization (hooks.json, REQ-6):**
+  - Removed `view_file` and `read_file` from `hermes-clean-edits` PreToolUse hook matcher, eliminating unnecessary 4MB parse overhead on read events while maintaining strict write and execution controls.
+- **Rule 9 Escape Hatch (hermes-hardcode-ignore, REQ-7):**
+  - Introduced `// hermes-hardcode-ignore: <mandatory reason>` inline comment for intentional constants (such as local dev loopback bindings); requires non-empty reason and logs to `.hermes/gate-log.jsonl`; strictly maintains Layer 1 security blocks (`innerHTML`, `eval`).
+- **Internationalization of Gate Messages (i18n, REQ-8):**
+  - Added single-line English translations (`[EN: ...]`) to all Russian deny and block notifications across `clean-edits-guard.mjs` and `qa-gate.mjs`.
+
 ## [3.10.0] - 2026-11-15
 
 ### Marketplace Readiness & Polish

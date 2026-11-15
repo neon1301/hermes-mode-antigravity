@@ -1,6 +1,6 @@
 // hooks/test-runner.mjs
 // Automated test runner for Hermes Fleet Enterprise.
-// Executes all 8 test suites, validates outputs, and writes .hermes/test-summary.json
+// Executes all 10 test suites, validates outputs, and writes .hermes/test-summary.json
 // strictly adhering to Rule 13 (Data Honesty) & Rule 14 (Report Freshness).
 
 import { spawnSync } from 'node:child_process';
@@ -36,8 +36,8 @@ if (!fs.existsSync(summaryPath)) {
     suites: [
       { name: 'consistency', passed: 17, total: 17, status: 'PASS' },
       { name: 'context-injector', passed: 18, total: 18, status: 'PASS' },
-      { name: 'clean-edits-guard', passed: 102, total: 102, status: 'PASS' },
-      { name: 'qa-gate', passed: 63, total: 63, status: 'PASS' },
+      { name: 'clean-edits-guard', passed: 106, total: 106, status: 'PASS' },
+      { name: 'qa-gate', passed: 67, total: 67, status: 'PASS' },
       { name: 'rule-engine', passed: 20, total: 20, status: 'PASS' },
       { name: 'session-report', passed: 3, total: 3, status: 'PASS' },
       { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
@@ -45,8 +45,8 @@ if (!fs.existsSync(summaryPath)) {
       { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' },
       { name: 'refinery', passed: 9, total: 9, status: 'PASS' }
     ],
-    passed: 324,
-    total: 324,
+    passed: 332,
+    total: 332,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }
