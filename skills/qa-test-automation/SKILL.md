@@ -54,3 +54,13 @@ Every PR or specialist deliverable MUST clear all 7 vectors before receiving `[Q
 
 - **MUST DO:** Reproduce bugs with a minimal failing test *before* fixing production code; audit all `REQ-1..REQ-N` points against `git diff`; sweep repo for `N of N` occurrences; verify UI event sequences.
 - **MUST NOT DO:** NEVER approve based solely on green builds; NEVER silently weaken assertions; NEVER leave sibling controls unpatched.
+
+---
+
+## 5. Automated Desktop UI Testing with FlaUI
+
+When verifying Windows desktop interfaces (.NET WinForms / WPF), Viktor executes automated UI tests using [`references/flaui-desktop-e2e.md`](references/flaui-desktop-e2e.md):
+- Use `UIA2Automation` for native WinForms HWND testing.
+- Guarantee process and automation teardown via `IDisposable`.
+- Query controls via semantic `AutomationId`, strictly banning brittle pixel clicking.
+- Await state transitions via `Retry.WhileNull` / `Retry.WhileFalse`, strictly banning `Thread.Sleep`.

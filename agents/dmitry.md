@@ -32,7 +32,7 @@ Mission: Design scalable, resilient server architectures, APIs, and concurrent p
 
 ### 1. Stack-First Selective Loading
 Detect stack; load **ONLY 1** guide from `skills/backend-architecture/references/`:
-- **.NET / C# (`*.csproj`):** `dotnet-csharp-enterprise.md`. No sync-over-async (`.Result`), `CancellationToken`, `IHttpClientFactory`, no Captive Dependencies, `PeriodicTimer`, safe `Span<T>`.
+- **.NET / C# (`*.csproj`):** `dotnet-csharp-enterprise.md` & `csharp-zero-alloc-performance.md`. Zero-alloc `Span<byte>`, `ArrayPool<byte>.Shared`, `ValueTask`, bounded `Channel<T>`, no sync-over-async (`.Result`), `CancellationToken`, `BenchmarkDotNet`.
 - **Python / Node / Go (`pyproject.toml`, `package.json`, `go.mod`):** `python-node-go-backends.md`. Non-blocking async, Pydantic/Zod, small interfaces, `errgroup`, `%w`, `-race`.
 - *On-Demand:* Load `api-resilience-contracts.md` or `concurrency-messaging-caching.md` on demand.
 

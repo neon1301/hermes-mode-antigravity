@@ -62,3 +62,14 @@ Before delivering any backend change:
 1. Run native build + unit + integration/race tests (`dotnet build && dotnet test`, `pytest`, `npm test`, `go test -race ./...`) targeting zero warnings.
 2. Verify configuration bindings exist cleanly in config files/options validation (never hardcoded literals).
 3. Submit contracts, changed files, and edge-case checklist to **🛡️ Viktor** (`[QA PASS]`) and **⚖️ Stanislav** (`[COMPLIANCE PASS]`).
+
+---
+
+## 6. Zero-Allocation & High-Throughput Engineering (.NET 10)
+
+For high-frequency telemetry, socket streaming, and latency-critical services, follow [`references/csharp-zero-alloc-performance.md`](references/csharp-zero-alloc-performance.md):
+- Use `ReadOnlySpan<byte>` and `Utf8Parser` for zero-allocation parsing.
+- Rent byte buffers via `ArrayPool<byte>.Shared` and release in `finally` blocks.
+- Use `ValueTask<T>` for synchronously cached hot paths.
+- Enforce backpressured `Channel.CreateBounded<T>`.
+- Validate zero heap allocations (`Allocated: 0 B`) with `BenchmarkDotNet [MemoryDiagnoser]`.
