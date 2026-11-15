@@ -1,6 +1,6 @@
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.7.4)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v3.8.0)
 
-Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 21 профессиональный скилл**.
+Автономный мультиагентный комплекс Hermes Enterprise: **Мастер-Оркестратор Lead (с встроенным продуктовым «Глазом Критика») + 14 универсальных специалистов (оптимизированных под быстрые модели `Gemini 3.8 Flash` со Stack-First маршрутизацией, анти-регрессионным контролем `REQ-1..REQ-N`, сквозным поиском `N из N` мест, защитой от частичных фиксов и UI-гонок, триггерной подгрузкой через `PreInvocation`, защитными хуками `PreToolUse`/`Stop`, независимым ревизором Stanislav, 3D/Digital Twin инженером Gleb `@gleb` и 360° UX-критиком/скаутом мировых трендов Критик `@kritik`) + 22 профессиональных скилла**.
 
 Команда Hermes спроектирована как **универсальные разработчики промышленных систем**: мы не привязаны к конкретным брендам станков или контроллеров, а работаем с любым промышленным оборудованием, автоматизированными линиями и вендорами по всему миру.
 
@@ -8,7 +8,7 @@
 
 ## 👥 Полный штаб специалистов Hermes (Lead + 14 экспертов):
 * 👑 **Lead (Оркестратор)** — архитектурная декомпозиция, канбан, двухконтурное исполнение (Read-Only `agents/*.md` аудит + Act/Write через Lead / `define_subagent(EnableWriteTools: true)` / `self`-пул), ограниченные волны (3–5), `manage_subagents` preflight & GC, встроенный «Глаз Критика» (Zero-Cost продуктовый и инженерный фильтр на каждом ТЗ: 4 состояния UI, человечные ошибки, Dry-Run, авто-бэкап, Channel<T>/WAL).
-* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 15 правил флота, аудит соблюдения всех 21 скилла, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
+* ⚖️ **Stanislav** — Chief Fleet Auditor & Protocol Compliance Officer (независимый ревизор команды: Policy as Code, 15 правил флота, аудит соблюдения всех 22 скиллов, нулевой хардкод, запрет патч-скриптов, арбитраж контрактов и контроль жизненного цикла субагентов).
 * 💻 **Dmitry** — Senior Backend & Systems Engineer (мультистек .NET/C#, Python/FastAPI, Node.js/TS, Go: Clean/Hexagonal, API-контракты RFC 7807, Outbox, resilience, backpressure).
 * 🎨 **Elena** — Frontend Lead & UI/UX (Anthropic Frontend Design, Web & Desktop GUI WinForms/WPF, контракт 4 состояний, анимации и формы настроек GUI, иконки через `generate_image`, A11y).
 * 🌐 **Gleb** — Lead 3D Graphics & Industrial Digital Twin Engineer (`procedural-3d-digital-twin`: процедурные 3D-модели Three.js/WebGL, цифровые двойники станков, 3D-карта цеха T01–T20 через `InstancedMesh`, привязка телеметрии к 3D-кинематике и шейдерам, WebView2-мост, нулевые утечки VRAM).
@@ -29,10 +29,10 @@
 
 ---
 
-## 🛠️ Встроенная библиотека профессиональных скиллов (21 скилл):
+## 🛠️ Встроенная библиотека профессиональных скиллов (22 скилла):
 
 1. **`compliance-policy-as-code`** — Автоматизированный аудит правил флота, архитектурные фитнес-функции (Thoughtworks), AST-фильтры Policy as Code (Semgrep/ast-grep), арбитраж контрактов и машиночитаемый отчёт `compliance-report.json`.
-2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.7.4): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
+2. **`hermes`** — Мастер-оркестрация мультиагентной команды (v3.8.0): Repo Map, двухконтурный цикл `Plan/Audit (Read-Only) vs Act/Write`, триггерная подгрузка протокола (`PreInvocation`), анти-регрессионный реестр `REQ-1..REQ-N` + сквозной поиск `N из N` мест, `Pool Reuse First`, ограниченные волны 3–5, Single Build Gate, `Subagent GC`, Model Tier Policy as Code, Git Auto-Revert, Memory Bank, TDD и `/hermes save`/`resume`.
 3. **`backend-architecture`** — Универсальный мультистековый бэкенд (.NET/C#, Python/FastAPI, Node.js/TS, Go): Clean/Hexagonal, REST/OpenAPI/RFC 7807, Idempotency & Outbox, Circuit Breaker/Retry-Jitter, bounded backpressure, кэширование и zero-alloc перформанс.
 4. **`industrial-equipment-research`** — Универсальная методология исследования промышленного оборудования, станков, контроллеров и датчиков любых мировых производителей. Поиск мануалов, даташитов, защитных директив и майнинг форумов (PLCS.net, Control.com).
 5. **`socket-network-diagnostics`** — Диагностика промышленных сокетов, устранение дефектов `CA2022 Stream.Read` (`ReadExactlyAsync`), защита от полузакрытых соединений, бюджеты таймаутов и keep-alive.
@@ -52,6 +52,7 @@
 19. **`product-ux-scouting`** — 360° продуктовая критика, разведка мировых инженерных и продуктовых трендов (RU/CN/BE/EU/JP/US), киллер-фичи, ускорение ядра, Doctor-mode и аудит эргономики/UI глазами обычного пользователя (Нильсен `0–4`, приоритеты `P0–P3`, режим «прожарки» `Roast Mode` с `File:Line`, иконки через `image-generator`/SVG, анимации с `Dispose()`, 5-пунктовая проверка `Adopt/Trial/Hold`, строго Read-Only Scout).
 20. **`procedural-3d-digital-twin`** — Процедурное 3D-моделирование (Three.js/WebGL), цифровые двойники оборудования, визуализация телеметрии станков (обороты, обрыв нити, аварии, термокарты), интерактивная 3D-карта цеха (T01–T20, InstancedMesh, Raycaster), WebGL VRAM гигиена (dispose) и интеграция с WinForms/WPF через WebView2.
 21. **`cognitive-discipline`** — Протокол трезвости и когнитивной дисциплины HERMES-COGNITION v1.1: факты только [ПРОВЕРЕНО] со ссылкой файл:строка, физика среды до архитектуры, дешевейшая опровергающая проверка, второй порядок последствий и пре-мортем планов (3 причины провала).
+22. **`office-documents`** — Корпоративная автоматизация и аудит документов Microsoft Excel (.xlsx) и Word (.docx) на Python: формульно-ориентированный подход (formula-first `=SUM(...)`), zero-error формулы, финансовая палитра, типографика заголовков (`keep_with_next`), повтор шапок таблиц и защита от Formula Injection.
 
 ---
 
@@ -64,7 +65,7 @@
 | **/hermes board** | 📊 Вывод живой интерактивной Канбан-доски прямо в чат через Generative UI |
 | **/hermes fix-warnings [--loop]** | 🧹 Пакетное устранение предупреждений компилятора до нуля (Zero Warnings Policy; `--loop` включает ограниченный цикл сходимости) |
 | **/hermes loop [задача]** | 🔄 Автономный ограниченный цикл сходимости (Bounded Convergence Loop, потолок 25 итераций, L2 в финале) |
-| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 15 правил флота и 21 скилла силами Stanislav (Compliance) |
+| **/hermes audit** | ⚖️ Независимая ревизия соблюдения всех 15 правил флота и 22 скиллов силами Stanislav (Compliance) |
 | **/hermes save** | 💾 Мгновенный снимок спринта в `.hermes/checkpoint.md` |
 | **/hermes resume** | 🔄 Восстановление контекста, задач и договоренностей из Memory Bank |
 | **/hermes review** | 🛡️ Комплексный аудит кода силами Viktor (QA) по 7 векторам надежности (`qa-test-automation` + `security-audit`) |

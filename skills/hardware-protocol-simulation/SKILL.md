@@ -25,6 +25,7 @@ Load ONLY the reference guide needed for the simulation objective:
 | :--- | :--- | :--- |
 | **Fault Injection & Smart Fuzzing** | [references/fault-injection-fuzzing.md](references/fault-injection-fuzzing.md) | **Trail of Bits Fuzzing Obstacles** (CRC/magic-header valid fuzzing), **Byte-by-Byte TCP Segmentation** (`CA2022` / `ReadExactly` stress test), abrupt TCP **`RST` vs graceful `FIN`**, half-open blackholes, latency+jitter, slow-reader/burst floods, OOM payload-length header bombs |
 | **Industrial Fault Injection Code** | [references/industrial-fault-injection.md](references/industrial-fault-injection.md) | `SocketFaultInjector` (.NET 10), `LingerOption(true, 0)` RST drop, drip fragmentation delay loop, CRC-16 Modbus mutation, blackhole simulator |
+| **Combinatorial Pairwise Testing** | [references/pairwise-fault-matrices.md](references/pairwise-fault-matrices.md) | **Microsoft PICT Pairwise Modeling**, 2-way orthogonal fault combinations (Framing × State × CRC × Payload), reducing $N^K$ matrix to deterministic test suites |
 | **Stateful Protocol Emulators** | [references/stateful-protocol-emulators.md](references/stateful-protocol-emulators.md) | **Machine FSM Emulation** (`IDLE -> RUNNING -> STOPPED -> ALARM -> E_STOP`), multi-vendor **Modbus TCP / OPC UA / Custom Binary & ASCII** mock servers, CLI test harness contract (`start`, `--port`, `--scenario`, `--burst`), PCAP/hex-dump golden playback |
 
 ---

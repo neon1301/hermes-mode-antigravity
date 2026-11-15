@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.8.0] - 2026-11-15
+
+### Fleet Skills Upgrade & World-Class Methodology Integration
+- **New Skill `office-documents`:** Enterprise document engineering for Microsoft Excel (.xlsx) and Word (.docx) workbooks adapted from `anthropics/skills` (Apache License 2.0). Implemented formula-first architecture (`=SUM(...)`), financial color modeling, zero formula error enforcement (`#REF!`, `#DIV/0!`), heading keep_with_next invariants, and formula injection sanitization. Equipped Ruslan (`@ruslan`) for SAP exports and Anna (`@anna`) for technical Word specifications.
+- **Superpowers Methodology References (`skills/hermes/references/`):** Ported battle-tested methodologies from `obra/superpowers` (MIT License):
+  - `systematic-debugging.md`: 4-phase root cause debugging workflow (Reproduce -> Trace/Isolate -> Hypothesis/Test -> Atomic Fix) with prohibition of shotgun debugging.
+  - `verification-before-completion.md`: 5-step gate function (IDENTIFY -> RUN -> READ -> VERIFY -> ONLY THEN) with strict prohibition of unverified completion claims.
+  - `writing-skills.md`: Standard specification for authoring bounded, verifiable, stack-first Antigravity skills.
+- **Elena Platform Design & A11y Standards:** Integrated Apple HIG, Google Material Design 3, and WCAG 2.2 AA accessibility checklists into `skills/frontend-design/references/platform-design-systems.md` (adapted from `ehmo/platform-design-skills`).
+- **Viktor Playwright E2E Testing Patterns:** Integrated Page Object Model, web-first auto-waiting assertions, network idle synchronization, and trace-based flake elimination into `skills/qa-test-automation/references/playwright-e2e-patterns.md` (adapted from `testdino-hq/playwright-skill`).
+- **Igor Pairwise Fault Testing:** Integrated Microsoft PICT combinatorial testing syntax and 2-way orthogonal fault injection matrices into `skills/hardware-protocol-simulation/references/pairwise-fault-matrices.md` (adapted from `omkamal/pypict-skill`).
+- **Stanislav Skill Trigger & Hallucinated Tool Verification:** Integrated automated skill discovery trigger checks and hallucinated tool call detectors into `skills/compliance-policy-as-code/references/skill-trigger-verification.md` (adapted from `UiPath/check-skill` and `aurite-ai/agent-verifier`).
+- **Gleb Modern Three.js (r186+) Patterns:** Integrated modern PBR materials, instanced telemetry rendering, and GPU VRAM disposal lifecycles into `skills/procedural-3d-digital-twin/references/modern-threejs-patterns.md` (adapted from `CloudAI-X/threejs-skills`).
+- **Kritik Russian Typography & Info-Style:** Integrated Russian typography rules (`« »`, `—`, `&nbsp;`), anti-neuroslop guidelines, and UX microcopy standards into `skills/product-ux-scouting/references/ru-text-typography.md` (adapted from `talkstream/ru-text`).
+- **Mikhail Context Compaction & Token Economy:** Integrated prefix caching, KV reuse, and structured output density into `skills/agent-context-memory-engineering/references/context-compaction-patterns.md` (adapted from `muratcankoylan/context-*`).
+- **Deferred Candidates Registry:** Documented rationales for holding non-core catalog packages in `docs/backlog.md`.
+- **Third-Party Attribution:** Added explicit attribution entries in `THIRD_PARTY_NOTICES.md` for MIT and Apache 2.0 donors.
+- **Test Suite & Verification Expansion:** Updated `consistency.test.mjs` to validate 22 skills, updated doc-linting to 15 verify scripts, and updated test runner baseline.
+
 ## [3.7.4] - 2026-11-15
 
 ### Skill Hygiene, Tool Realignment & Verification Linting

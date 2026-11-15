@@ -27,11 +27,11 @@ await test('agents_count_14', () => {
   if (agents.length !== 14) throw new Error(`Expected 14 agents, found ${agents.length}`);
 });
 
-// 2. Validate skills count (21)
-await test('skills_count_21', () => {
+// 2. Validate skills count (22)
+await test('skills_count_22', () => {
   const skillsDir = path.join(rootDir, 'skills');
   const skills = fs.readdirSync(skillsDir).filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')));
-  if (skills.length !== 21) throw new Error(`Expected 21 skills, found ${skills.length}`);
+  if (skills.length !== 22) throw new Error(`Expected 22 skills, found ${skills.length}`);
 });
 
 // 3. Verify no outdated counters in documentation
@@ -50,7 +50,7 @@ await test('no_stale_counters_in_docs', () => {
     const p = path.join(rootDir, rel);
     if (!fs.existsSync(p)) continue;
     const content = fs.readFileSync(p, 'utf-8');
-    if (/\b(?:19|20)\s+(?:specialist\s+skills|скилл)/i.test(content)) {
+    if (/\b(?:19|20|21)\s+(?:specialist\s+skills|скилл)/i.test(content)) {
       throw new Error(`Found outdated counter in ${rel}`);
     }
     if (/Lead\s*\+\s*13\b/i.test(content)) {
@@ -315,7 +315,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 8 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 15,
+    'consistency': 16,
     'context-injector': 18,
     'clean-edits-guard': 102,
     'qa-gate': 63,
@@ -331,8 +331,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 298 || summary.passed !== 298) {
-    throw new Error(`test-summary.json expected total=298, passed=298, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 299 || summary.passed !== 299) {
+    throw new Error(`test-summary.json expected total=299, passed=299, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -383,7 +383,8 @@ await test('doc_lint_verify_scripts_pass', async () => {
     'skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs',
     'skills/reverse-engineer-anything/scripts/verify-frame-disassembly-patterns.mjs',
     'skills/sap-enterprise-automation/scripts/verify-sap-nco-hygiene.mjs',
-    'skills/socket-network-diagnostics/scripts/verify-pipeline-streaming-patterns.mjs'
+    'skills/socket-network-diagnostics/scripts/verify-pipeline-streaming-patterns.mjs',
+    'skills/office-documents/scripts/verify-office-documents-patterns.mjs'
   ];
   for (const s of verifyScripts) {
     const fullPath = path.join(rootDir, s);
@@ -412,6 +413,42 @@ await test('doc_lint_verify_scripts_pass', async () => {
         throw new Error(`Skill '${s}' description lacks a 'when' trigger clause`);
       }
     }
+  }
+});
+
+// 16. Verify donor skill references, attribution, and zero hallucinated tools
+await test('donor_skills_references_and_attribution_integrity', () => {
+  const expectedReferences = [
+    'skills/hermes/references/systematic-debugging.md',
+    'skills/hermes/references/verification-before-completion.md',
+    'skills/hermes/references/writing-skills.md',
+    'skills/office-documents/references/xlsx-standards.md',
+    'skills/office-documents/references/docx-standards.md',
+    'skills/frontend-design/references/platform-design-systems.md',
+    'skills/qa-test-automation/references/playwright-e2e-patterns.md',
+    'skills/hardware-protocol-simulation/references/pairwise-fault-matrices.md',
+    'skills/compliance-policy-as-code/references/skill-trigger-verification.md',
+    'skills/procedural-3d-digital-twin/references/modern-threejs-patterns.md',
+    'skills/product-ux-scouting/references/ru-text-typography.md',
+    'skills/agent-context-memory-engineering/references/context-compaction-patterns.md'
+  ];
+  for (const rel of expectedReferences) {
+    const full = path.join(rootDir, rel);
+    if (!fs.existsSync(full)) {
+      throw new Error(`Missing expected donor reference file: ${rel}`);
+    }
+  }
+
+  const noticesPath = path.join(rootDir, 'THIRD_PARTY_NOTICES.md');
+  const noticesContent = fs.readFileSync(noticesPath, 'utf-8');
+  if (!noticesContent.includes('obra/superpowers') || !noticesContent.includes('anthropics/skills')) {
+    throw new Error('THIRD_PARTY_NOTICES.md missing obra/superpowers or anthropics/skills attribution');
+  }
+
+  const backlogPath = path.join(rootDir, 'docs', 'backlog.md');
+  const backlogContent = fs.readFileSync(backlogPath, 'utf-8');
+  if (!backlogContent.includes('TASK-002') || !backlogContent.includes('Deferred Skill Candidates Registry')) {
+    throw new Error('docs/backlog.md missing TASK-002 Deferred Skill Candidates Registry');
   }
 });
 

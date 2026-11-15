@@ -1,11 +1,11 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v3.7.4) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v3.8.0) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v3.7.4)
+# Hermes Master Orchestration Engine (v3.8.0)
 
-Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md).
+Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md). For engineering protocols, see [`references/systematic-debugging.md`](references/systematic-debugging.md), [`references/verification-before-completion.md`](references/verification-before-completion.md), and [`references/writing-skills.md`](references/writing-skills.md).
 
 ---
 
@@ -65,7 +65,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ---
 
-## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (14 Experts ➔ 21 Skills)
+## 👥 Specialist Routing & Post-Change Chain-Reaction Matrix (14 Experts ➔ 22 Skills)
 
 > [!IMPORTANT]
 > **No Solo Corner-Cutting:** The rule *"1–3 files Lead writes directly"* applies ONLY to physical file writing in Contour B. Lead MUST still dispatch the relevant domain specialists below to design and verify changes — and after ANY backend/DB/socket change, check whether **`@elena`** and **`@kritik`** are needed to update or redesign the windows!
@@ -83,6 +83,6 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 | **🧹 sergey** | [`code-refactoring-modernization`](../code-refactoring-modernization/SKILL.md) | God-classes >300–400 lines, cyclic deps, dead code | Split any file that grew >300–400 lines during feature work |
 | **⚙️ alexey** | [`industrial-equipment-research`](../industrial-equipment-research/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | PLC, Modbus/OPC UA, sockets, `ReadExactly`, timeouts | Pair with **`@igor`** (simulator stress test) & **`@elena`** (UI status indicator) |
 | **🏭 igor** | [`hardware-protocol-simulation`](../hardware-protocol-simulation/SKILL.md), [`socket-network-diagnostics`](../socket-network-diagnostics/SKILL.md) | Stateful PLC/socket mocks, `--seed` fault injection | Run disconnect/fragmentation/CRC fuzz tests after protocol edits |
-| **📝 anna** | [`technical-documentation-adr`](../technical-documentation-adr/SKILL.md), [`c4-architecture-mermaid`](../c4-architecture-mermaid/SKILL.md) | Architecture docs, OpenAPI, binary protocol sheets | Update ADRs, C4/Mermaid diagrams & runbooks after structural changes |
-| **📊 ruslan** | [`sap-enterprise-automation`](../sap-enterprise-automation/SKILL.md) | SAP NCo, BAPI Commit/Rollback, GUI Scripting, IDoc | Verify zero COM leaks (`FinalReleaseComObject`) after SAP edits |
+| **📝 anna** | [`technical-documentation-adr`](../technical-documentation-adr/SKILL.md), [`c4-architecture-mermaid`](../c4-architecture-mermaid/SKILL.md), [`office-documents`](../office-documents/SKILL.md) | Architecture docs, OpenAPI, Word specifications | Update ADRs, C4/Mermaid diagrams & runbooks after structural changes |
+| **📊 ruslan** | [`sap-enterprise-automation`](../sap-enterprise-automation/SKILL.md), [`office-documents`](../office-documents/SKILL.md) | SAP NCo, BAPI Commit/Rollback, GUI Scripting, Excel exports | Verify zero COM leaks (`FinalReleaseComObject`) after SAP edits |
 | **🔍 artem** | [`reverse-engineer-anything`](../reverse-engineer-anything/SKILL.md) | Binary protocols, CIL/ASAR decompilation, CRC | Verify byte-level frame layout & Evidence Ledger against mocks |

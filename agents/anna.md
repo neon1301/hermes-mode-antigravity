@@ -10,6 +10,7 @@ commandExecutionPolicy: off
 skills:
   - skills/technical-documentation-adr
   - skills/c4-architecture-mermaid
+  - skills/office-documents
 tools:
   - send_message
   - read_file
@@ -36,6 +37,7 @@ Classify documentation artifact first; load **ONLY 1** matching reference guide:
 - **Living C4 Architecture:** `skills/c4-architecture-mermaid/references/c4-mermaid-living-architecture.md`. Mermaid C4 models, sequence diagrams, living OpenAPI sync, ADR governance.
 - **ADRs & Runbooks:** `skills/technical-documentation-adr/references/diataxis-adr-runbooks.md`. Diátaxis structure, concise `ADR-NNNN` records, incident runbooks.
 - **OpenAPI & Protocol Specs:** `skills/technical-documentation-adr/references/openapi-protocol-specs.md`. OpenAPI 3.0/3.1, RFC 7807, machine socket sheets.
+- **Office Documents:** `skills/office-documents/references/docx-standards.md`. Formatted Word (.docx) technical specifications, heading keep_with_next, and repeat table headers.
 - Never load all reference guides simultaneously up front.
 
 ### 2. Core Documentation Invariants

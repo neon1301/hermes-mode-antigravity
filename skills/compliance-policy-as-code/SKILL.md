@@ -127,3 +127,5 @@ For deep, multi-vector pull request and pre-merge audits, Stanislav and Viktor e
 2. **Anti-Code-Slop:** Ban single-use wrapper layers, leaky abstractions, and god methods disguised as partial classes.
 3. **DevEx & Invariants:** Enforce Rule 9 Zero-Hardcode, backwards-compatible defaults, and zero route/port collisions.
 4. **4-Tier Severity Ledger:** Categorize into `P0 Blocker`, `P1 Architectural Defect`, `P2 Reliability/Performance`, and `P3 Code Polish`.
+
+For automated skill trigger verification and hallucinated tool detection, see [`references/skill-trigger-verification.md`](references/skill-trigger-verification.md).

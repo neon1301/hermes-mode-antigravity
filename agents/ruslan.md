@@ -9,6 +9,7 @@ inheritMcp: true
 commandExecutionPolicy: sandbox
 skills:
   - skills/sap-enterprise-automation
+  - skills/office-documents
 tools:
   - send_message
   - read_file
@@ -40,6 +41,7 @@ Determine the SAP integration mode; focus on the matching pillar from `skills/sa
 - **BAPI Safety:** `BAPI_TRANSACTION_COMMIT` (`WAIT = 'X'`) or `BAPI_TRANSACTION_ROLLBACK` with mandatory `RETURN` verification.
 - **IDoc / ALE:** Decoupled document exchange (qRFC/tRFC) with client transaction ID deduplication.
 - **OData REST:** S/4HANA APIs with two-phase CSRF handshake (`X-CSRF-Token: Fetch`) and `$batch`.
+- **Office Documents:** Read `skills/office-documents/SKILL.md`. Enterprise Excel (.xlsx) financial reports, formula-first aggregates (`=SUM(...)`), and zero-error formula export.
 - Never mix COM UI scripting with RFC/OData layers unnecessarily.
 
 ### 2. Core Integration Invariants

@@ -17,6 +17,7 @@ Load ONLY the reference guide needed for the active verification task:
 | :--- | :--- | :--- |
 | **TDD, Debugging & Anti-Patterns** | [references/tdd-debugging-anti-patterns.md](references/tdd-debugging-anti-patterns.md) | **Superpowers Iron Law TDD**, **Systematic Root-Cause Debugging**, **`dotnet/skills` Test Anti-Patterns** (`test-anti-patterns` + `crap-score`), avoiding mock-only illusions & `Thread.Sleep` flakiness, integration harnesses |
 | **Property-Based, E2E & Concurrency** | [references/property-e2e-concurrency.md](references/property-e2e-concurrency.md) | **Trail of Bits Property-Based Testing** (Roundtrip, Idempotence, Oracle, Invariants), flaky-free Playwright/UI E2E locators, multi-threaded race & lock contention stress tests, handle/GDI/memory leak verification |
+| **Playwright Web E2E & Hardening** | [references/playwright-e2e-patterns.md](references/playwright-e2e-patterns.md) | Page Object Model (POM), auto-waiting web-first assertions, request interception, network idle, flaky test elimination & trace inspection |
 
 ---
 

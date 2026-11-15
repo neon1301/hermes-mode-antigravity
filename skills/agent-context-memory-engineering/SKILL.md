@@ -24,6 +24,7 @@ Load ONLY the reference module required by the task:
 | Problem Domain | Load Reference | Core Techniques Covered |
 | :--- | :--- | :--- |
 | **Context, Memory & Agent Harness** | [references/context-memory-harness.md](references/context-memory-harness.md) | **Context Degradation Fixes** (lost-in-the-middle, poisoning, distraction), **Observation Masking & Filesystem Offloading**, **Anchored Context Compression**, **Memory Tiering** (working/episodic/semantic/entity), **Multi-Agent Isolation**, clean **MCP Tool Design** |
+| **Context Compaction & Token Economy** | [references/context-compaction-patterns.md](references/context-compaction-patterns.md) | **Prefix Caching & KV Reusability**, deterministic observation masking, structured JSON output density, and strategic context compaction state machines |
 | **LLM-as-a-Judge & Red-Teaming** | [references/agent-evals-redteam.md](references/agent-evals-redteam.md) | **De-Biased LLM-as-a-Judge** (position-swap pairwise checks, rubrics, verbosity control), **Agent Trajectory Grading**, **Automated Red-Teaming** (`Promptfoo` / `Garak`: indirect injection, system-prompt extraction, confused-deputy privilege probes, PII filters) |
 
 ---

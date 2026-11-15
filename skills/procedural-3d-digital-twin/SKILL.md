@@ -95,3 +95,4 @@ This skill guides **🌐 Gleb** (Lead 3D Graphics & Industrial Digital Twin Engi
 
 ## 6. 📚 Reference Playbooks
 - [references/threejs-vram-hygiene-twin.md](references/threejs-vram-hygiene-twin.md): WebGL VRAM leak elimination, recursive scene traversal, Page Visibility API loop throttling, InstancedMesh telemetry fleet, and LOD scaling.
+- [references/modern-threejs-patterns.md](references/modern-threejs-patterns.md): Modern Three.js (r186+) scene configuration, PBR industrial materials, InstancedMesh telemetry, and explicit lifecycle disposal.

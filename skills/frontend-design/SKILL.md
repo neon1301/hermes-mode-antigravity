@@ -1,11 +1,11 @@
 ---
 name: frontend-design
-description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
+description: Guidance for distinctive, intentional visual design, desktop GUI layouts, and platform standards (HIG, Material 3, WCAG 2.2 AA). Use when designing UI components, themes, custom scrollbars, layout architectures, or resolving visual defects.
 ---
 
 # Frontend Design & UI Engineering Standard
 
-Approach UI as a design lead delivering a bespoke visual identity and rock-solid engineering. Reject generic AI defaults; make deliberate, opinionated choices grounded in the subject matter.
+Approach UI as a design lead delivering a bespoke visual identity and rock-solid engineering. Reject generic AI defaults; make deliberate, opinionated choices grounded in the subject matter. For platform design systems and accessibility (Apple HIG, Google Material 3, WCAG 2.2 AA), see [`references/platform-design-systems.md`](references/platform-design-systems.md).
 
 ---
 

@@ -44,6 +44,18 @@ The following concepts have been re-implemented in native Node.js (ECMAScript Mo
    - Honest local metrics from transcript logs without fabricated figures.
    - *Original source:* [`plugins/session-report`](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/session-report) & [`plugins/receipts`](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/receipts)
 
+8. **Systematic Debugging & Verification Protocol (`superpowers`)**
+   - Root-cause before fix enforcement, 4-phase debugging workflow, and verification-before-completion.
+   - *Original source:* [`obra/superpowers`](https://github.com/obra/superpowers) under the MIT License.
+
+9. **Office Documents Engineering (`office-documents`)**
+   - Formula-first spreadsheet design, zero-error formula invariants, and structured document typography.
+   - *Original source:* [`anthropics/skills`](https://github.com/anthropics/skills) under the Apache License 2.0.
+
+10. **Platform Systems, Playwright & Pairwise Testing**
+    - Platform design guidelines (HIG/MD3/WCAG 2.2 AA), Playwright E2E patterns, and PICT fault matrices.
+    - *Original sources:* `ehmo/platform-design-skills`, `testdino-hq/playwright-skill`, `omkamal/pypict-skill` under the MIT License.
+
 ---
 
 ## 📄 Apache License 2.0 Text
