@@ -12,7 +12,6 @@ skills:
 tools:
   - send_message
   - read_file
-  - view_file
   - read_url_content
   - grep_search
   - find_by_name

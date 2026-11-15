@@ -12,7 +12,6 @@ skills:
 tools:
   - send_message
   - read_file
-  - view_file
   - grep_search
   - find_by_name
   - list_dir
