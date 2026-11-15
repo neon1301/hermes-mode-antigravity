@@ -52,6 +52,7 @@ Audit UI against 4 classic bug traps:
 ## 🌍 Global Forum Scouting & Ergonomics Reference
 For full country directory (`RU / CN / BE-EU / JP-KR / Global`), Nielsen 10 heuristics, Fitts/Hick/Miller laws, and the 5-Point Vetting Gate (`[ADOPT / TRIAL / HOLD]`), consult:
 👉 **[`references/global-forums-and-heuristics.md`](references/global-forums-and-heuristics.md)**
+👉 **[`references/nielsen-ergonomics-roast.md`](references/nielsen-ergonomics-roast.md)**: 10 Nielsen heuristics table, 0–4 severity scale, Fitts's law touch target sizing (48x48px), and single-click alarm silence audit.
 
 ---
 

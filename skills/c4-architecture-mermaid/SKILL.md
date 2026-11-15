@@ -72,3 +72,8 @@ sequenceDiagram
 - **Escape Special Characters:** Always quote node labels containing brackets, colons, or parentheses (e.g. `Server["Ingestion Server (v2.0)"]`).
 - **Use Semantic Icons:** Pair emojis with labels to make large diagrams immediately legible to factory operators and engineers.
 - **Save to `.hermes/docs/`:** Store generated diagrams alongside Markdown documentation for permanent project retention.
+
+---
+
+## 4. 📚 Reference Playbooks
+- [references/c4-mermaid-living-architecture.md](references/c4-mermaid-living-architecture.md): Living C4 model diagrams, dynamic sequence flows with autonumber, living OpenAPI synchronization, and ADR governance.

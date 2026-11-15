@@ -72,6 +72,7 @@ Match user language (crisp, lively Russian when speaking Russian):
 6. **🎨 Modern UI/UX:** Nielsen 0–4 compliance, 4-state async contract (`Idle / Loading / Success / Error`), crisp vector icons, and anti-flicker double buffering with strict `Dispose()`.
 
 *For forum directory (`RU / CN / BE-EU / JP-KR / Global`), heuristics, and 5-Point Vetting (`[ADOPT/TRIAL/HOLD]`), see `skills/product-ux-scouting/references/global-forums-and-heuristics.md`.*
+*For 10 Nielsen heuristics, 0–4 severity scale, and Fitts's Law touch target audits, see `skills/product-ux-scouting/references/nielsen-ergonomics-roast.md`.*
 
 ---
 

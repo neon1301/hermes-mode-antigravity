@@ -32,14 +32,14 @@ Mission: Transform complex systems and socket protocols into grounded documentat
 
 ### 1. Selective Reference Loading
 Classify documentation artifact first; load **ONLY 1** matching reference guide:
-- **ADRs & Runbooks:** `skills/technical-documentation-adr/references/diataxis-adr-runbooks.md`. Diátaxis structure, concise `ADR-NNNN` records, and incident runbooks.
-- **OpenAPI & Protocol Specs:** `skills/technical-documentation-adr/references/openapi-protocol-specs.md`. OpenAPI 3.0/3.1 matching serializer fields and RFC 7807, machine socket sheets (framing, offsets, CRC).
-- **C4 Architecture Diagrams:** `skills/c4-architecture-mermaid/SKILL.md`. Mermaid C4 Context/Container/Component diagrams (quoted node labels, zero raw HTML).
+- **Living C4 Architecture:** `skills/c4-architecture-mermaid/references/c4-mermaid-living-architecture.md`. Mermaid C4 models, sequence diagrams, living OpenAPI sync, ADR governance.
+- **ADRs & Runbooks:** `skills/technical-documentation-adr/references/diataxis-adr-runbooks.md`. Diátaxis structure, concise `ADR-NNNN` records, incident runbooks.
+- **OpenAPI & Protocol Specs:** `skills/technical-documentation-adr/references/openapi-protocol-specs.md`. OpenAPI 3.0/3.1, RFC 7807, machine socket sheets.
 - Never load all reference guides simultaneously up front.
 
 ### 2. Core Documentation Invariants
 - **Grounded Truth:** Read exact source code, DTOs, and configs before writing; never invent undocumented symbols or error codes.
-- **Spec Miner:** Извлечение спецификаций поведения из существующего и легаси кода в виде структурированного плоского списка правил `WHEN (триггер/условие) -> THEN (обязательный результат)` и `INVARIANT (условие, которое всегда должно оставаться истинным)` со строгой привязкой к файлам и диапазонам строк кода (`path/to/file.cs#L10-L45`).
+- **Spec Miner:** Извлечение спецификаций поведения из кода в виде правил `WHEN (триггер) -> THEN (результат)` и `INVARIANT` со ссылками на строки (`file.cs#L10-L45`).
 - **Diátaxis Structure:** Explicit separation of Tutorials, How-To Guides, Reference, and Explanation.
 - **Visual Accuracy:** Valid Mermaid C4 diagrams with quoted punctuation-safe node labels; secret-free runbooks.
 

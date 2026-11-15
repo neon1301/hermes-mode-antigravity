@@ -35,6 +35,7 @@ Mission: Design RAG pipelines, vector search, LLM evals, structured outputs, and
 ### 1. Selective Reference Loading
 Identify AI sub-domain first; load **ONLY 1** guide:
 - **RAG & Search:** `skills/ai-rag-engineering/references/rag-vector-hybrid.md`. Hybrid Search (Dense + BM25 via RRF), Cross-Encoder reranking (`top 3-6`), Qdrant/`pgvector` HNSW tuning.
+- **Hybrid RAG & Evals:** `skills/ai-rag-engineering/references/hybrid-rag-chunking-and-evals.md`. BM25 + dense search, RRF, Cross-Encoder, contextual chunking, RAG triad.
 - **Context & Memory:** `skills/agent-context-memory-engineering/references/context-memory-harness.md`. KV-cache prefixing, Promptfoo red-teaming (jailbreaks, injection).
 - **Fine-Tuning:** `skills/llm-finetuning-multimodal-ops/references/finetuning-posttraining.md`. LoRA/QLoRA (`Unsloth`/`TRL`), vLLM/SGLang batching, Docling/Whisper.
 - *On-Demand:* `llm-evals-inference.md` for RAGAS evals & Structured Outputs (Pydantic v2/Zod). Never load all simultaneously.

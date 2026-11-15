@@ -24,6 +24,7 @@ Load ONLY the reference guide matching the active task:
 | Problem Scope | Load Reference | Core Techniques Covered |
 | :--- | :--- | :--- |
 | **RAG, Chunking & Vector Search** | [references/rag-vector-hybrid.md](references/rag-vector-hybrid.md) | Document/code chunking, **Hybrid Retrieval (Dense + BM25 + RRF)**, Cross-Encoder re-ranking, **Qdrant/HNSW tuning** (`m`, `ef_construction`, quantization), `pgvector` HNSW/IVFFlat, payload filter indexes |
+| **Hybrid RAG & Triad Evals** | [references/hybrid-rag-chunking-and-evals.md](references/hybrid-rag-chunking-and-evals.md) | BM25 + dense hybrid search, **Reciprocal Rank Fusion (RRF)**, Cross-Encoder reranking, Contextual chunking breadcrumbs, RAG triad hallucination evals |
 | **LLM Evals, Structured Output & Inference** | [references/llm-evals-inference.md](references/llm-evals-inference.md) | Golden datasets, **Langfuse/OTel span tracing**, **RAGAS metrics** (Faithfulness, Context Precision/Recall), Structured Outputs (Pydantic/Zod + repair loop), Semantic Caching, Polars/DuckDB pipelines, ONNX/GGUF quantization |
 
 ---
