@@ -317,7 +317,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 10 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 17,
+    'consistency': 18,
     'context-injector': 18,
     'clean-edits-guard': 106,
     'qa-gate': 71,
@@ -335,8 +335,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 336 || summary.passed !== 336) {
-    throw new Error(`test-summary.json expected total=336, passed=336, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 337 || summary.passed !== 337) {
+    throw new Error(`test-summary.json expected total=337, passed=337, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -490,6 +490,61 @@ await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () 
   }
   if (!backlogContent.includes('TASK-003') || !backlogContent.includes('TASK-004') || !backlogContent.includes('TASK-005')) {
     throw new Error('docs/backlog.md missing TASK-003, TASK-004, or TASK-005 entries');
+  }
+});
+
+// 18. Anti-drift locks: CHANGELOG top version, README versions, and dynamic skill roster & counters
+await test('anti_drift_changelog_readme_and_dynamic_skills_locks', () => {
+  const plugin = JSON.parse(fs.readFileSync(path.join(rootDir, 'plugin.json'), 'utf-8'));
+
+  // (a) Top entry of CHANGELOG.md == plugin.json.version
+  const changelogPath = path.join(rootDir, 'CHANGELOG.md');
+  if (!fs.existsSync(changelogPath)) throw new Error('CHANGELOG.md missing');
+  const changelog = fs.readFileSync(changelogPath, 'utf-8');
+  const topMatch = changelog.match(/^##\s*\[(\d+\.\d+\.\d+)\]/m);
+  if (!topMatch) throw new Error('Failed to parse top release version from CHANGELOG.md');
+  const topChangelogVer = topMatch[1];
+  if (topChangelogVer !== plugin.version) {
+    throw new Error(`CHANGELOG.md top entry [${topChangelogVer}] does not match plugin.json version (${plugin.version})`);
+  }
+
+  // (b) Version in README.md (and README.ru.md) header == manifest
+  const readmeEnPath = path.join(rootDir, 'README.md');
+  const readmeRuPath = path.join(rootDir, 'README.ru.md');
+  if (!fs.existsSync(readmeEnPath)) throw new Error('README.md missing');
+  if (!fs.existsSync(readmeRuPath)) throw new Error('README.ru.md missing');
+
+  const readmeEn = fs.readFileSync(readmeEnPath, 'utf-8');
+  const readmeRu = fs.readFileSync(readmeRuPath, 'utf-8');
+
+  const enTitleMatch = readmeEn.match(/^#\s+[^\r\n]+\(v(\d+\.\d+\.\d+)\)/m);
+  if (!enTitleMatch || enTitleMatch[1] !== plugin.version) {
+    throw new Error(`README.md title version (${enTitleMatch ? enTitleMatch[1] : 'null'}) does not match plugin.json (${plugin.version})`);
+  }
+  const ruTitleMatch = readmeRu.match(/^#\s+[^\r\n]+\(v(\d+\.\d+\.\d+)\)/m);
+  if (!ruTitleMatch || ruTitleMatch[1] !== plugin.version) {
+    throw new Error(`README.ru.md title version (${ruTitleMatch ? ruTitleMatch[1] : 'null'}) does not match plugin.json (${plugin.version})`);
+  }
+
+  // (c) Counter and list of skills in README.md & README.ru.md == actual disk count and names (dynamic calculation, zero new hardcoded strings)
+  const skillsDir = path.join(rootDir, 'skills');
+  const actualSkills = fs.readdirSync(skillsDir)
+    .filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')))
+    .sort();
+  const actualSkillsCount = actualSkills.length;
+
+  for (const [docName, docContent] of [['README.md', readmeEn], ['README.ru.md', readmeRu]]) {
+    const countPattern = new RegExp(`\\b${actualSkillsCount}\\s+(?:industrial|professional|промышленных|профессиональных)\\s+(?:skills?|скилл(?:ов|а)?)`, 'i');
+    if (!countPattern.test(docContent)) {
+      throw new Error(`${docName} does not declare the current dynamic skill count (${actualSkillsCount})`);
+    }
+
+    for (const skillName of actualSkills) {
+      const skillPattern = new RegExp(`skills/${skillName}/SKILL\\.md|\\\`\\[?${skillName}\\]?\\\``);
+      if (!skillPattern.test(docContent)) {
+        throw new Error(`${docName} missing reference/link to actual disk skill '${skillName}'`);
+      }
+    }
   }
 });
 

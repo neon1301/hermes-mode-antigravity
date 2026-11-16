@@ -36,14 +36,5 @@ jobs:
             console.log('Manifest & hooks check passed:', { version: plugin.version });
           "
 
-      - name: Run Consistency & Documentation Sync tests
-        run: node hooks/consistency.test.mjs
-
-      - name: Run PreInvocation Context Injector tests
-        run: node hooks/context-injector.test.mjs
-
-      - name: Run PreToolUse Clean Edits & Zero-Hardcode Guard tests
-        run: node hooks/clean-edits-guard.test.mjs
-
-      - name: Run Stop QA & Compliance Gate tests
-        run: node hooks/qa-gate.test.mjs
+      - name: Run Hermes Fleet test suite (All 10 suites via test-runner)
+        run: npm test

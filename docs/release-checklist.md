@@ -18,6 +18,7 @@
 - **`consistency.test.mjs` (тест 3, `no_stale_counters_in_docs`):** Проверяет отсутствие устаревших счетчиков (12 правил ➔ 15 правил, 22 скилла) и наличие декларации 15 правил в `fleet-protocol.md`.
 - **`consistency.test.mjs` (тест 5, `version_alignment`):** Проверяет строгую синхронизацию версии по всем 7 таргетам манифестов и документации.
 - **`consistency.test.mjs` (тест 17, `fleet_core_protocol_size_and_orchestrator_references_integrity`):** Проверяет соблюдение лимита размера ядра протокола (`<= 12 288 байт`), наличие модульных файлов `references/*`, атрибуцию доноров в `THIRD_PARTY_NOTICES.md` и целостность задач в `docs/backlog.md`.
+- **`consistency.test.mjs` (тест 18, `anti_drift_changelog_readme_and_dynamic_skills_locks`):** Анти-дрейф замки: верхняя запись `CHANGELOG.md` равна версии `plugin.json`, заголовок `README.md` / `README.ru.md` равен манифесту, а счетчик и список скиллов динамически вычисляются с диска (zero hardcode).
 - **`context-injector.test.mjs` (тесты 3 и 5):** Проверяют инжекцию системного маркера `<!-- HERMES_PROTOCOL_LOADED -->`, инвариантов `Zero-Hardcode` и срабатывание триггеров при вызове `/hermes` или активационных фраз.
 
 ---
@@ -68,7 +69,7 @@
 ---
 
 ## 6. 🧪 Локальный CI-гейт (Zero Billing Dependency)
-- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (10 сьютов, 336 тестов):
+- [ ] `powershell -ExecutionPolicy Bypass -File .\verify.ps1` (или `npm test`) проходит со 100% успехом (10 сьютов, 337 тестов):
   - `context-injector.test.mjs` (18 тестов)
   - `clean-edits-guard.test.mjs` (106 тестов)
   - `qa-gate.test.mjs` (71 тест)
@@ -78,6 +79,6 @@
   - `contract-validator.test.mjs` (9 тестов)
   - `doc-lint.test.mjs` (15 тестов)
   - `refinery.test.mjs` (9 тестов)
-  - `consistency.test.mjs` (17 тестов)
+  - `consistency.test.mjs` (18 тестов)
 - [ ] Pre-push хук `.githooks/pre-push` активен (`git config core.hooksPath .githooks`).
 - [ ] Инсталляция `install.ps1` / `install.sh` синхронизирована с каталогом плагина Antigravity.
