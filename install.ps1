@@ -46,10 +46,9 @@ $items = @(
     "scripts"
 )
 
-# Items shipped by older versions that must not linger in the target (e.g. always-on rules/AGENTS.md before v3.6.7)
+# Items shipped by older versions that must not linger in the target (e.g. always-on rules before v3.6.7)
 $staleItems = @(
-    "rules",
-    "agents\mozgoeb.md"
+    "rules"
 )
 
 foreach ($stale in $staleItems) {

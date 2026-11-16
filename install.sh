@@ -25,7 +25,7 @@ fi
 mkdir -p "${TARGET_DIR}"
 
 # Remove stale items from earlier versions
-rm -rf "${TARGET_DIR}/rules" "${TARGET_DIR}/agents/mozgoeb.md"
+rm -rf "${TARGET_DIR}/rules"
 
 ITEMS=(
   "plugin.json"
