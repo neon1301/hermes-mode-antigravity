@@ -10,26 +10,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
+import { computeWorkingTreeDiffHash } from '../../../hooks/qa-runner.mjs';
 
 const MAX_JOURNAL_SIZE = 512 * 1024; // 512 KB, same as gate-log
 
-export function computeWorkingTreeDiffHash(workspaceDir = process.cwd()) {
-  try {
-    const status = execSync('git status --porcelain', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    const diff = execSync('git diff', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    });
-    return crypto.createHash('sha256').update(status + '\n' + diff).digest('hex').slice(0, 16);
-  } catch {
-    return '0000000000000000';
-  }
-}
+export { computeWorkingTreeDiffHash };
 
 export function appendJournalEntry(workspaceDir, entry = {}) {
   try {

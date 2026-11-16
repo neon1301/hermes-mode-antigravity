@@ -15,6 +15,7 @@ import {
 import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
+import { computeWorkingTreeDiffHash, resolveBaseRef } from './qa-runner.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -622,24 +623,6 @@ function computeDiffHash(snapshots = []) {
   return h.digest('hex');
 }
 
-function computeWorkingTreeDiffHash(workspaceDir = process.cwd()) {
-  try {
-    const status = execSync('git status --porcelain', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    const diff = execSync('git diff', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    });
-    return crypto.createHash('sha256').update(status + '\n' + diff).digest('hex').slice(0, 16);
-  } catch {
-    return '0000000000000000';
-  }
-}
-
 function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCount = 0, event = 'Stop' } = {}) {
   if (!isHermesSession) return;
   try {
@@ -713,10 +696,15 @@ if (qaVerdictMode === 'artifact') {
       // 5. reqLedger must be array and non-empty
       const hasReqLedger = Array.isArray(verdictData?.reqLedger) && verdictData.reqLedger.length > 0;
 
-      // 6. diffHash binding
+      // 6. diffHash binding (changes-under-review, ADR-0005)
       const workingTreeHash = computeWorkingTreeDiffHash(activeWorkspaceDir);
+      const EMPTY_DIFF_HASHES = new Set(['01ba4719c80b6fe9', 'e3b0c44298fc1c14']);
+      const hasChangesUnderReview = workingTreeHash !== '0000000000000000' && !EMPTY_DIFF_HASHES.has(workingTreeHash);
+      const isDegenerateEmptyVerdict = EMPTY_DIFF_HASHES.has(verdictData?.diffHash) && hasChangesUnderReview;
+
       const hasDiffHashMatch = Boolean(
         verdictData?.diffHash &&
+        !isDegenerateEmptyVerdict &&
         (verdictData.diffHash === currentDiffHash ||
          (workingTreeHash !== '0000000000000000' && verdictData.diffHash === workingTreeHash))
       );
@@ -764,9 +752,12 @@ if (qaVerdictMode === 'artifact') {
       ) {
         hasQaPass = true;
       } else {
+        const rejectReason = isDegenerateEmptyVerdict
+          ? `qa-verdict.json rejected: verdict diffHash is degenerate empty (${verdictData?.diffHash}) while changes are present under review`
+          : 'qa-verdict.json rejected: mechanical verification check failed';
         logGateDecision({
           decision: 'continue',
-          reason: 'qa-verdict.json rejected: mechanical verification check failed',
+          reason: rejectReason,
           checks: {
             isSchemaValid,
             isMechanicalRunner,
@@ -774,6 +765,7 @@ if (qaVerdictMode === 'artifact') {
             hasZeroExitCodes,
             hasReqLedger,
             hasDiffHashMatch,
+            isDegenerateEmptyVerdict,
             isFresh,
             hasTranscriptProof,
             hasTranscriptQaPass,

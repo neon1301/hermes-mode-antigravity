@@ -24,7 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Advisory by default (`mutationMode: "advisory"`); optional `mutationMode: "strict"` blocks gate on survived mutants.
 - **Comprehensive Negative & Anti-Spoofing Vectors (`hooks/qa-gate.test.mjs`, Track B4):**
   - Added 11 negative and compliance tests verifying rejection on non-mechanical runners, stale diffHash, UUID mismatch, missing/non-zero exit codes, empty reqLedger, schema violations, missing artifact, transcript-only attempts, and survived mutants in strict mode.
-  - Expanded `qa-gate` test suite to 82/82 PASS (100% clean).
+  - Expanded `qa-gate` test suite to 88/88 PASS (100% clean).
+- **Changes-Under-Review diffHash Binding Fix (`HERMES-QA-DIFFHASH-FIX`):**
+  - Eliminated degenerate empty diffHash (`01ba4719c80b6fe9` / `e3b0c44298fc1c14`) on clean trees with commits ahead of upstream by binding verdict diffHash to real changes relative to base (`resolveBaseRef`), covering both committed branch changes and uncommitted edits.
+  - Enforced fail-closed gate rejection of empty/degenerate diffHash whenever commits or working tree changes exist ahead of base.
+  - Implemented robust fallback to `HEAD^{tree}` + working diff for detached HEAD or repos without upstream, guaranteeing distinct HEAD commits yield distinct hashes.
+  - Established `computeWorkingTreeDiffHash` in `hooks/qa-runner.mjs` as single source of truth shared by `qa-gate.mjs` and `skills/hermes/scripts/journal.mjs`.
+  - Added 6 dedicated acceptance tests covering non-empty hashes, degenerate empty rejection, distinct HEAD commits, session commit invalidation, runner/gate consistency, and mechanical verdict regeneration.
 - **Architectural Documentation & Troubleshooting (Track B5):**
   - Authored `docs/adr/ADR-0005-mechanical-qa-rails-and-artifact-gate.md` with cross-references to ADR-0001 and ADR-0004.
   - Created `docs/troubleshooting.md` documenting QA gate rejection diagnostics and resolution.

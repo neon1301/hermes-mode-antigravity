@@ -11,7 +11,7 @@
  * - Rule 14: Report Freshness (ISO-8601 timestamps)
  */
 
-import { execSync, spawnSync } from 'node:child_process';
+import { execFileSync, execSync, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,28 +21,6 @@ import { validateSchema } from '../skills/compliance-policy-as-code/scripts/cont
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-
-/**
- * Computes deterministic SHA-256 diffHash of working tree.
- * Matches journal.mjs computeWorkingTreeDiffHash and qa-gate.mjs.
- */
-export function computeWorkingTreeDiffHash(workspaceDir = process.cwd()) {
-  try {
-    const status = execSync('git status --porcelain', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    const diff = execSync('git diff', {
-      cwd: workspaceDir,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    });
-    return crypto.createHash('sha256').update(status + '\n' + diff).digest('hex').slice(0, 16);
-  } catch {
-    return '0000000000000000';
-  }
-}
 
 /**
  * Reads project configuration from .hermes/config.json with environment fallbacks.
@@ -61,9 +39,182 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     mutationMode: process.env.HERMES_MUTATION_MODE || config.mutationMode || 'advisory',
     mutationThreshold: Number(process.env.HERMES_MUTATION_THRESHOLD || config.mutationThreshold || 0.70),
     mutationBudget: Number(process.env.HERMES_MUTATION_BUDGET || config.mutationBudget || 20),
-    testTimeoutMs: Number(process.env.HERMES_TEST_TIMEOUT_MS || config.testTimeoutMs || 180000)
+    testTimeoutMs: Number(process.env.HERMES_TEST_TIMEOUT_MS || config.testTimeoutMs || 180000),
+    baseRef: process.env.HERMES_BASE_REF || config.baseRef || null
   };
 }
+
+/**
+ * Resolves the base commit for reviewing changes.
+ * Priority:
+ * 1. options.baseRef
+ * 2. process.env.HERMES_BASE_REF
+ * 3. .hermes/config.json -> baseRef
+ * 4. git merge-base HEAD @{u} (upstream tracking branch)
+ * 5. git merge-base HEAD with candidate branches: origin/main, origin/master, main, master
+ * 6. null (no upstream or candidate branch found)
+ */
+export function resolveBaseRef(workspaceDir = process.cwd(), options = {}) {
+  const explicit = options.baseRef || process.env.HERMES_BASE_REF;
+  if (explicit) {
+    try {
+      execFileSync('git', ['rev-parse', '--verify', `${explicit}^{commit}`], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      return explicit;
+    } catch {
+      return null;
+    }
+  }
+
+  const cfg = getHermesConfig(workspaceDir);
+  if (cfg.baseRef) {
+    try {
+      execFileSync('git', ['rev-parse', '--verify', `${cfg.baseRef}^{commit}`], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      return cfg.baseRef;
+    } catch {
+      return null;
+    }
+  }
+
+  // 1. Upstream tracking branch
+  try {
+    const upstreamMb = execFileSync('git', ['merge-base', 'HEAD', '@{u}'], {
+      cwd: workspaceDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    if (upstreamMb) return upstreamMb;
+  } catch {}
+
+  // 2. Current branch name
+  let currentBranch = '';
+  try {
+    currentBranch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: workspaceDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch {}
+
+  // 3. Candidate remote and local branches
+  const candidates = ['origin/main', 'origin/master'];
+  if (currentBranch !== 'main') candidates.push('main');
+  if (currentBranch !== 'master') candidates.push('master');
+
+  for (const candidate of candidates) {
+    try {
+      execFileSync('git', ['rev-parse', '--verify', `${candidate}^{commit}`], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      const mb = execFileSync('git', ['merge-base', 'HEAD', candidate], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim();
+      if (mb) return mb;
+    } catch {}
+  }
+
+  return null;
+}
+
+/**
+ * Computes deterministic SHA-256 diffHash of changes under review.
+ * Binds verdict to committed and uncommitted changes relative to base.
+ * Single source of truth for qa-runner, qa-gate, and recovery journal.
+ */
+export function computeWorkingTreeDiffHash(workspaceDir = process.cwd(), options = {}) {
+  try {
+    const baseRef = resolveBaseRef(workspaceDir, options);
+    const status = execFileSync('git', ['status', '--porcelain'], {
+      cwd: workspaceDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+
+    // Collect untracked files content to avoid blind spots
+    let untrackedPayload = '';
+    if (status.includes('?? ')) {
+      const untracked = status
+        .split('\n')
+        .filter(l => l.startsWith('?? '))
+        .map(l => l.slice(3).trim());
+      for (const f of untracked) {
+        try {
+          const full = path.resolve(workspaceDir, f);
+          if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+            untrackedPayload += `\n${f}\n${fs.readFileSync(full, 'utf-8')}`;
+          }
+        } catch {}
+      }
+    }
+
+    if (baseRef) {
+      // Base resolved: compare base against working tree
+      // git diff <baseRef> covers both committed changes since base AND uncommitted working tree edits
+      const diff = execFileSync('git', ['diff', baseRef], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: 16 * 1024 * 1024
+      });
+
+      let payload;
+      if (!status && !untrackedPayload) {
+        // Clean working tree: payload is diff directly (matches git diff base..HEAD character-by-character)
+        payload = diff;
+      } else {
+        payload = (status ? status + '\n' : '') + diff + untrackedPayload;
+      }
+
+      if (!payload) {
+        return 'e3b0c44298fc1c14'; // SHA-256 of empty diff
+      }
+
+      return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 16);
+    }
+
+    // Fallback when no base branch can be resolved (e.g. detached HEAD / standalone repo without remotes)
+    // Uses HEAD tree-hash + working tree diff to guarantee different commits produce different hashes
+    let headTree = '';
+    try {
+      headTree = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim();
+    } catch {}
+
+    let diff = '';
+    try {
+      diff = execFileSync('git', ['diff', 'HEAD'], {
+        cwd: workspaceDir,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: 16 * 1024 * 1024
+      });
+    } catch {}
+
+    const payload = (headTree ? headTree + '\n' : '') + (status ? status + '\n' : '') + diff + untrackedPayload;
+    if (!payload) {
+      return 'e3b0c44298fc1c14';
+    }
+    return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 16);
+  } catch {
+    return '0000000000000000';
+  }
+}
+
+export const computeVerdictDiffHash = computeWorkingTreeDiffHash;
 
 /**
  * Detects project stack and standard test execution command.

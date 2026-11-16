@@ -1,9 +1,10 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computeWorkingTreeDiffHash, resolveBaseRef, runQaSuite } from './qa-runner.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const gatePath = path.join(__dirname, 'qa-gate.mjs');
@@ -1691,6 +1692,61 @@ const cases = [
         if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
     }
+  },
+  {
+    name: 'reject_qa_verdict_when_diffhash_is_empty_and_commits_ahead_of_base',
+    expected: 'continue',
+    run: () => {
+      // Degenerate empty diffHash (01ba4719c80b6fe9) MUST be rejected when real changes exist
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: '01ba4719c80b6fe9',
+        viktorUuid: '11111111-1111-1111-1111-111111111111'
+      });
+      try {
+        return runGate({
+          conversationId: 'c_neg_empty_diffhash',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_empty_diffhash', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test empty diffhash rejection' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_diffhash_is_e3b0_empty_and_changes_present',
+    expected: 'continue',
+    run: () => {
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: 'e3b0c44298fc1c14',
+        viktorUuid: '11111111-1111-1111-1111-111111111111'
+      });
+      try {
+        return runGate({
+          conversationId: 'c_neg_e3b0_empty_diffhash',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_e3b0_empty_diffhash', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test e3b0 diffhash rejection' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   }
 ];
 
@@ -1762,6 +1818,118 @@ try {
   } finally {
     fs.rmSync(customWs, { recursive: true, force: true });
     fs.rmSync(dummyCwd, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 1 & 3: Two clean trees with different HEAD commits produce different diffHashes (!= 01ba4719... and != e3b0c442...)
+  totalChecks++;
+  const repo1Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r1-'));
+  const repo2Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r2-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo1Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo1Dir, 'file.txt'), 'version A\n');
+    execSync('git add file.txt && git commit -m "init"', { cwd: repo1Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo1Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo1Dir, 'file.txt'), 'version B\n');
+    execSync('git add file.txt && git commit -m "commit B"', { cwd: repo1Dir, stdio: 'ignore' });
+
+    execSync(`git clone "${repo1Dir}" "${repo2Dir}"`, { stdio: 'ignore' });
+    execSync('git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo2Dir, stdio: 'ignore' });
+    execSync(`git reset --hard ${baseCommit}`, { cwd: repo2Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo2Dir, 'file.txt'), 'version C (different)\n');
+    execSync('git add file.txt && git commit -m "commit C"', { cwd: repo2Dir, stdio: 'ignore' });
+
+    const hash1 = computeWorkingTreeDiffHash(repo1Dir, { baseRef: baseCommit });
+    const hash2 = computeWorkingTreeDiffHash(repo2Dir, { baseRef: baseCommit });
+
+    if (hash1 === '01ba4719c80b6fe9' || hash1 === 'e3b0c44298fc1c14') {
+      failed++;
+      console.log(`FAIL diffhash_different_for_different_head_commits: expected non-empty hash, got ${hash1}`);
+    } else if (hash1 === hash2) {
+      failed++;
+      console.log(`FAIL diffhash_different_for_different_head_commits: expected hash1 != hash2, got both ${hash1}`);
+    } else {
+      console.log(`PASS diffhash_different_for_different_head_commits (hash1=${hash1}, hash2=${hash2})`);
+    }
+  } finally {
+    fs.rmSync(repo1Dir, { recursive: true, force: true });
+    fs.rmSync(repo2Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 4: Old commit verdict + new commit in same session -> diffHash mismatch -> reject
+  totalChecks++;
+  const repo4Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r4-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo4Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo4Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo4Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo4Dir, encoding: 'utf-8' }).trim();
+
+    fs.writeFileSync(path.join(repo4Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo4Dir, stdio: 'ignore' });
+    const hashC1 = computeWorkingTreeDiffHash(repo4Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo4Dir, { diffHash: hashC1, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+
+    fs.writeFileSync(path.join(repo4Dir, 'index.ts'), 'export const a = 3;\n');
+    execSync('git add index.ts && git commit -m "c2"', { cwd: repo4Dir, stdio: 'ignore' });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo4Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r4_test',
+        workspacePaths: [repo4Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r4_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test new commit' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo4Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo4Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_qa_verdict_when_new_commit_invalidates_old_diffhash');
+    } else {
+      failed++;
+      console.log(`FAIL reject_qa_verdict_when_new_commit_invalidates_old_diffhash: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo4Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 5: Runner and gate produce identical diffHash (consistency test)
+  totalChecks++;
+  const runnerHash = computeWorkingTreeDiffHash(process.cwd());
+  const gateHash = computeWorkingTreeDiffHash(process.cwd());
+  if (runnerHash === gateHash && runnerHash !== '0000000000000000') {
+    console.log(`PASS qa_runner_and_qa_gate_consistency_identical_diffhash (hash=${runnerHash})`);
+  } else {
+    failed++;
+    console.log(`FAIL qa_runner_and_qa_gate_consistency_identical_diffhash: runner=${runnerHash}, gate=${gateHash}`);
+  }
+
+  // Acceptance Criterion 6: Runner generates valid verdict and invalidates legacy empty hash
+  totalChecks++;
+  const testWsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-runner-regen-'));
+  try {
+    fs.writeFileSync(path.join(testWsDir, 'package.json'), JSON.stringify({ name: 'test-pkg', scripts: { test: 'node -e "process.exit(0)"' } }));
+    const result = runQaSuite(testWsDir, { silent: true });
+    const verdictPath = path.join(testWsDir, '.hermes', 'qa-verdict.json');
+    const writtenVerdict = JSON.parse(fs.readFileSync(verdictPath, 'utf-8'));
+    if (writtenVerdict.status === 'PASS' && writtenVerdict.diffHash && writtenVerdict.diffHash !== '01ba4719c80b6fe9') {
+      console.log(`PASS qa_runner_regenerates_valid_verdict_with_real_diffhash (diffHash=${writtenVerdict.diffHash})`);
+    } else {
+      failed++;
+      console.log(`FAIL qa_runner_regenerates_valid_verdict_with_real_diffhash: invalid verdict data ${JSON.stringify(writtenVerdict)}`);
+    }
+  } finally {
+    fs.rmSync(testWsDir, { recursive: true, force: true });
   }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });

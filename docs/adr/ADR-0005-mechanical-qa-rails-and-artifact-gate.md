@@ -25,7 +25,12 @@ We transition `[QA PASS]` acceptance from conversational text tokens to a determ
 ### 2.1 Mechanical QA Writer (`hooks/qa-runner.mjs`, Track B2)
 - Implements `detectProjectStack(workspaceDir)` supporting `.NET` (`dotnet test`), Python (`pytest`), Node.js/NPM (`npm test`, `test-runner.mjs`), and Go (`go test ./...`).
 - Executes project test runners via synchronous child processes and captures real operating system exit codes in `testExitCodes: [number]`.
-- Calculates deterministic working tree SHA-256 `diffHash` (reusing `computeWorkingTreeDiffHash`).
+- Calculates deterministic SHA-256 `diffHash` bound to changes under review:
+  - Resolves base commit (`resolveBaseRef`) via `HERMES_BASE_REF`, `.hermes/config.json -> baseRef`, upstream tracking branch (`@{u}`), or candidate base branches (`origin/main`, `origin/master`, `main`, `master`).
+  - Diffs against resolved base (`git diff <baseRef>`), capturing both committed branch changes and uncommitted working tree edits, plus untracked file contents.
+  - On a clean working tree with commits ahead of base, `diffHash` matches `git diff origin/main..HEAD | sha256sum` character-by-character.
+  - Fallback for detached HEAD or repos without upstream: binds to `HEAD^{tree}` (commit tree object SHA) + working tree diff, ensuring two clean trees with different HEAD commits produce strictly distinct hashes.
+  - Fail-closed: returns `0000000000000000` if git fails or directory is not a git repository.
 - Evaluates contract schema compliance via `validateSchema()` against `qa-verdict.schema.json` before writing.
 - Outputs purely mechanical JSON without LLM prose generation.
 
@@ -36,12 +41,13 @@ In default `qaVerdictMode: "artifact"`, `[QA PASS]` text in transcript is **insu
 3. `status === "PASS"`.
 4. `testExitCodes` is a non-empty array of integers where every element strictly equals `0`.
 5. `reqLedger` is a non-empty array covering verified requirements (`REQ-1..N`).
-6. `diffHash` matches either `currentDiffHash` (turn edit snapshots) or `computeWorkingTreeDiffHash` (git status + diff).
-7. `timestamp` freshness TTL <= 5 minutes.
-8. Transcript evidence: Viktor was explicitly invoked in the turn.
-9. Delivery evidence: Viktor delivered `[QA PASS]` in an incoming system message after the last write.
-10. Viktor UUID / `ackToken` binding: Viktor UUID matches invoked agent.
-11. Mutation criteria: Passed in strict mode or advisory in default mode.
+6. `diffHash` matches either `currentDiffHash` (turn edit snapshots) or `computeWorkingTreeDiffHash` (changes under review relative to base).
+7. Anti-Degeneracy Lock: verdict with empty diffHash (`01ba4719c80b6fe9` or `e3b0c44298fc1c14`) is strictly rejected whenever real commits or working tree changes exist ahead of base.
+8. `timestamp` freshness TTL <= 5 minutes.
+9. Transcript evidence: Viktor was explicitly invoked in the turn.
+10. Delivery evidence: Viktor delivered `[QA PASS]` in an incoming system message after the last write.
+11. Viktor UUID / `ackToken` binding: Viktor UUID matches invoked agent.
+12. Mutation criteria: Passed in strict mode or advisory in default mode.
 
 ### 2.3 Compatibility Mode (`qaVerdictMode`, Track B1)
 - `qaVerdictMode: "artifact" | "legacy"` (configured via `.hermes/config.json` or `HERMES_QA_VERDICT_MODE`).
