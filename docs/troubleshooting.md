@@ -76,3 +76,28 @@ Antigravity provides `payload.workspacePaths` pointing to the workspace folder c
    }
    ```
    *(Note: This flags `reducedAssurance: "empty-ledger-opt-out"` in the generated verdict).*
+
+---
+
+## 3. Council Gate Rejection (Pre-Plan Specialist Consultation)
+
+### Symptom
+On write or worker launch, `clean-edits-guard` blocks the tool call with message:
+```text
+Hermes Gate (Council Gate): Первая запись задачи (<tool>) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»
+[EN: Hermes Gate (Council Gate): First write of task (<tool>) is blocked until Council Gate is completed via ask_question.]
+```
+
+### Cause
+In active `/hermes` orchestrations for Standard/Complex tasks, Lead must not cut corners solo in Phase 2. Writing source code or spawning write subagents without a verified Council Gate decision is blocked.
+
+### Resolution
+1. **Interactive Flow (ask_question):** Call `ask_question` with 3 options:
+   - `(Recommended) Собрать совет: <специалисты> — параллельные мнения + сравнительная таблица`
+   - `Только ключевой специалист: <специалист>`
+   - `Нет, Lead решает сам (экономия токенов)`
+2. If **«Lead сам»** is selected by the user, writes are unlocked immediately.
+3. If **«Собрать совет»** is chosen, summon the recommended specialists in Contour A (read-only), wait for their deliveries, present the comparative table and synthesis, and write `.hermes/decisions.md` and `.hermes/council-state.json`.
+4. **Exceptions & Configuration:**
+   - Trivial Micro/Fast-Path edits and `/hermes fix-warnings` bypass the gate automatically.
+   - Configure in `.hermes/config.json`: `"councilGate": "off"` (bypass) or `"councilGate": "auto"` (auto-convene without dialog, deliveries still mandatory).

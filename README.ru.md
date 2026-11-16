@@ -2,11 +2,11 @@
 
 ![Hermes Fleet Enterprise — Архитектурная топология мультиагентной сети](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.1.2)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.2.0)
 
 > Команда из 14 автономных ИИ-специалистов и 22 промышленных скиллов для Google Antigravity, которая не даёт агенту чинить 1 из 4 мест, самоподписываться и хардкодить.
 
-[![Version](https://img.shields.io/badge/version-4.1.2-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.2.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-398%2F398%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
@@ -127,7 +127,7 @@ flowchart LR
 
 ✍️ Контур B (Правка Lead Act/Write):
   - Применён Patch Blueprint через edit_file
-  - Выполнен Single Build Gate: 381/381 тестов прошли (3.4 с)
+  - Выполнен Single Build Gate: 410/410 тестов прошли (3.4 с)
 
 🛡️ Гейт верификации (UUID-привязанные вердикты):
   - @viktor: 🟢 [QA PASS] — Парсер кадров проверен на всех 4 промышленных протоколах
@@ -146,6 +146,7 @@ flowchart LR
 | :--- | :--- |
 | **/hermes [задача]** | Запуск оркестратора, декомпозиция цели в `REQ-1..REQ-N` и координация экспертов |
 | **/hermes feature [описание]** | 🚀 7-фазный протокол проектирования фич (Discovery, 3 альтернативы, Fast-Path) |
+| **/hermes council [задача]** | 🏛️ Обязательный совет профильных специалистов до проектирования ([`specialist-council-protocol.md`](skills/hermes/references/specialist-council-protocol.md)) |
 | **/hermes board** | 📊 Вывод интерактивной Канбан-доски прямо в чат через Generative UI |
 | **/hermes fix-warnings [--loop]** | 🧹 Устранение предупреждений компилятора до нуля (Zero Warnings Policy; `--loop` включает сходимость) |
 | **/hermes loop [задача]** | 🔄 Автономный ограниченный цикл сходимости (потолок 25 итераций, L2 в финале) |
@@ -222,7 +223,7 @@ flowchart LR
 В Hermes встроен **автономный локальный CI-гейт (Zero Billing Dependency)**:
 
 ```bash
-# Запуск всех 11 тестовых сьютов локально (381 тестов)
+# Запуск всех 11 тестовых сьютов локально (410 тестов)
 npm test
 
 # Windows PowerShell Local CI

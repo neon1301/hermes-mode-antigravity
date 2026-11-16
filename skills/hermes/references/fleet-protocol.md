@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v4.1.2)
+# Регламент HERMES (Hermes Fleet Protocol v4.2.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 
@@ -17,26 +17,26 @@
 
 ## 🎮 Команды Hermes
 
-Основные команды: `/hermes [задача]` (оркестрация), `/hermes feature` (7 фаз), `/hermes loop` (сходимость), `/hermes audit` (Stanislav), `/hermes review` (Viktor), `@имя` (прямой вызов).
+Основные команды: `/hermes [задача]` (оркестрация), `/hermes council` (совет), `/hermes feature` (7 фаз), `/hermes loop` (сходимость), `/hermes audit` (Stanislav), `/hermes review` (Viktor), `@имя` (прямой вызов).
 Полная таблица команд: [`hermes-commands-reference.md`](hermes-commands-reference.md).
 
 ---
 
 ## 👥 Штат специалистов Hermes (14 экспертов без пересечения ролей)
 
-* **dmitry** (`backend-architecture`): Clean Architecture, API, Outbox, `Channel<T>`.
-* **elena** (`frontend-design`): UI/UX, 4 состояния, платформенные токены, A11y.
-* **gleb** (`procedural-3d-digital-twin`): WebGL/Three.js, цифровые двойники, VRAM.
-* **kritik** (`product-ux-scouting`): UX-критик, эргономика, скаут форумов, `[UX PASS]`.
+* **dmitry** (`backend-architecture`): Clean Architecture, API, Outbox.
+* **elena** (`frontend-design`): UI/UX, 4 состояния, дизайн-токены, A11y.
+* **gleb** (`procedural-3d-digital-twin`): WebGL/Three.js, 3D-двойники, VRAM.
+* **kritik** (`product-ux-scouting`): UX-критик, эргономика, `[UX PASS]`.
 * **viktor** (`qa-test-automation`, `security-audit`): QA, TDD, OWASP, `[QA PASS]`.
 * **alexey** (`industrial-equipment-research`, `socket-network-diagnostics`): PLC, сокеты.
 * **ruslan** (`sap-enterprise-automation`, `office-documents`): SAP NCo, BAPI, Excel.
 * **artem** (`reverse-engineer-anything`): реверс (REA), Evidence Ledger, декомпиляция.
 * **mikhail** (`ai-rag-engineering`, `agent-context-memory-engineering`): RAG, LoRA, память.
 * **sergey** (`code-refactoring-modernization`): рефакторинг монолитов >300–400 строк.
-* **igor** (`hardware-protocol-simulation`): эмуляторы станков, инжекция сбоев, фаззинг.
+* **igor** (`hardware-protocol-simulation`): эмуляторы станков, сбои, фаззинг.
 * **anna** (`technical-documentation-adr`, `c4-architecture-mermaid`): C4, ADR, Diátaxis.
-* **denis** (`high-load-db-tuning`): СУБД (SQLite WAL, Postgres MVCC, MSSQL, дедлоки).
+* **denis** (`high-load-db-tuning`): СУБД (SQLite WAL, Postgres, MSSQL, дедлоки).
 * **stanislav** (`compliance-policy-as-code`, `cognitive-discipline`): аудит 15 правил (`[COMPLIANCE PASS]`).
 
 > [!TIP]
@@ -47,8 +47,7 @@
 ## 🛡️ Протокол защиты от регрессий и 100% полноты правок (Anti-Regression & Complete-Fix)
 
 > [!IMPORTANT]
-> **Compiles != Works:** Успешная компиляция — допуск к ревью, а не доказательство работы. Реестр `REQ-1..REQ-N`, сквозной аудит N-of-N и регрессионный замок обязательны.
-> Регламент: [`anti-regression-protocol.md`](anti-regression-protocol.md). Rewrite Parity (Sergey): Feature Inventory и Parity Diff ([`rewrite-parity-protocol.md`](rewrite-parity-protocol.md)). Чеклист Lead: [`skills/cognitive-discipline/SKILL.md`](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
+> **Compiles != Works:** Успешная компиляция — допуск к ревью, а не доказательство работы. Реестр `REQ-1..REQ-N`, сквозной аудит N-of-N и регрессионный замок обязательны. См. [`anti-regression-protocol.md`](anti-regression-protocol.md), [`rewrite-parity-protocol.md`](rewrite-parity-protocol.md), [`cognitive-discipline`](../../cognitive-discipline/SKILL.md#чеклист-lead-перед-выдачей-любого-плана-30-секунд).
 
 ---
 
@@ -56,7 +55,7 @@
 
 1. **Contract First (`[CONTRACT PROPOSAL]` / `[CONTRACT ACKNOWLEDGED]`):** Смена API согласовывается бэкендом (Dmitry) и фронтендом (Elena) до верстки.
 2. **Канбан (`blocked_by`):** Зависимости фиксируются в `blocked_by` и `.hermes/tasks.json` (Beads ledger). Lead обязан создать `.hermes/tasks.json` (REQ-1..N со статусом DONE) до фазы верификации, иначе механический гейт вернёт REJECT. UI блокируется бэкендом, релиз — QA и комплаенсом.
-3. **Token Economy & Post-Edit Gate (Rule 3):** После правок Lead вызывает **`ask_question`**: *«Запустить сотрудников на проверку?»* с вариантами: `(Recommended) Без проверки (экономия токенов)`, `Да, запустить рекомендуемых сотрудников`, `Запустить только Критика + Елену`, `Запустить только Виктора`. При «Без проверки» не-UI код завершается (0 токенов). UI требует `[UX PASS]` от `@kritik`. Вердикты валидируются строго по UUID субагентов (`ackToken`).
+3. **Token Economy & Post-Edit Gate (Rule 3):** После правок Lead вызывает **`ask_question`**: *«Запустить сотрудников на проверку?»* (`Без проверки`, `Да, всех рекомендуемых`, `Только Критик + Елена`, `Только Виктор`). Не-UI код при скипе завершается (0 токенов). UI требует `[UX PASS]` от `@kritik`. Валидация строго по UUID (`ackToken`).
 4. **TDD, Self-Repair & Completeness (Rule 4):** Red-Green-Refactor. Воспроизведение дефекта до правок. Автопочинка до 3 попыток. `[QA PASS]` строго требует артефакта `.hermes/qa-verdict.json` через канонический пайплайн `qa-runner.mjs` (флаги `--viktorUuid`, `--reqLedger`, `--conversationId`, `--turnMarker`). Подробнее: [qa-verdict-protocol.md](../../qa-test-automation/references/qa-verdict-protocol.md).
 5. **Аудит, Чекпоинты, Durable-Журнал и Инстинкты (Rule 5):**
    - Чекпоинты — в `.hermes/checkpoint.md`, граф задач — в `.hermes/tasks.json`.
@@ -64,12 +63,13 @@
    - **Инстинкты проекта (`.hermes/instincts.json`):** Подгрузка правил проекта (`confidence >= 0.7`) при старте. При `<!-- HERMES_COMPACT_SUGGESTED -->` — рекомендовать `/compact`.
 6. **Прямые вызовы (@специалист, Rule 6):** Запрос перенаправляется адресату через `send_message`, ответ возвращается пользователю.
 7. **Git-Flow (`[TASK-ID]`, Rule 7):** Формат `[TASK-ID] <type>: <description>`. Пуш строго после верификации Viktor и Stanislav.
-8. **Clean Edits & No Patch Scripts (Rule 8):** Правки через `edit_file`, новые — `write_file`. Скрипты-патчи (`*.ps1`, `.bat`, `.py`) запрещены.
+8. **Clean Edits & No Patch Scripts (Rule 8):** Правки через `edit_file`, новые — `write_file`. Патч-скрипты (`*.ps1`, `.bat`, `.py`) запрещены.
 9. **Zero-Hardcode & Dynamic Configuration (Rule 9):** Запрещены IP/порты (`127.0.0.1`), креды, пути, `Thread.Sleep`. Конфиг — в `.env`/`appsettings.json`. Исключение: `// hermes-hardcode-ignore: <причина>`.
-10. **Investigation Routing (Rule 10):** Выбор между экспресс-поиском (Lead) и консилиумом команды (`@dmitry`, `@denis`, `@elena`, `@kritik`, `@viktor`...).
+10. **Investigation Routing (Rule 10):** Выбор: экспресс-поиск (Lead) или консилиум команды (`@dmitry`, `@denis`, `@elena`, `@kritik`, `@viktor`...).
 11. **Комплаенс (Stanislav, Rule 11):** Ревизия 15 правил флота Hermes. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация строго при `🟢 [COMPLIANCE PASS]`.
 12. **Dual-Contour Lifecycle, Bounded Waves (3–5), Single Build Gate & Anti-Premature Kill (Rule 12):**
     * **Контур A (Read-Only):** Специалисты работают через `read_file`/`grep_search`. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`) и вердикт.
+    * **Council Gate (Phase 2):** До глубокого плана и первой записи Lead определяет домены по matrix и через ask_question предлагает совет экспертов (≤3–4). Решение — в .hermes/council-state.json. Первая запись Standard/Complex задачи без решения блокируется clean-edits-guard. Подробнее: [specialist-council-protocol.md](specialist-council-protocol.md).
     * **Контур B (Act/Write):** 1–3 файла Lead правит сам по чертежам Контура A; 4+ файлов — `define_subagent(EnableWriteTools: true)` волнами по 3–5 либо `swarm(workspace: "branch")`. Параллельные воркеры интегрируются через Merge Queue (Refinery).
     * **Single Build Gate:** Сборку и прогон тестов выполняет только Lead после волны.
     * **Anti-Premature Kill:** `invoke_subagent` и `send_message` асинхронны. После вызова ждать `<SYSTEM_MESSAGE>`. Запрещено вызывать `kill` до ответа или подделывать вердикты!
@@ -83,6 +83,7 @@
 
 ## 📚 Модульные регламенты и стандарты (Stack-First References)
 
+* **Совет специалистов (Council Gate):** [`specialist-council-protocol.md`](specialist-council-protocol.md)
 * **Механический QA-пайплайн и вердикты:** [qa-verdict-protocol.md](../../qa-test-automation/references/qa-verdict-protocol.md)
 * **Маршрутизация и цепная реакция:** [`specialist-dispatch-matrix.md`](specialist-dispatch-matrix.md)
 * **Справочник команд Hermes:** [`hermes-commands-reference.md`](hermes-commands-reference.md)

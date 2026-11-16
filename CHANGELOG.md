@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.2.0] - 2026-11-17
+
+### Specialist Council Gate Pre-Plan Enforcement (HERMES-COUNCIL-GATE)
+- **Protocol & Documentation (REQ-1):**
+  - Updated `skills/hermes/SKILL.md` Phase 2 to make Council Gate a mandatory milestone before deep planning and freezing the implementation plan.
+  - Added Council Gate specification in `skills/hermes/references/fleet-protocol.md` (Rule 12 / Phase 2) while strictly preserving the 12 KB core protocol budget (12,160 <= 12,288 bytes).
+  - Created comprehensive modular reference `skills/hermes/references/specialist-council-protocol.md` defining dialog window format, Contour A read-only council execution, anti-formalism requirements, and `.hermes/decisions.md` synthesis.
+  - Added domain-to-council recommendation matrix (`specialist-dispatch-matrix.md`) mapping 11 software and industrial domains to recommended councils (≤3–4 experts).
+  - Introduced `/hermes council [task]` command across commands reference and documentation.
+- **Mechanical PreToolUse Council Gate (REQ-2):**
+  - Implemented mechanical PreToolUse lock in `hooks/clean-edits-guard.mjs`: blocks the first write tool (`write_file`, `edit_file`, `define_subagent` with `EnableWriteTools: true`, `swarm`) in Standard/Complex tasks without an approved Council Gate decision.
+  - Reused hardened Token Economy Gate validators (`USER_EXPLICIT` or harness-bound `isDirectNext` + status `DONE` + banner) rejecting MODEL prose and forged SYSTEM echoes.
+  - Bound council execution to authentic deliveries from launched specialist UUIDs before allowing write access.
+  - Enforced session and task binding via `.hermes/council-state.json` preventing stale decisions from leaking across tasks.
+- **Configuration & Troubleshooting (REQ-3):**
+  - Added `councilGate` configuration support in `.hermes/config.json` (`"ask"` default, `"auto"`, `"off"`).
+  - Added dedicated troubleshooting sections in `TROUBLESHOOTING.md` and `docs/troubleshooting.md`.
+- **Mechanical Test Suite (REQ-4):**
+  - Added 12 deterministic unit and integration test cases in `hooks/clean-edits-guard.test.mjs` verifying negative locks, valid solo decisions, pending deliveries, authentic deliveries, forged prose rejection, Fast-Path bypass, loop iterations, task isolation, and configuration modes.
+
+---
+
 ## [4.1.2] - 2026-11-16
 
 ### Mechanical QA Rails Plumbing & Producer Integration (HERMES-QA-PLUMBING)

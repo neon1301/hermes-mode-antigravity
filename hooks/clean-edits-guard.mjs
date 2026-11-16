@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -467,6 +468,296 @@ if (isSubagent) {
       }
     }
   }
+}
+
+function isMetaOrArtifactPath(filePath) {
+  if (!filePath) return false;
+  const norm = String(filePath).replace(/\\/g, '/');
+  return /(?:^|[\\/])\.hermes[\\/]/i.test(norm) ||
+         /(?:^|[\\/])\.gemini[\\/]/i.test(norm) ||
+         norm.includes('/brain/');
+}
+
+function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
+  const isFileWrite = FILE_WRITE_TOOLS.has(toolName);
+  const writeTargetPath = isFileWrite ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '') : '';
+  const isWriteAttempt =
+    (isFileWrite && !isMetaOrArtifactPath(writeTargetPath)) ||
+    (toolName === 'define_subagent' && (args.EnableWriteTools === true || args.enableWriteTools === true)) ||
+    (toolName === 'swarm');
+
+  if (!isWriteAttempt) return;
+
+  // 1. Config override (.hermes/config.json or HERMES_COUNCIL_GATE)
+  let councilGateConfig = 'ask';
+  try {
+    const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      if (cfg.councilGate) councilGateConfig = String(cfg.councilGate).toLowerCase();
+    }
+  } catch {}
+  if (process.env.HERMES_COUNCIL_GATE) {
+    councilGateConfig = process.env.HERMES_COUNCIL_GATE.toLowerCase();
+  }
+
+  if (councilGateConfig === 'off') {
+    logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate bypassed: config.councilGate="off"' });
+    return;
+  }
+
+  const transcriptPath = payload?.transcriptPath;
+  if (!transcriptPath) {
+    // Fail-open for simple regex/unit test executions without transcripts
+    return;
+  }
+
+  const { combinedSteps } = getTranscriptData(transcriptPath);
+  if (!combinedSteps || combinedSteps.length === 0) return;
+
+  // Find step where current /hermes task started
+  let taskStartIdx = -1;
+  for (let i = 0; i < combinedSteps.length; i++) {
+    const s = combinedSteps[i];
+    if (isRealUserStep(s)) {
+      const text = typeof s.content === 'string' ? s.content : (s.content?.text || '');
+      if (isHermesTrigger(text, { includeMentions: false })) {
+        taskStartIdx = i;
+      }
+    }
+  }
+  if (taskStartIdx < 0) {
+    for (let i = 0; i < combinedSteps.length; i++) {
+      const s = combinedSteps[i];
+      if (isRealUserStep(s)) {
+        const text = typeof s.content === 'string' ? s.content : (s.content?.text || '');
+        if (isHermesTrigger(text, { includeMentions: true })) {
+          taskStartIdx = i;
+        }
+      }
+    }
+  }
+  if (taskStartIdx < 0) {
+    for (let i = 0; i < combinedSteps.length; i++) {
+      if (isRealUserStep(combinedSteps[i])) taskStartIdx = i;
+    }
+  }
+  if (taskStartIdx < 0) taskStartIdx = 0;
+
+  const taskStartStep = combinedSteps[taskStartIdx];
+  const userPrompt = taskStartStep
+    ? (typeof taskStartStep.content === 'string' ? taskStartStep.content : (taskStartStep.content?.text || ''))
+    : String(payload?.lastUserInput || '');
+
+  const cleanPrompt = userPrompt
+    .replace(/<USER_REQUEST>|<\/USER_REQUEST>/gi, '')
+    .replace(/<ADDITIONAL_METADATA>[\s\S]*?<\/ADDITIONAL_METADATA>/gi, '')
+    .replace(/<USER_SETTINGS_CHANGE>[\s\S]*?<\/USER_SETTINGS_CHANGE>/gi, '')
+    .trim();
+
+  // Exceptions (REQ-1)
+  // Direct @specialist call
+  if (/^\s*@([a-z0-9_-]+)/i.test(cleanPrompt)) {
+    logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate bypassed: direct @specialist call' });
+    return;
+  }
+
+  // /hermes fix-warnings
+  if (/\bfix-warnings\b/i.test(cleanPrompt)) {
+    logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate bypassed: fix-warnings' });
+    return;
+  }
+
+  // Micro / Fast-Path (trivial edits per planning ladder)
+  if (/\b(?:fast-?path|micro-?task|trivial)\b/i.test(cleanPrompt) || /(?:опечатк[ауеи]|typo|исправь\s+опечатку|syntax\s+error)/i.test(cleanPrompt)) {
+    logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate bypassed: Fast-Path / micro task' });
+    return;
+  }
+
+  const isLoop = /\b\/hermes\s+loop\b/i.test(cleanPrompt) || /\bloop\b/i.test(cleanPrompt);
+  const taskHash = crypto.createHash('sha256').update(cleanPrompt).digest('hex').slice(0, 16);
+  const convId = String(payload?.conversationId || transcriptPath || '');
+  const turnMarker = taskStartStep?.step_index ?? taskStartIdx;
+
+  // Check state on disk (.hermes/council-state.json)
+  const councilStatePath = path.join(activeWorkspaceDir, '.hermes', 'council-state.json');
+  let existingState = null;
+  if (fs.existsSync(councilStatePath)) {
+    try {
+      existingState = JSON.parse(fs.readFileSync(councilStatePath, 'utf-8'));
+    } catch {}
+  }
+
+  if (existingState && existingState.status === 'APPROVED') {
+    const taskMatches = existingState.taskHash === taskHash || (isLoop && existingState.isLoop);
+    const convMatches = !convId || !existingState.conversationId || existingState.conversationId === convId;
+    if (taskMatches && convMatches) {
+      logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: active council-state.json' });
+      return;
+    }
+  }
+
+  // Find Council Gate ask_question in current turn (after taskStartIdx)
+  const COUNCIL_QUESTION_RE = /(?:посоветоваться\s+с\s+советом|совет\s+специалистов|собрать\s+совет|council\s+gate|специалист.*финальн)/i;
+  let councilAskIdx = -1;
+  let councilAskToolCallId = '';
+
+  for (let i = taskStartIdx; i < combinedSteps.length; i++) {
+    const s = combinedSteps[i];
+    for (const tc of collectToolCalls(s)) {
+      const tcName = String(tc?.name || '').toLowerCase();
+      if (tcName === 'ask_question') {
+        const qText = JSON.stringify(tc?.args || '');
+        if (COUNCIL_QUESTION_RE.test(qText)) {
+          councilAskIdx = i;
+          councilAskToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+        }
+      }
+    }
+  }
+
+  if (councilGateConfig !== 'auto' && councilAskIdx < 0) {
+    deny(
+      `Hermes Gate (Council Gate): Первая запись задачи (${toolName}) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»\n[EN: Hermes Gate (Council Gate): First write of task (${toolName}) is blocked until Council Gate is completed via ask_question.]`
+    );
+    process.exit(0);
+  }
+
+  // Extract answer using hardened validator
+  let councilAnswer = '';
+  if (councilAskIdx >= 0) {
+    for (let i = councilAskIdx + 1; i < combinedSteps.length; i++) {
+      const s = combinedSteps[i];
+      const stepIdx = i;
+      const isDirectNext = stepIdx === councilAskIdx + 1;
+      const sContent = String(s?.content || '');
+      const stepType = String(s?.type || '').toUpperCase();
+      const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
+
+      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
+      const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+      const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
+      const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+
+      const isBoundByToolId = Boolean(
+        councilAskToolCallId &&
+        stepToolCallId &&
+        stepToolCallId === councilAskToolCallId
+      );
+
+      const isSystemToolOutput =
+        (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') &&
+        isBoundByToolId &&
+        isGenericOrTool &&
+        !s?.sender &&
+        !/<SYSTEM_MESSAGE/i.test(sContent);
+
+      const isBoundOrUnboundDirectNext = councilAskToolCallId
+        ? isBoundByToolId
+        : (isDirectNext && !stepToolCallId);
+
+      const isAuthenticHarnessOutput =
+        isDirectNext &&
+        isGenericOrTool &&
+        hasStatusDone &&
+        isBoundOrUnboundDirectNext &&
+        hasHarnessBanner;
+
+      if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
+        councilAnswer += '\n' + sContent;
+      }
+    }
+  }
+
+  if (councilGateConfig !== 'auto' && !councilAnswer.trim()) {
+    deny(
+      `Hermes Gate (Council Gate): Запрос Council Gate был отправлен, но ответ пользователя ещё не получен. Дождитесь ответа пользователя перед первой записью.\n[EN: Hermes Gate (Council Gate): Council Gate prompt sent but user answer is pending.]`
+    );
+    process.exit(0);
+  }
+
+  const SOLO_RE = /(?:lead\s+решает\s+сам|решает\s+сам|сам\s+\(экономия|экономия\s+токенов\)|lead\s+сам|только\s+lead|без\s+совета|solo)/i;
+  const OPTION_3_RE = /(?:^|\n)\s*(?:[A-Za-z]?3[:.)]\s*|option\s+3[:.]\s*|[-*]\s*)?(?:нет|lead\s+решает\s+сам|решает\s+сам)/i;
+  const isSolo = councilGateConfig !== 'auto' && (SOLO_RE.test(councilAnswer) || OPTION_3_RE.test(councilAnswer));
+
+  if (isSolo) {
+    try {
+      const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+      if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+      const stateRecord = {
+        conversationId: convId,
+        turnMarker,
+        taskHash,
+        task: cleanPrompt.slice(0, 100),
+        decision: 'solo',
+        isLoop,
+        status: 'APPROVED',
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
+    } catch {}
+    logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: Lead solo decided by user' });
+    return;
+  }
+
+  // Council was chosen or auto mode: verify authentic deliveries
+  const dispatchedUuids = new Set();
+  const deliveredUuids = new Set();
+  const scanStartIndex = councilAskIdx >= 0 ? councilAskIdx : taskStartIdx;
+
+  for (let i = scanStartIndex; i < combinedSteps.length; i++) {
+    const s = combinedSteps[i];
+    const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+    const createdMatch = contentStr.match(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+    if (createdMatch) {
+      dispatchedUuids.add(createdMatch[1].toLowerCase());
+    }
+    if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
+      const senderMatch = contentStr.match(/sender=["']?([0-9a-f-]{36})["']?/i);
+      if (senderMatch) {
+        deliveredUuids.add(senderMatch[1].toLowerCase());
+      }
+    }
+  }
+
+  if (dispatchedUuids.size === 0) {
+    const msg = councilGateConfig === 'auto'
+      ? `Hermes Gate (Council Gate): В режиме config.councilGate="auto" перед первой записью обязательны доставки от участников совета специалистов (ожидается запуск invoke_subagent в Контуре A).\n[EN: Hermes Gate (Council Gate): config.councilGate="auto" requires deliveries from council specialists before writing.]`
+      : `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников совета перед первой записью.\n[EN: Hermes Gate (Council Gate): Council was requested but no specialists were invoked. Invoke council members before writing.]`;
+    deny(msg);
+    process.exit(0);
+  }
+
+  const pendingUuids = [...dispatchedUuids].filter((id) => !deliveredUuids.has(id));
+  if (pendingUuids.length > 0) {
+    deny(
+      `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ответы участников ещё не получены (доставлено ${deliveredUuids.size} из ${dispatchedUuids.size}). Дождитесь ответов субагентов перед первой записью.\n[EN: Hermes Gate (Council Gate): Council deliveries pending (${deliveredUuids.size}/${dispatchedUuids.size}). Await subagent responses before writing.]`
+    );
+    process.exit(0);
+  }
+
+  // All delivered! Save state and allow
+  try {
+    const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+    if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const stateRecord = {
+      conversationId: convId,
+      turnMarker,
+      taskHash,
+      task: cleanPrompt.slice(0, 100),
+      decision: 'council',
+      membersCount: dispatchedUuids.size,
+      isLoop,
+      status: 'APPROVED',
+      timestamp: new Date().toISOString()
+    };
+    fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
+  } catch {}
+  logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: all council deliveries verified' });
+}
+
+if (!isSubagent) {
+  verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir });
 }
 
 if (FILE_WRITE_TOOLS.has(toolName)) {

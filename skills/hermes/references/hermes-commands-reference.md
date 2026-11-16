@@ -10,6 +10,7 @@
 | :--- | :--- | :--- |
 | **/hermes [задача]** | Оркестрация | Реестр `REQ-1..REQ-N`, декомпозиция, выбор специалистов и контроль исполнения |
 | **/hermes feature [описание]** | Проектирование фич | 🚀 7-фазный протокол фич (Discovery, 3 альтернативы, Fast-Path). Подробнее: [`feature-dev-protocol.md`](feature-dev-protocol.md) |
+| **/hermes council [задача]** | Совет специалистов | 🏛️ Принудительный созыв совета экспертов до проектирования плана ([`specialist-council-protocol.md`](specialist-council-protocol.md)) |
 | **/hermes board** | Канбан-доска | Отображение интерактивной канбан-доски в чате (Generative UI) |
 | **/hermes loop / fix-warnings** | Сходимость | 🔄 Ограниченный цикл сходимости компилятора и тестов (потолок 25 итераций) |
 | **/hermes audit** | Комплаенс-аудит | Ревизия 15 правил флота Hermes и стековых скиллов (Stanislav, `[COMPLIANCE PASS]`) |
@@ -25,4 +26,5 @@
 
 * **Ядро регламента флота:** [`fleet-protocol.md`](fleet-protocol.md)
 * **Матрица маршрутизации специалистов:** [`specialist-dispatch-matrix.md`](specialist-dispatch-matrix.md)
+* **Совет специалистов (Council Gate):** [`specialist-council-protocol.md`](specialist-council-protocol.md)
 * **7-фазный протокол фич:** [`feature-dev-protocol.md`](feature-dev-protocol.md)

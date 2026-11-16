@@ -14,6 +14,24 @@ This guide explains the most common guard and gate notices, why they occur, and 
 
 ---
 
+### 1b. `Hermes Gate (Council Gate: Pre-Plan Specialist Consultation)`
+* **Message:** `Hermes Gate (Council Gate): Первая запись задачи (<tool>) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»...`
+* **Why it happens:** In active `/hermes` orchestrations for Standard/Complex tasks, Lead Orchestrator must not skip domain consultation or design solutions solo. The PreToolUse hook blocks the first write tool (`write_file`, `edit_file`, `define_subagent` with `EnableWriteTools: true`, `swarm`) until Council Gate is resolved.
+* **Resolution:**
+  1. **Standard interactive flow:** Call `ask_question` with the 3 canonical choices:
+     - `(Recommended) Собрать совет: <специалисты> — параллельные мнения + сравнительная таблица`
+     - `Только ключевой специалист: <специалист>`
+     - `Нет, Lead решает сам (экономия токенов)`
+  2. If the user selects «Lead решает сам», writes are immediately unlocked and logged in `.hermes/gate-log.jsonl`.
+  3. If the user selects «Собрать совет», launch the specialists in Contour A (read-only), await their authentic deliveries via `<SYSTEM_MESSAGE>`, present the comparative synthesis table in chat, and save state to `.hermes/decisions.md` and `.hermes/council-state.json`.
+  4. **Exceptions & Configuration:**
+     - Trivial fixes (Micro/Fast-Path, typo, 1-line changes) and `/hermes fix-warnings` bypass the gate automatically.
+     - Direct specialist queries (`@dmitry`, `@elena`, etc.) are exempt.
+     - To disable globally or in CI test scripts, set `"councilGate": "off"` in `.hermes/config.json` or `HERMES_COUNCIL_GATE=off`.
+     - In `"councilGate": "auto"` mode, the prompt dialog is bypassed, but specialist deliveries remain strictly mandatory before writing.
+
+---
+
 ### 2. `Hermes Rule 12 (Policy as Code: Model Tier Mismatch)`
 * **Message:** `Hermes Rule 12 (Policy as Code: Model Tier Mismatch): В текущей сессии выбран уровень <Tier>...`
 * **Why it happens:** In Step 0 Handshake, a specific reasoning tier was chosen, but an `invoke_subagent` call attempted to use an incompatible `Model` enum:
