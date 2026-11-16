@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.0.0)
+# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.1.0)
 
 > A fleet of 14 autonomous AI specialists and 22 industrial skills for Google Antigravity that prevents coding agents from fixing 1 of 4 places, self-signing PRs, and hardcoding IPs.
 
-[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.1.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-361%2F361%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-372%2F372%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -127,7 +127,7 @@ User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
 
 ✍️ Contour B (Lead Act/Write):
   - Applied Patch Blueprint via edit_file
-  - Single Build Gate executed: 361/361 tests passed (3.4s)
+  - Single Build Gate executed: 372/372 tests passed (3.4s)
 
 🛡️ Verification Gate (UUID-bound deliveries):
   - @viktor: 🟢 [QA PASS] — Frame parser verified against all 4 drivers
@@ -222,7 +222,7 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 Hermes Fleet includes a **Zero-Billing Local CI Gate**:
 
 ```bash
-# Run all 11 test suites locally (361 tests)
+# Run all 11 test suites locally (372 tests)
 npm test
 
 # Windows PowerShell Local CI

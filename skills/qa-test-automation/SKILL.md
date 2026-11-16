@@ -65,3 +65,13 @@ When verifying Windows desktop interfaces (.NET WinForms / WPF), Viktor executes
 - Guarantee process and automation teardown via `IDisposable`.
 - Query controls via semantic `AutomationId`, strictly banning brittle pixel clicking.
 - Await state transitions via `Retry.WhileNull` / `Retry.WhileFalse`, strictly banning `Thread.Sleep`.
+
+---
+
+## 6. Mechanical QA Rails (`hooks/qa-runner.mjs` & `.hermes/qa-verdict.json`)
+
+Starting with Hermes Fleet v4.1.0 (ADR-0005), `[QA PASS]` requires mechanical artifact generation:
+- Execute `node hooks/qa-runner.mjs` to detect project stack, run tests, capture operating system exit codes, and write `.hermes/qa-verdict.json`.
+- The Stop Gate rejects conversational text tokens alone in default `qaVerdictMode: "artifact"`.
+- Artifact must have `runner: "mechanical"`, all `testExitCodes === 0`, matching `diffHash`, and non-empty `reqLedger`.
+- Mutation testing is evaluated advisory-first (strict mode blocks gate when configured).

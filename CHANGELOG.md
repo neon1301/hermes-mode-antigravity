@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.0] - 2026-11-16
+
+### Mechanical QA Rails & Artifact-Driven Gate Acceptance (HERMES-QA-MECHANICAL-RAILS, B1–B5)
+- **Mechanical QA Writer (`hooks/qa-runner.mjs`, Track B2):**
+  - Implemented automated multi-stack detection supporting `.NET` (`dotnet test`), Python (`pytest`), Node.js (`test-runner.mjs`, `npm test`), and Go (`go test ./...`).
+  - Executes real test processes, captures operating system exit codes in `testExitCodes: [number]`, and computes deterministic working tree SHA-256 `diffHash`.
+  - Deterministically writes `.hermes/qa-verdict.json` conforming to `qa-verdict.schema.json` with zero LLM prose generation.
+- **Fail-Closed Artifact Stop Gate Acceptance (`hooks/qa-gate.mjs`, Track B1):**
+  - Transitioned `[QA PASS]` verification from conversational transcript text token parsing to a machine-verified artifact (`.hermes/qa-verdict.json`).
+  - Enforced strict invariants: schema compliance, `runner: "mechanical"`, all `testExitCodes === 0`, non-empty `reqLedger`, `diffHash` binding to touched snapshots or git working tree, freshness TTL <= 5 minutes, authentic Viktor invocation, and subagent delivery binding.
+  - Added compatibility mode `qaVerdictMode: "artifact" | "legacy"` (defaults to `"artifact"`; `"legacy"` mode outputs deprecation warning and accepts transcript tokens).
+- **Mutation Testing MVP (`hooks/qa-runner.mjs`, Track B3):**
+  - Implemented diff-scoped mutation testing (budget <= 20 mutants, 60s timeout) with automated detection for Stryker (Node/.NET) and mutmut (Python).
+  - Adheres strictly to Rule 13 (Data Honesty): toolchain absence is reported honestly as `mutation: "unavailable"`, never fabricated.
+  - Advisory by default (`mutationMode: "advisory"`); optional `mutationMode: "strict"` blocks gate on survived mutants.
+- **Comprehensive Negative & Anti-Spoofing Vectors (`hooks/qa-gate.test.mjs`, Track B4):**
+  - Added 11 negative and compliance tests verifying rejection on non-mechanical runners, stale diffHash, UUID mismatch, missing/non-zero exit codes, empty reqLedger, schema violations, missing artifact, transcript-only attempts, and survived mutants in strict mode.
+  - Expanded `qa-gate` test suite to 82/82 PASS (100% clean).
+- **Architectural Documentation & Troubleshooting (Track B5):**
+  - Authored `docs/adr/ADR-0005-mechanical-qa-rails-and-artifact-gate.md` with cross-references to ADR-0001 and ADR-0004.
+  - Created `docs/troubleshooting.md` documenting QA gate rejection diagnostics and resolution.
+  - Updated `skills/qa-test-automation/SKILL.md` and `skills/hermes/references/fleet-protocol.md` (Rule 4).
+  - Recorded completion of TASK-008 in `docs/backlog.md`.
+
 ## [4.0.0] - 2026-11-15
 
 ### Gas Town Refinery Merge-Queue Automation (TASK-003) — MAJOR

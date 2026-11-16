@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v4.0.0)
+# Регламент HERMES (Hermes Fleet Protocol v4.1.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 
@@ -59,7 +59,7 @@
 3. **Подтверждение запуска проверки (Token Economy & Post-Edit Gate, Rule 3):**
    - После правок кода и сборки (`Single Build Gate`) Lead вызывает **`ask_question`**: *«Запустить сотрудников на проверку (Viktor QA, Критик UX, Elena и др.)?»* с вариантами: `(Recommended) Без проверки (экономия токенов)`, `Да, запустить рекомендуемых сотрудников`, `Запустить только Критика + Елену`, `Запустить только Виктора`.
    - При «Без проверки» не-UI код завершается сразу (0 токенов). При правках UI-файлов `qa-gate` требует `[UX PASS]` от `@kritik`. Вердикты (`[QA/SECURITY PASS]`, `[COMPLIANCE PASS]`, `[UX PASS]`) валидируются строго по UUID субагентов (`ackToken`).
-4. **TDD, Self-Repair & Completeness (Rule 4):** Red-Green-Refactor. Воспроизведение дефекта тестом до правок. До 3 попыток автопочинки по стектрейсу.
+4. **TDD, Self-Repair & Completeness (Rule 4):** Red-Green-Refactor. Воспроизведение дефекта тестом до правок. Автопочинка до 3 попыток. [QA PASS] требует артефакта `.hermes/qa-verdict.json` (ADR-0005: runner: "mechanical", exit codes, diffHash, reqLedger).
 5. **Аудит, Чекпоинты, Durable-Журнал и Инстинкты (Rule 5):**
    - Чекпоинты — в `.hermes/checkpoint.md`, граф задач — в `.hermes/tasks.json`.
    - **Durable Recovery Journal (B6):** `.hermes/journal.jsonl` append-only для ключевых событий (инструменты, гейты, волны, diffHash). `/hermes resume` восстанавливает состояние через replay журнала и сверку хэша рабочей копии.

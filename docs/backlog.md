@@ -106,3 +106,19 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   4. **`github/spec-kit` (Specification-Driven Development)**:
      - *Verdict:* `ADOPT` (Templates) / `HOLD` (`specify-cli`).
      - *Rationale:* Clean markdown templates (`spec.md`, `plan.md`, `tasks.md`) ported to `skills/hermes/references/spec-driven-templates.md` under Apache 2.0 for Anna and Lead on Enterprise tasks. Heavy CLI tool (`specify-cli`) and orchestration logic are held to avoid external Python dependencies and keep Hermes zero-context outside `/hermes`.
+
+
+---
+
+### [TASK-008] Mechanical QA Rails & Artifact-Driven Gate Acceptance (Track B1–B5)
+* **Priority:** P1
+* **Target Version:** v4.1.0
+* **Status:** ✅ COMPLETED in v4.1.0
+* **Resolution:**
+  - Transitioned `[QA PASS]` from conversational text token matching to deterministic machine-verified artifact (`.hermes/qa-verdict.json`).
+  - Implemented `hooks/qa-runner.mjs` with automated stack detection (`dotnet`, `pytest`, `npm`, `go`), real process exit codes, and `diffHash` binding.
+  - Expanded `qa-verdict.schema.json` with contract validation.
+  - Implemented fail-closed Stop gate acceptance in `hooks/qa-gate.mjs` with backward-compatible `qaVerdictMode: "legacy"` flag.
+  - Added Mutation Testing MVP (advisory-first, Rule 13 honest reporting, strict mode option).
+  - Documented in `docs/adr/ADR-0005-mechanical-qa-rails-and-artifact-gate.md` and `docs/troubleshooting.md`.
+  - Added 11 negative and anti-spoofing test vectors in `hooks/qa-gate.test.mjs` (82/82 PASS).
