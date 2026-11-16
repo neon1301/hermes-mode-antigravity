@@ -1715,7 +1715,7 @@ const cases = [
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
             { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
           ])
-        }, { HERMES_SEC_REVIEW: '0' });
+        }, { HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: 'HEAD~1' });
       } finally {
         if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
@@ -1742,7 +1742,7 @@ const cases = [
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
             { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
           ])
-        }, { HERMES_SEC_REVIEW: '0' });
+        }, { HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: 'HEAD~1' });
       } finally {
         if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
