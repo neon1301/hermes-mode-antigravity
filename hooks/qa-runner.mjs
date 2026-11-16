@@ -135,7 +135,7 @@ export function resolveBaseRef(workspaceDir = process.cwd(), options = {}) {
 export function computeWorkingTreeDiffHash(workspaceDir = process.cwd(), options = {}) {
   try {
     const baseRef = resolveBaseRef(workspaceDir, options);
-    const status = execFileSync('git', ['status', '--porcelain'], {
+    const status = execFileSync('git', ['status', '--porcelain', '-uall'], {
       cwd: workspaceDir,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore']
@@ -145,14 +145,16 @@ export function computeWorkingTreeDiffHash(workspaceDir = process.cwd(), options
     let untrackedPayload = '';
     if (status.includes('?? ')) {
       const untracked = status
-        .split('\n')
+        .split(/\r?\n/)
         .filter(l => l.startsWith('?? '))
-        .map(l => l.slice(3).trim());
+        .map(l => l.slice(3).trim())
+        .sort();
       for (const f of untracked) {
         try {
           const full = path.resolve(workspaceDir, f);
           if (fs.existsSync(full) && fs.statSync(full).isFile()) {
-            untrackedPayload += `\n${f}\n${fs.readFileSync(full, 'utf-8')}`;
+            const fileHash = crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex');
+            untrackedPayload += `\n${f}:${fileHash}`;
           }
         } catch {}
       }

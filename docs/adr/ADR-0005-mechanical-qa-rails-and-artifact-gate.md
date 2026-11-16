@@ -27,7 +27,7 @@ We transition `[QA PASS]` acceptance from conversational text tokens to a determ
 - Executes project test runners via synchronous child processes and captures real operating system exit codes in `testExitCodes: [number]`.
 - Calculates deterministic SHA-256 `diffHash` bound to changes under review:
   - Resolves base commit (`resolveBaseRef`) via `HERMES_BASE_REF`, `.hermes/config.json -> baseRef`, upstream tracking branch (`@{u}`), or candidate base branches (`origin/main`, `origin/master`, `main`, `master`).
-  - Diffs against resolved base (`git diff <baseRef>`), capturing both committed branch changes and uncommitted working tree edits, plus untracked file contents.
+  - Diffs against resolved base (`git diff <baseRef>`), capturing both committed branch changes and uncommitted working tree edits, plus untracked file contents across nested directories (`git status --porcelain -uall` with binary SHA-256 per untracked file).
   - On a clean working tree with commits ahead of base, `diffHash` matches `git diff origin/main..HEAD | sha256sum` character-by-character.
   - Fallback for detached HEAD or repos without upstream: binds to `HEAD^{tree}` (commit tree object SHA) + working tree diff, ensuring two clean trees with different HEAD commits produce strictly distinct hashes.
   - Fail-closed: returns `0000000000000000` if git fails or directory is not a git repository.

@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.1.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-378%2F378%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-381%2F381%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -127,7 +127,7 @@ User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
 
 ✍️ Contour B (Lead Act/Write):
   - Applied Patch Blueprint via edit_file
-  - Single Build Gate executed: 378/378 tests passed (3.4s)
+  - Single Build Gate executed: 381/381 tests passed (3.4s)
 
 🛡️ Verification Gate (UUID-bound deliveries):
   - @viktor: 🟢 [QA PASS] — Frame parser verified against all 4 drivers
@@ -222,7 +222,7 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 Hermes Fleet includes a **Zero-Billing Local CI Gate**:
 
 ```bash
-# Run all 11 test suites locally (378 tests)
+# Run all 11 test suites locally (381 tests)
 npm test
 
 # Windows PowerShell Local CI

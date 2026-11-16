@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Changes-Under-Review diffHash Binding Fix (`HERMES-QA-DIFFHASH-FIX`):**
   - Eliminated degenerate empty diffHash (`01ba4719c80b6fe9` / `e3b0c44298fc1c14`) on clean trees with commits ahead of upstream by binding verdict diffHash to real changes relative to base (`resolveBaseRef`), covering both committed branch changes and uncommitted edits.
   - Enforced fail-closed gate rejection of empty/degenerate diffHash whenever commits or working tree changes exist ahead of base.
+- **Full Working Tree diffHash Binding (`HERMES-QA-DIFFHASH-WORKTREE`):**
+  - Extended `computeWorkingTreeDiffHash` to inspect all untracked files across nested subdirectories using `git status --porcelain -uall`.
+  - Switched untracked file content hashing from UTF-8 string concatenation to binary SHA-256 buffers, preventing encoding errors and blind spots on nested directories.
+  - Added acceptance tests 7–9 in `hooks/qa-gate.test.mjs` (uncommitted tracked edits rejection, untracked files rejection, and full state divergence consistency), expanding the test suite to 91/91 PASS and total project suite to 381/381 PASS.
   - Implemented robust fallback to `HEAD^{tree}` + working diff for detached HEAD or repos without upstream, guaranteeing distinct HEAD commits yield distinct hashes.
   - Established `computeWorkingTreeDiffHash` in `hooks/qa-runner.mjs` as single source of truth shared by `qa-gate.mjs` and `skills/hermes/scripts/journal.mjs`.
   - Added 6 dedicated acceptance tests covering non-empty hashes, degenerate empty rejection, distinct HEAD commits, session commit invalidation, runner/gate consistency, and mechanical verdict regeneration.

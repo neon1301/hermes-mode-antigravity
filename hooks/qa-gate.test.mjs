@@ -1931,6 +1931,143 @@ try {
   } finally {
     fs.rmSync(testWsDir, { recursive: true, force: true });
   }
+
+  // Acceptance Criterion 7: Uncommitted tracked edit after verdict -> diffHash mismatch -> gate reject
+  totalChecks++;
+  const repo7Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r7-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo7Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo7Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo7Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo7Dir, encoding: 'utf-8' }).trim();
+
+    fs.writeFileSync(path.join(repo7Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo7Dir, stdio: 'ignore' });
+    const hashBefore = computeWorkingTreeDiffHash(repo7Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo7Dir, { diffHash: hashBefore, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+
+    // Uncommitted tracked edit
+    fs.writeFileSync(path.join(repo7Dir, 'index.ts'), 'export const a = 99;\n');
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo7Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r7_test',
+        workspacePaths: [repo7Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r7_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test tracked edit' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo7Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo7Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_stale_verdict_after_uncommitted_tracked_edit');
+    } else {
+      failed++;
+      console.log(`FAIL reject_stale_verdict_after_uncommitted_tracked_edit: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo7Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 8: Untracked file added after verdict -> diffHash mismatch -> gate reject
+  totalChecks++;
+  const repo8Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r8-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo8Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo8Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo8Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo8Dir, encoding: 'utf-8' }).trim();
+
+    fs.writeFileSync(path.join(repo8Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo8Dir, stdio: 'ignore' });
+    const hashBefore = computeWorkingTreeDiffHash(repo8Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo8Dir, { diffHash: hashBefore, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+
+    // Untracked file in nested subfolder
+    const nestedDir = path.join(repo8Dir, 'src', 'nested');
+    fs.mkdirSync(nestedDir, { recursive: true });
+    fs.writeFileSync(path.join(nestedDir, 'untracked.ts'), 'export const secret = 42;\n');
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo8Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r8_test',
+        workspacePaths: [repo8Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r8_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test untracked file' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo8Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo8Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_stale_verdict_after_untracked_file_added');
+    } else {
+      failed++;
+      console.log(`FAIL reject_stale_verdict_after_untracked_file_added: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo8Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 9: Full state coverage (commits / tracked edit / untracked file diverge; runner == gate)
+  totalChecks++;
+  const repo9Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r9-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo9Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo9Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo9Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo9Dir, encoding: 'utf-8' }).trim();
+
+    // 1. Committed change
+    fs.writeFileSync(path.join(repo9Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo9Dir, stdio: 'ignore' });
+    const hashCommit = computeWorkingTreeDiffHash(repo9Dir, { baseRef: baseCommit });
+
+    // 2. Tracked uncommitted edit
+    fs.writeFileSync(path.join(repo9Dir, 'index.ts'), 'export const a = 3;\n');
+    const hashTracked = computeWorkingTreeDiffHash(repo9Dir, { baseRef: baseCommit });
+
+    // 3. Untracked file added in nested dir
+    const nestedDir = path.join(repo9Dir, 'sub');
+    fs.mkdirSync(nestedDir, { recursive: true });
+    fs.writeFileSync(path.join(nestedDir, 'extra.txt'), 'payload');
+    const hashUntracked = computeWorkingTreeDiffHash(repo9Dir, { baseRef: baseCommit });
+
+    const EMPTY_HASHES = new Set(['01ba4719c80b6fe9', 'e3b0c44298fc1c14', '0000000000000000']);
+    const nonEmpties = !EMPTY_HASHES.has(hashCommit) && !EMPTY_HASHES.has(hashTracked) && !EMPTY_HASHES.has(hashUntracked);
+    const distinct = hashCommit !== hashTracked && hashTracked !== hashUntracked && hashCommit !== hashUntracked;
+    const runnerGateConsistent = computeWorkingTreeDiffHash(repo9Dir, { baseRef: baseCommit }) === hashUntracked;
+
+    if (nonEmpties && distinct && runnerGateConsistent) {
+      console.log(`PASS diffhash_covers_full_state (commit=${hashCommit}, tracked=${hashTracked}, untracked=${hashUntracked})`);
+    } else {
+      failed++;
+      console.log(`FAIL diffhash_covers_full_state: nonEmpties=${nonEmpties}, distinct=${distinct}, consistent=${runnerGateConsistent}`);
+    }
+  } finally {
+    fs.rmSync(repo9Dir, { recursive: true, force: true });
+  }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
