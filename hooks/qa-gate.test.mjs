@@ -52,6 +52,8 @@ function writeQaVerdictFixture(wsDir = process.cwd(), overrides = {}) {
     reqLedger: overrides.reqLedger !== undefined ? overrides.reqLedger : ['REQ-1'],
     ackToken: overrides.ackToken || crypto.randomUUID(),
     agent: 'viktor',
+    conversationId: overrides.conversationId !== undefined ? overrides.conversationId : undefined,
+    turnMarker: overrides.turnMarker !== undefined ? overrides.turnMarker : undefined,
     timestamp: new Date().toISOString(),
     ...overrides
   };
@@ -200,7 +202,12 @@ const cases = [
     expected: 'allow',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/a.ts' }, { Path: 'src/b.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c4',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c4',
@@ -254,7 +261,12 @@ const cases = [
     expected: 'allow',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/1.ts' }, { Path: 'src/2.ts' }, { Path: 'src/3.ts' }, { Path: 'src/4.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c6',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c6',
@@ -452,7 +464,12 @@ const cases = [
     expected: 'allow',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/UI/PopupWindow.cs' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_ui_with_ux_pass',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_ui_with_ux_pass',
@@ -792,7 +809,12 @@ const cases = [
     expected: 'allow',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/styles/main.css' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_css_with_passes',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_css_with_passes',
@@ -865,7 +887,12 @@ const cases = [
         reviewedAt: new Date().toISOString(),
         unresolvedHighCritical: 0
       }), 'utf-8');
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_sec_valid',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_sec_valid',
@@ -1006,7 +1033,12 @@ const cases = [
     expected: 'allow',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_sec_disabled',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_sec_disabled',
@@ -1072,7 +1104,12 @@ const cases = [
         reviewedAt: new Date().toISOString(),
         unresolvedHighCritical: 0
       }), 'utf-8');
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h1, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h1,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_r3_test',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_r3_test',
@@ -1444,7 +1481,13 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { runner: 'manual-llm-prose', diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        runner: 'manual-llm-prose',
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_runner',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_runner',
@@ -1469,7 +1512,12 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: 'stale-diffhash-9999', viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: 'stale-diffhash-9999',
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_diffhash',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_diffhash',
@@ -1494,7 +1542,12 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '99999999-9999-9999-9999-999999999999' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '99999999-9999-9999-9999-999999999999',
+        conversationId: 'c_neg_uuid',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_uuid',
@@ -1519,7 +1572,13 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, testExitCodes: undefined, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        testExitCodes: undefined,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_exit_missing',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_exit_missing',
@@ -1544,7 +1603,13 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, testExitCodes: [0, 1], viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        testExitCodes: [0, 1],
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_exit_nonzero',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_exit_nonzero',
@@ -1569,7 +1634,13 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, reqLedger: [], viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        reqLedger: [],
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_req_empty',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_req_empty',
@@ -1594,7 +1665,13 @@ const cases = [
     expected: 'continue',
     run: () => {
       const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
-      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, status: 'INVALID_STATUS', viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        status: 'INVALID_STATUS',
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_schema',
+        turnMarker: 0
+      });
       try {
         return runGate({
           conversationId: 'c_neg_schema',
@@ -1673,6 +1750,8 @@ const cases = [
       const qaPath = writeQaVerdictFixture(process.cwd(), {
         diffHash: h,
         viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_mutation_strict',
+        turnMarker: 0,
         mutation: { status: 'REJECT', survived: 3, mutantsTotal: 10, killed: 7, diffHash: h, timestamp: new Date().toISOString() }
       });
       try {
@@ -1702,7 +1781,9 @@ const cases = [
       const h = '01ba4719c80b6fe9';
       const qaPath = writeQaVerdictFixture(process.cwd(), {
         diffHash: h,
-        viktorUuid: '11111111-1111-1111-1111-111111111111'
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_empty_diffhash',
+        turnMarker: 0
       });
       try {
         return runGate({
@@ -1730,7 +1811,9 @@ const cases = [
       const h = 'e3b0c44298fc1c14';
       const qaPath = writeQaVerdictFixture(process.cwd(), {
         diffHash: h,
-        viktorUuid: '11111111-1111-1111-1111-111111111111'
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        conversationId: 'c_neg_e3b0_empty_diffhash',
+        turnMarker: 0
       });
       try {
         return runGate({
@@ -2132,6 +2215,8 @@ try {
     writeQaVerdictFixture(repo11Dir, {
       diffHash: h11,
       viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r11_test',
+      turnMarker: 0,
       mutation: { status: 'unavailable', mutantsTotal: 0, killed: 0, survived: 0, killRate: null, diffHash: h11, timestamp: new Date().toISOString() }
     });
 
@@ -2180,7 +2265,9 @@ try {
     writeQaVerdictFixture(repo12Dir, {
       diffHash: h12,
       reqLedger: ['REQ-1'], // Missing REQ-2 requested by user!
-      viktorUuid: '11111111-1111-1111-1111-111111111111'
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r12_test',
+      turnMarker: 0
     });
 
     const gateRes = execFileSync('node', [gatePath], {
@@ -2227,7 +2314,9 @@ try {
 
     writeQaVerdictFixture(repo13Dir, {
       diffHash: h13,
-      viktorUuid: undefined // Missing UUID!
+      viktorUuid: undefined, // Missing UUID!
+      conversationId: 'c_r13_test',
+      turnMarker: 0
     });
 
     const gateRes = execFileSync('node', [gatePath], {
@@ -2275,7 +2364,9 @@ try {
     writeQaVerdictFixture(repo14Dir, {
       diffHash: h14,
       ackToken: 'viktor-qa-pass', // Static constant rejected!
-      viktorUuid: '11111111-1111-1111-1111-111111111111'
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r14_test',
+      turnMarker: 0
     });
 
     const gateRes = execFileSync('node', [gatePath], {
@@ -2322,7 +2413,9 @@ try {
 
     writeQaVerdictFixture(repo15Dir, {
       diffHash: h15,
-      viktorUuid: '11111111-1111-1111-1111-111111111111'
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r15_test',
+      turnMarker: 0
     });
 
     const gateRes = execFileSync('node', [gatePath], {
@@ -2353,6 +2446,276 @@ try {
     }
   } finally {
     fs.rmSync(repo15Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 16 (REQ-4): Reject verdict when conversationId is missing
+  totalChecks++;
+  const repo16Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r16-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo16Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo16Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo16Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo16Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo16Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo16Dir, stdio: 'ignore' });
+    const h16 = computeWorkingTreeDiffHash(repo16Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo16Dir, {
+      diffHash: h16,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: undefined, // Missing conversationId!
+      turnMarker: 0
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo16Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r16_test',
+        workspacePaths: [repo16Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r16_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test missing conversationId' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo16Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h16}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo16Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_conversation_id_missing');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_conversation_id_missing: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo16Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 17 (REQ-4): Reject verdict when conversationId mismatches
+  totalChecks++;
+  const repo17Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r17-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo17Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo17Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo17Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo17Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo17Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo17Dir, stdio: 'ignore' });
+    const h17 = computeWorkingTreeDiffHash(repo17Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo17Dir, {
+      diffHash: h17,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_wrong_conv_id', // Mismatched!
+      turnMarker: 0
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo17Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r17_test',
+        workspacePaths: [repo17Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r17_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test mismatch conversationId' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo17Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h17}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo17Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_conversation_id_mismatch');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_conversation_id_mismatch: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo17Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 18 (REQ-4): Reject verdict when turnMarker is missing
+  totalChecks++;
+  const repo18Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r18-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo18Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo18Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo18Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo18Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo18Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo18Dir, stdio: 'ignore' });
+    const h18 = computeWorkingTreeDiffHash(repo18Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo18Dir, {
+      diffHash: h18,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r18_test',
+      turnMarker: undefined // Missing turnMarker!
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo18Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r18_test',
+        workspacePaths: [repo18Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r18_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test missing turnMarker' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo18Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h18}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo18Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_turn_marker_missing');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_turn_marker_missing: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo18Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 19 (REQ-4): Reject verdict when turnMarker mismatches
+  totalChecks++;
+  const repo19Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r19-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo19Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo19Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo19Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo19Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo19Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo19Dir, stdio: 'ignore' });
+    const h19 = computeWorkingTreeDiffHash(repo19Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo19Dir, {
+      diffHash: h19,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r19_test',
+      turnMarker: 99 // Mismatched turnMarker!
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo19Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r19_test',
+        workspacePaths: [repo19Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r19_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test mismatch turnMarker' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo19Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h19}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo19Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_turn_marker_mismatch');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_turn_marker_mismatch: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo19Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 20 (REQ-6): Reject verdict when mutation report timestamp is stale in strict mode
+  totalChecks++;
+  const repo20Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r20-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo20Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo20Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo20Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo20Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo20Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo20Dir, stdio: 'ignore' });
+    const h20 = computeWorkingTreeDiffHash(repo20Dir, { baseRef: baseCommit });
+
+    const staleTimestamp = new Date(Date.now() - 600000).toISOString(); // 10 minutes ago (> 5m TTL)
+    writeQaVerdictFixture(repo20Dir, {
+      diffHash: h20,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      conversationId: 'c_r20_test',
+      turnMarker: 0,
+      mutation: { status: 'PASS', mutantsTotal: 10, killed: 10, survived: 0, killRate: 1.0, diffHash: h20, timestamp: staleTimestamp }
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo20Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r20_test',
+        workspacePaths: [repo20Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r20_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test stale mutation timestamp' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo20Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h20}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo20Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit, HERMES_MUTATION_MODE: 'strict' }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_mutation_report_stale_in_strict_mode');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_mutation_report_stale_in_strict_mode: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo20Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 21 (REQ-1): qa-runner with requireReqLedger=false allows empty ledger with warning and reducedAssurance
+  totalChecks++;
+  const repo21Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-runner-optout-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo21Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo21Dir, 'package.json'), JSON.stringify({ name: 'test-optout-pkg', scripts: { test: 'node -e "process.exit(0)"' } }));
+    execSync('git add package.json && git commit -m "init"', { cwd: repo21Dir, stdio: 'ignore' });
+
+    // Note: NO .hermes/tasks.json created!
+    const verdict = runQaSuite(repo21Dir, { requireReqLedger: false, silent: true });
+    const verdictPath = path.join(repo21Dir, '.hermes', 'qa-verdict.json');
+    const writtenVerdict = JSON.parse(fs.readFileSync(verdictPath, 'utf-8'));
+
+    if (writtenVerdict.status === 'PASS' && writtenVerdict.reducedAssurance === 'empty-ledger-opt-out') {
+      console.log('PASS allow_qa_runner_when_opt_out_require_req_ledger');
+    } else {
+      failed++;
+      console.log(`FAIL allow_qa_runner_when_opt_out_require_req_ledger: status=${writtenVerdict.status}, reducedAssurance=${writtenVerdict.reducedAssurance}`);
+    }
+  } finally {
+    fs.rmSync(repo21Dir, { recursive: true, force: true });
   }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });

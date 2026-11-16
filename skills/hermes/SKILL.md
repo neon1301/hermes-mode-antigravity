@@ -1,9 +1,9 @@
 ---
 name: hermes
-description: Master multi-agent orchestration engine (Hermes Fleet v4.1.1) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
+description: Master multi-agent orchestration engine (Hermes Fleet v4.1.2) with Dual-Contour read-only scouts, bounded write waves, Single Build Gate, Subagent GC, and Quality Gate. Activate ONLY when the user's message starts with /hermes, explicitly asks to enable Hermes Mode ("включи режим Hermes"), or addresses a specialist via @name (@dmitry, @kritik, @viktor...). A mere mention of Hermes in a question is not a trigger; otherwise work as a standard agent without subagents.
 ---
 
-# Hermes Master Orchestration Engine (v4.1.1)
+# Hermes Master Orchestration Engine (v4.1.2)
 
 Lead orchestrator for multi-agent execution. Full rules live in [`references/fleet-protocol.md`](references/fleet-protocol.md). For planning, parallel execution, and engineering protocols, see [`references/orchestrator-planning.md`](references/orchestrator-planning.md), [`references/orchestrator-parallel.md`](references/orchestrator-parallel.md), [`references/specialist-dispatch-matrix.md`](references/specialist-dispatch-matrix.md), [`references/spec-driven-templates.md`](references/spec-driven-templates.md), [`references/systematic-debugging.md`](references/systematic-debugging.md), [`references/verification-before-completion.md`](references/verification-before-completion.md), and [`references/writing-skills.md`](references/writing-skills.md).
 
@@ -34,7 +34,7 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 - **AST Map & Memory Bank:** Index types and symbols; read `.hermes/memory-bank/` (`activeContext.md`, `systemPatterns.md`).
 
 ### Phase 2: Plan & Read-Only Audit Mode ([`references/plan-act-isolation.md`](references/plan-act-isolation.md))
-- **Requirement Atomization:** Build the `REQ-1..REQ-N` ledger in chat before dispatching work.
+- **Requirement Atomization & tasks.json Bootstrap:** Build the `REQ-1..REQ-N` ledger in chat before dispatching work. Lead ОБЯЗАН при декомпозиции создать/обновить `.hermes/tasks.json` со списком задач `REQ-1..N` (статус `IN_PROGRESS` ➔ `DONE` по выполнению); без реестра механический QA-раннер возвращает REJECT.
 - **Contour A (Read-Only):** Specialists produce findings and Patch Blueprints (`Path`, `StartLine..EndLine`, exact `Target -> Replacement`).
 - **Two-Tier Kritik:** Lead applies the built-in UX/product lens locally (4 UI states, clear error messages, `Dry-Run`, `Channel<T>`/WAL). In final audit stage, `@kritik` acts as Post-Audit Challenger: checks world forums (`RU/CN/EU/JP/Global`), compares options, and approves the best design before Act Mode.
 - **Preflight & Routing:** Max 1 live auditor per role. Offer `/grill-me` choice: express lead lookup vs specialist council. Build DAG with `blocked_by`.
@@ -47,6 +47,15 @@ Lead orchestrator for multi-agent execution. Full rules live in [`references/fle
 
 ### Phase 4: Single Build Gate & User-Confirmed Verification (`ask_question` Token Economy Gate)
 - **Single Build Gate:** Workers do not run parallel builds. Lead runs build/tests once per wave (`dotnet build`, `dotnet test`, `pytest`, `tsc`). Up to 3 self-healing attempts before auto-revert.
+- **Канонический 8-шаговый пайплайн верификации:**
+  1. Правки кода (Lead / Developer через `edit_file` / `write_file`).
+  2. Single Build Gate: Lead прогоняет локальные тесты проекта.
+  3. Token Economy Gate: Lead вызывает `ask_question` с выбором проверки.
+  4. Вызов Виктора: Lead запускает `invoke_subagent` для Виктора и получает `viktorUuid`.
+  5. Context Plumber: Lead извлекает `conversationId`, `turnMarker`, `viktorUuid` и список `REQ-1..N`.
+  6. Запуск механического раннера: `node hooks/qa-runner.mjs --viktorUuid=<id> --reqLedger=<reqs> --conversationId=<id> --turnMarker=<marker>`.
+  7. Доставка вердикта Виктора: Виктор валидирует код, читает артефакт `.hermes/qa-verdict.json` (при статусе REJECT строго выдаёт `🔴 [QA REJECT]`, при PASS — `🟢 [QA PASS]`) и включает `diffHash` в сообщение сдачи.
+  8. Stop Gate (`qa-gate.mjs`): проверяет симметричные артефакты, совпадение `diffHash`, валидность `viktorUuid`, `conversationId`, `turnMarker` перед выходом.
 - **💰 Ask Before Launching Post-Edit Reviewers (Token Economy Gate):** After finishing code edits and passing the local build/tests, **NEVER launch verification subagents automatically!** First call **`ask_question`** to ask the user:
   - **Question:** `Я закончил доработку и проверил сборку. Запустить сотрудников на проверку (Viktor QA, Критик UX, Елена и др.)?`
   - **`options`:**

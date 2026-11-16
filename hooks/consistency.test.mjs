@@ -320,7 +320,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     'consistency': 18,
     'context-injector': 18,
     'clean-edits-guard': 124,
-    'qa-gate': 97,
+    'qa-gate': 103,
     'rule-engine': 20,
     'session-report': 6,
     'eval-harness': 71,
@@ -336,8 +336,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 392 || summary.passed !== 392) {
-    throw new Error(`test-summary.json expected total=392, passed=392, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 398 || summary.passed !== 398) {
+    throw new Error(`test-summary.json expected total=398, passed=398, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
@@ -463,6 +463,20 @@ await test('fleet_core_protocol_size_and_orchestrator_references_integrity', () 
   const coreStat = fs.statSync(coreProtoPath);
   if (coreStat.size > 12288) {
     throw new Error(`fleet-protocol.md (${coreStat.size} bytes) exceeds 12 KB budget (12288 bytes)`);
+  }
+
+  // REQ-5: Verify canonical QA runner pipeline flags in SKILL.md and fleet-protocol.md
+  const skillMdPath = path.join(rootDir, 'skills', 'hermes', 'SKILL.md');
+  const skillMdContent = fs.readFileSync(skillMdPath, 'utf-8');
+  const coreProtoContent = fs.readFileSync(coreProtoPath, 'utf-8');
+  const requiredFlags = ['--viktorUuid', '--reqLedger', '--conversationId', '--turnMarker'];
+  for (const flag of requiredFlags) {
+    if (!coreProtoContent.includes(flag)) {
+      throw new Error(`fleet-protocol.md missing canonical QA runner flag: ${flag}`);
+    }
+    if (!skillMdContent.includes(flag)) {
+      throw new Error(`skills/hermes/SKILL.md missing canonical QA runner flag: ${flag}`);
+    }
   }
 
   const newRefs = [

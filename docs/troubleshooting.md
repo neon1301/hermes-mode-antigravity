@@ -41,12 +41,38 @@ In Hermes Fleet v4.1.0+, `qaVerdictMode` defaults to `"artifact"`. A text token 
 
 ---
 
-## 2. Mutation Testing Advisory vs Strict Mode
+## 3. Testing External Projects in Antigravity (`payload.workspacePaths`)
 
 ### Symptom
-Gate blocks with mutation rejection or warning in logs.
+When running Hermes on an external project, `qa-gate` reports diffHash mismatches, empty `reqLedger` (`reqLedger is empty`), or fails to find `.hermes/tasks.json`.
 
-### Explanation
-- Default mode is `"advisory"`. Mutation testing runs under a budget of <= 20 mutants and 60s timeout, but does not block the gate if mutants survive.
-- If `mutationMode` is explicitly configured as `"strict"` in `.hermes/config.json` or `HERMES_MUTATION_MODE=strict`, any survived mutant will reject the gate until killed by additional tests.
-- When no mutation tooling (Stryker, mutmut) is installed, `qa-runner.mjs` reports `mutation: "unavailable"` adhering to Rule 13 (Data Honesty), which never blocks the gate.
+### Root Cause
+Antigravity provides `payload.workspacePaths` pointing to the workspace folder currently opened in the IDE window (`File -> Open Folder`). If an external project is edited while the Antigravity window has the plugin repo (or another repo) opened, `qa-gate` and `clean-edits-guard` evaluate the window's root workspace, not the child/external folder.
+
+### Resolution
+1. **Open Dedicated Window:** Open the external project via `File -> Open Folder` in a separate Antigravity IDE window so `payload.workspacePaths` points directly to the project root.
+2. **Bootstrap Requirements Ledger:**
+   In the project root, create `.hermes/tasks.json` with all task requirements:
+   ```json
+   {
+     "tasks": [
+       { "id": "REQ-1", "title": "Core functionality", "status": "DONE" }
+     ]
+   }
+   ```
+   Or pass requirements explicitly via CLI:
+   ```bash
+   node <plugin-path>/hooks/qa-runner.mjs --reqLedger=REQ-1,REQ-2 --viktorUuid=<uuid> --conversationId=<convId> --turnMarker=<turn>
+   ```
+3. **Ad-Hoc Opt-Out:**
+   For quick scratch projects without requirement tracking, disable strict requirement ledger enforcement:
+   ```bash
+   node <plugin-path>/hooks/qa-runner.mjs --requireReqLedger=false
+   ```
+   Or configure in `.hermes/config.json`:
+   ```json
+   {
+     "requireReqLedger": false
+   }
+   ```
+   *(Note: This flags `reducedAssurance: "empty-ledger-opt-out"` in the generated verdict).*

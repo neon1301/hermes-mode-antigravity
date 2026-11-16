@@ -40,24 +40,30 @@ In default `qaVerdictMode: "artifact"`, `[QA PASS]` text in transcript is **insu
 2. `runner === "mechanical"` (strictly rejecting manual or LLM-authored artifacts).
 3. `status === "PASS"`.
 4. `testExitCodes` is a non-empty array of integers where every element strictly equals `0`.
-5. `reqLedger` is a non-empty array covering verified requirements (`REQ-1..N`).
+5. `reqLedger` is a non-empty array covering verified requirements (`REQ-1..N`), and all `REQ-N` identifiers found in the user prompt are 100% covered by `reqLedger`.
 6. `diffHash` matches either `currentDiffHash` (turn edit snapshots) or `computeWorkingTreeDiffHash` (changes under review relative to base).
 7. Anti-Degeneracy Lock: verdict with empty diffHash (`01ba4719c80b6fe9` or `e3b0c44298fc1c14`) is strictly rejected whenever real commits or working tree changes exist ahead of base.
-8. `timestamp` freshness TTL <= 5 minutes.
+8. `timestamp` freshness TTL <= 5 minutes (configurable via `qaVerdictTtlMs`).
 9. Transcript evidence: Viktor was explicitly invoked in the turn.
-10. Delivery evidence: Viktor delivered `[QA PASS]` in an incoming system message after the last write.
-11. Viktor UUID / `ackToken` binding: Viktor UUID matches invoked agent.
-12. Mutation criteria: Passed in strict mode or advisory in default mode.
+10. Delivery evidence: Viktor delivered `[QA PASS]` in an incoming system message after the last write, including `diffHash`.
+11. Viktor UUID binding: strictly mandatory `viktorUuid` matching active Viktor subagent UUID in turn; dynamic `ackToken` (static tokens rejected).
+12. Session binding: strictly mandatory `conversationId` matching session conversation and `turnMarker` matching current turn step index (mirroring `security-verdict.json`).
+13. Mutation criteria: Passed in strict mode or advisory in default mode; mutation report timestamp must be fresh (<= TTL) when present.
 
 ### 2.3 Compatibility Mode (`qaVerdictMode`, Track B1)
 - `qaVerdictMode: "artifact" | "legacy"` (configured via `.hermes/config.json` or `HERMES_QA_VERDICT_MODE`).
 - Default: `"artifact"`.
 - Legacy mode: Allows transcript token `[QA PASS]` with an explicit deprecation warning on stderr (`[QA GATE DEPRECATION WARNING]`).
 
-### 2.4 Mutation Testing MVP (`hooks/qa-runner.mjs`, Track B3)
-- Diff-scoped mutation testing (budget <= 20 mutants, 60s execution timeout).
-- Automated stack detection for Stryker (Node/.NET) and mutmut (Python).
+### 2.4 Mutation Testing Parameters (`hooks/qa-runner.mjs`, Track B3)
+- Whole-workspace mutation runner tool invocation with honest execution parameters:
+  - 60s hard execution timeout budget.
+  - Diff-scoped or whole-suite test runs depending on engine capabilities.
+  - Node.js / TypeScript: Stryker CLI (`npx stryker run`) with `--concurrency=1` to avoid worker pool starvation and port collisions.
+  - Python: mutmut (`mutmut run --paths-to-mutate=...`) currently reported as unavailable if not installed; zero fake simulation.
+  - .NET: Stryker.NET (`dotnet stryker`).
 - Adheres to Rule 13 (Data Honesty): if mutation tooling is absent, writes `status: "unavailable"` with reason; zero simulated or fabricated metrics.
+- Freshness verification: `parseMutationReport` checks `mtimeMs >= minTimestampMs` where `minTimestampMs` is captured right before invoking the runner tool, rejecting stale pre-existing reports.
 - Advisory-first by default (`mutationMode: "advisory"`). Optional `mutationMode: "strict"` blocks gate when `survived > 0`.
 - Outputs `.hermes/mutation-report.json`.
 
@@ -65,25 +71,30 @@ In default `qaVerdictMode: "artifact"`, `[QA PASS]` text in transcript is **insu
 
 ## 3. Negative Vectors & Anti-Spoofing (Track B4)
 
-Verified across 11 dedicated negative and compliance tests in `hooks/qa-gate.test.mjs`:
+Verified across dedicated negative and compliance tests in `hooks/qa-gate.test.mjs`:
 1. `runner !== "mechanical"` -> reject.
 2. Stale or mismatched `diffHash` -> reject.
-3. Viktor UUID mismatch -> reject.
-4. Missing `testExitCodes` -> reject.
-5. Non-zero exit code (`[0, 1]`) -> reject.
-6. Empty `reqLedger` -> reject.
-7. Schema violation -> reject.
-8. Missing `.hermes/qa-verdict.json` -> reject.
-9. Transcript token alone without legacy flag -> reject.
-10. Transcript token with legacy flag -> allow (with deprecation warning).
-11. Survived mutant in strict mutation mode -> reject.
+3. Viktor UUID mismatch or missing -> reject.
+4. Missing `conversationId` or mismatch -> reject.
+5. Missing `turnMarker` or mismatch -> reject.
+6. Missing `testExitCodes` -> reject.
+7. Non-zero exit code (`[0, 1]`) -> reject.
+8. Empty `reqLedger` -> reject (unless `requireReqLedger: false` opt-out).
+9. Incomplete prompt REQ coverage -> reject.
+10. Schema violation -> reject.
+11. Missing `.hermes/qa-verdict.json` -> reject.
+12. Transcript token alone without legacy flag -> reject.
+13. Transcript token with legacy flag -> allow (with deprecation warning).
+14. Survived mutant in strict mutation mode -> reject.
+15. Stale mutation report timestamp in strict mode -> reject.
 
 ---
 
 ## 4. Migration & Deprecation Plan
 
 1. **v4.1.0:** Introduction of mechanical QA rails. `qaVerdictMode` defaults to `"artifact"`. Projects requiring transition period may set `"qaVerdictMode": "legacy"` in `.hermes/config.json`.
-2. **v5.0.0:** Complete removal of `legacy` mode. All QA verification strictly requires `.hermes/qa-verdict.json`.
+2. **v4.1.2:** Agent plumbing pipeline: strictly mandatory `conversationId`, `turnMarker`, `viktorUuid`, prompt REQ coverage, and `.hermes/tasks.json` requirement bootstrap.
+3. **v5.0.0:** Complete removal of `legacy` mode. All QA verification strictly requires `.hermes/qa-verdict.json`.
 
 ---
 
@@ -91,6 +102,7 @@ Verified across 11 dedicated negative and compliance tests in `hooks/qa-gate.tes
 
 - **Positive:** Substantially mitigates LLM-hallucinated test passes by delegating test execution and exit code verification to operating system child processes. Establishes symmetric cryptographic rigor between AppSec (`security-verdict.json`) and QA (`qa-verdict.json`). Protected against model self-signing via PreToolUse tamper protection (`clean-edits-guard.mjs`).
 - **Residual Limitations & Threat Model:**
-  - Mutation testing requires an installed external toolchain; reported honestly as `unavailable` or `no-mutants` (with `killRate: null`) when absent, adhering to Rule 13.
+  - Mutation testing requires an installed external toolchain (e.g. Stryker, mutmut); reported honestly as `unavailable` or `no-mutants` (with `killRate: null`) when absent, adhering to Rule 13.
+  - Mutation budget is governed by a 60s child-process timeout; Stryker runs with `--concurrency=1` to guarantee deterministic isolation.
   - The security model relies on the integrity of the host OS environment, Node.js runtime, and mechanical runner scripts; if an adversary has arbitrary shell execution outside the model sandbox, verdict files could theoretically be written via shell commands. Tamper protection specifically prevents model tool calls (`write_file`, `edit_file`) from forging verdicts.
-  - DiffHash binding hermetically isolates `.hermes/` to avoid self-invalidation, meaning changes within `.hermes/` itself (e.g. config edits) do not alter the code diff hash.
+  - DiffHash binding hermetically isolates `.hermes/` to avoid self-invalidation, meaning changes within `.hermes/` itself (e.g. config edits, tasks.json) do not alter the code diff hash.

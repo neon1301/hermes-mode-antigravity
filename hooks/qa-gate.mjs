@@ -742,16 +742,29 @@ if (qaVerdictMode === 'artifact') {
         verdictData.ackToken.trim().length >= 8
       );
 
-      // 9c. conversationId + turnMarker binding (mirroring security-verdict)
-      const hasConvMatch = !verdictData?.conversationId || String(verdictData.conversationId) === String(convId);
-      const hasTurnMatch = verdictData?.turnMarker === undefined || String(verdictData.turnMarker) === String(turnMarker);
+      // 9c. conversationId + turnMarker binding (REQ-4: strictly required, mirroring security-verdict)
+      const hasConvMatch = Boolean(
+        verdictData?.conversationId &&
+        String(verdictData.conversationId) === String(convId)
+      );
+      const hasTurnMatch = Boolean(
+        verdictData?.turnMarker !== undefined &&
+        String(verdictData.turnMarker) === String(turnMarker)
+      );
 
-      // 10. Mutation check (B3, Rule 13, REQ-2)
+      // 10. Mutation check (B3, Rule 13, REQ-2, REQ-6)
       let isMutationOk = true;
+      let mutationFreshness = true;
       const mutationMode = process.env.HERMES_MUTATION_MODE || hermesConfig.mutationMode || 'advisory';
+      if (verdictData?.mutation) {
+        const mutTimestampMs = Date.parse(verdictData.mutation.timestamp || '');
+        if (!isNaN(mutTimestampMs) && Math.abs(Date.now() - mutTimestampMs) > verdictTtlMs) {
+          mutationFreshness = false;
+        }
+      }
       if (mutationMode === 'strict') {
         const mut = verdictData?.mutation;
-        if (!mut) {
+        if (!mut || !mutationFreshness) {
           isMutationOk = false;
         } else {
           const mutStatus = mut.status;
@@ -783,8 +796,27 @@ if (qaVerdictMode === 'artifact') {
       ) {
         hasQaPass = true;
       } else {
-        const rejectReason = isDegenerateEmptyVerdict
-          ? `qa-verdict.json rejected: verdict diffHash is degenerate empty (${verdictData?.diffHash}) while changes are present under review`
+        const failedChecks = [];
+        if (!isSchemaValid) failedChecks.push('schema validation error');
+        if (!isMechanicalRunner) failedChecks.push(`runner is '${verdictData?.runner}', expected 'mechanical'`);
+        if (!isPass) failedChecks.push(`verdict status is '${verdictData?.status}', expected 'PASS'`);
+        if (!hasZeroExitCodes) failedChecks.push(`testExitCodes=[${verdictData?.testExitCodes}], expected all 0`);
+        if (!hasReqLedger) failedChecks.push('reqLedger is empty (Lead must bootstrap .hermes/tasks.json or pass --reqLedger=...)');
+        if (!hasCompleteTasksCoverage) failedChecks.push('reqLedger does not cover all requirements (REQ-N) from user prompt');
+        if (!hasDiffHashMatch) failedChecks.push(`diffHash mismatch (verdict=${verdictData?.diffHash}, current=${currentDiffHash}, working=${workingTreeHash})`);
+        if (isDegenerateEmptyVerdict) failedChecks.push(`verdict diffHash is degenerate empty (${verdictData?.diffHash}) while real changes exist under review`);
+        if (!isFresh) failedChecks.push(`verdict artifact is stale (older than ${verdictTtlMs}ms TTL)`);
+        if (!hasTranscriptProof) failedChecks.push('Viktor was not invoked in this turn');
+        if (!hasTranscriptQaPass) failedChecks.push('Viktor delivery message with [QA PASS] after last code write is missing');
+        if (!hasViktorDeliveryWithHash) failedChecks.push(`Viktor delivery text does not contain diffHash (${verdictData?.diffHash})`);
+        if (!hasAckToken) failedChecks.push('invalid or static ackToken');
+        if (!hasValidViktorUuid) failedChecks.push(`viktorUuid '${verdictData?.viktorUuid}' does not match active Viktor subagent UUID in turn`);
+        if (!hasConvMatch) failedChecks.push(`conversationId '${verdictData?.conversationId}' does not match session conversationId '${convId}'`);
+        if (!hasTurnMatch) failedChecks.push(`turnMarker '${verdictData?.turnMarker}' does not match session turnMarker '${turnMarker}'`);
+        if (!isMutationOk) failedChecks.push(mutationFreshness ? 'mutation testing criteria failed' : 'stale mutation report artifact');
+
+        const rejectReason = failedChecks.length > 0
+          ? `qa-verdict.json rejected: ${failedChecks.join('; ')}`
           : 'qa-verdict.json rejected: mechanical verification check failed';
         logGateDecision({
           decision: 'continue',

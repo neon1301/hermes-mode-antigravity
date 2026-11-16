@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.2] - 2026-11-16
+
+### Mechanical QA Rails Plumbing & Producer Integration (HERMES-QA-PLUMBING)
+- **Requirements Ledger Bootstrap & Orchestrator Plumbing (REQ-1):**
+  - Updated Lead orchestration rules (Rule 2 & SKILL.md Phase 2): Lead must bootstrap `.hermes/tasks.json` with `REQ-1..N` marked `DONE` before verification.
+  - Added CLI flag `--reqLedger=...` and env var `HERMES_REQ_LEDGER` to `qa-runner.mjs`.
+  - Added graceful opt-out `--requireReqLedger=false` / config `requireReqLedger: false` tagging `reducedAssurance: "empty-ledger-opt-out"` for ad-hoc projects.
+- **Viktor & Canonical Verification Pipeline Specification (REQ-2, REQ-3):**
+  - Created modular specification `skills/qa-test-automation/references/qa-verdict-protocol.md` defining the canonical 8-stage verification pipeline.
+  - Plumbed Viktor agent card (`agents/viktor.md`) to adhere to the iron rule: artifact status dictates prose (`status !== "PASS"` strictly issues `[QA REJECT]`).
+- **Session & Turn Cryptographic Binding (REQ-4):**
+  - Strictly enforced `conversationId` and `turnMarker` binding on `qa-verdict.json` mirroring `security-verdict.json`.
+  - Mismatched or absent session parameters are fail-closed rejected with actionable diagnostic reasons.
+- **Actionable Diagnostic Failure Reasons (REQ-7):**
+  - Enhanced `qa-gate.mjs` rejection messages with detailed failure reasons array (`failedChecks`) recorded in `.hermes/gate-log.jsonl`.
+- **Mutation Report Freshness & Honest Parameters (REQ-6):**
+  - `parseMutationReport` checks timestamp freshness (`mtimeMs >= minTimestampMs`), rejecting pre-existing stale reports.
+  - Documented realistic mutation runner parameters in ADR-0005 (60s budget, Stryker `--concurrency=1`, honest mutmut status).
+
+---
+
 ## [4.1.1] - 2026-11-16
 
 ### Mechanical QA Rails Honesty & Anti-Tamper Hardening (HERMES-QA-HONESTY-PATCH)

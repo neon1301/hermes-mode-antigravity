@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Архитектурная топология мультиагентной сети](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.1.1)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.1.2)
 
 > Команда из 14 автономных ИИ-специалистов и 22 промышленных скиллов для Google Antigravity, которая не даёт агенту чинить 1 из 4 мест, самоподписываться и хардкодить.
 
-[![Version](https://img.shields.io/badge/version-4.1.1-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.1.2-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-392%2F392%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-398%2F398%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 

@@ -38,6 +38,10 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     ? process.env.HERMES_EXCLUDE_PATHS.split(',').map(s => s.trim()).filter(Boolean)
     : null;
 
+  const envRequireReqLedger = process.env.HERMES_REQUIRE_REQ_LEDGER !== undefined
+    ? (process.env.HERMES_REQUIRE_REQ_LEDGER !== '0' && process.env.HERMES_REQUIRE_REQ_LEDGER !== 'false')
+    : null;
+
   return {
     qaVerdictMode: process.env.HERMES_QA_VERDICT_MODE || config.qaVerdictMode || 'artifact',
     mutationMode: process.env.HERMES_MUTATION_MODE || config.mutationMode || 'advisory',
@@ -46,7 +50,8 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     testTimeoutMs: Number(process.env.HERMES_TEST_TIMEOUT_MS || config.testTimeoutMs || 180000),
     qaVerdictTtlMs: Number(process.env.HERMES_QA_VERDICT_TTL_MS || config.qaVerdictTtlMs || 300000),
     baseRef: process.env.HERMES_BASE_REF || config.baseRef || null,
-    excludePaths: envExclude || config.excludePaths || ['.hermes']
+    excludePaths: envExclude || config.excludePaths || ['.hermes'],
+    requireReqLedger: envRequireReqLedger !== null ? envRequireReqLedger : (config.requireReqLedger ?? true)
   };
 }
 
@@ -375,12 +380,19 @@ export function detectMutationTool(workspaceDir = process.cwd(), stack = 'unknow
 
 /**
  * Parses mutation report artifacts from disk for Stryker/Stryker.NET (Rule 13).
+ * Enforces mtime freshness against run start timestamp (REQ-6).
  */
-export function parseMutationReport(workspaceDir, tool) {
+export function parseMutationReport(workspaceDir, tool, minTimestampMs = 0) {
   try {
     // 1. Stryker (Node)
     const strykerJsonPath = path.join(workspaceDir, 'reports', 'mutation', 'mutation.json');
     if (fs.existsSync(strykerJsonPath)) {
+      if (minTimestampMs > 0) {
+        const stat = fs.statSync(strykerJsonPath);
+        if (stat.mtimeMs < minTimestampMs) {
+          return { found: false, stale: true, reason: 'Stale mutation report: file modified before execution start', killed: 0, survived: 0, escaped: [], mutantsTotal: 0 };
+        }
+      }
       const data = JSON.parse(fs.readFileSync(strykerJsonPath, 'utf-8'));
       let killed = 0;
       let survived = 0;
@@ -421,7 +433,14 @@ export function parseMutationReport(workspaceDir, tool) {
       const reports = findReports(strykerOutputDir);
       if (reports.length > 0) {
         reports.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-        const data = JSON.parse(fs.readFileSync(reports[0], 'utf-8'));
+        const newest = reports[0];
+        if (minTimestampMs > 0) {
+          const stat = fs.statSync(newest);
+          if (stat.mtimeMs < minTimestampMs) {
+            return { found: false, stale: true, reason: 'Stale mutation report: file modified before execution start', killed: 0, survived: 0, escaped: [], mutantsTotal: 0 };
+          }
+        }
+        const data = JSON.parse(fs.readFileSync(newest, 'utf-8'));
         let killed = 0;
         let survived = 0;
         const escaped = [];
@@ -480,6 +499,7 @@ export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
 
   // Execute mutation testing with budget bounds
   try {
+    const runStartMs = Date.now();
     const budget = options.budget || cfg.mutationBudget;
     const procArgs = [...toolCheck.args, `--max-concurrent-test-runners=2`];
     const res = spawnSync(toolCheck.command, procArgs, {
@@ -507,11 +527,11 @@ export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
       return failedReport;
     }
 
-    const parsed = parseMutationReport(workspaceDir, toolCheck.tool);
+    const parsed = parseMutationReport(workspaceDir, toolCheck.tool, runStartMs);
     if (!parsed.found) {
       const notFoundReport = {
         status: 'unavailable',
-        reason: `Mutation report artifact not found after executing ${toolCheck.tool}`,
+        reason: parsed.stale ? parsed.reason : `Mutation report artifact not found after executing ${toolCheck.tool}`,
         mutantsTotal: 0,
         killed: 0,
         survived: 0,
@@ -620,8 +640,11 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
       : runMutationTesting(workspaceDir, { diffHash, stack: detected.stack });
   }
 
-  // Resolve requirements ledger (REQ-3: fail-closed, zero fabrication)
-  let reqLedger = options.reqLedger || [];
+  // Resolve requirements ledger (REQ-1: fail-closed by default, zero fabrication)
+  let reqLedger = options.reqLedger;
+  if (!reqLedger && process.env.HERMES_REQ_LEDGER) {
+    reqLedger = process.env.HERMES_REQ_LEDGER.split(',').map(s => s.trim()).filter(Boolean);
+  }
   if (!Array.isArray(reqLedger) || reqLedger.length === 0) {
     try {
       const tasksPath = path.join(workspaceDir, '.hermes', 'tasks.json');
@@ -636,7 +659,24 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
   }
 
   const hasReqs = reqLedger.length > 0;
-  let status = (allZero && hasReqs) ? 'PASS' : 'REJECT';
+  let status = allZero ? 'PASS' : 'REJECT';
+
+  const requireReqLedger = options.requireReqLedger !== undefined
+    ? Boolean(options.requireReqLedger)
+    : cfg.requireReqLedger;
+
+  if (!hasReqs) {
+    if (requireReqLedger) {
+      status = 'REJECT';
+      console.error(
+        `[QA RUNNER ERROR] Requirement ledger is empty: missing or incomplete .hermes/tasks.json (no tasks with status: "DONE"). ` +
+        `The Lead orchestrator must bootstrap .hermes/tasks.json with REQ-1..N during decomposition and update task statuses to DONE upon completion, ` +
+        `or pass --reqLedger=REQ-1,... / set HERMES_REQ_LEDGER. (To opt out in projects without requirement tracking, set requireReqLedger: false in .hermes/config.json [reduced assurance]).`
+      );
+    } else {
+      console.warn(`[QA RUNNER WARNING] requireReqLedger is disabled: running with empty requirement ledger (reduced assurance).`);
+    }
+  }
 
   // Strict mutation mode check
   if (cfg.mutationMode === 'strict' && mutationReport) {
@@ -664,17 +704,27 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
     timestamp: new Date().toISOString()
   };
 
-  if (options.conversationId || process.env.HERMES_CONVERSATION_ID) {
-    verdict.conversationId = String(options.conversationId || process.env.HERMES_CONVERSATION_ID);
+  if (!requireReqLedger && !hasReqs) {
+    verdict.reducedAssurance = 'empty-ledger-opt-out';
   }
-  if (options.turnMarker !== undefined || process.env.HERMES_TURN_MARKER !== undefined) {
-    const tm = options.turnMarker !== undefined ? options.turnMarker : process.env.HERMES_TURN_MARKER;
+
+  const convId = options.conversationId || process.env.HERMES_CONVERSATION_ID || process.env.AGY_CONVERSATION_ID || null;
+  if (convId) {
+    verdict.conversationId = String(convId);
+  }
+
+  const tm = options.turnMarker !== undefined
+    ? options.turnMarker
+    : (process.env.HERMES_TURN_MARKER !== undefined ? process.env.HERMES_TURN_MARKER : null);
+  if (tm !== null && tm !== undefined) {
     verdict.turnMarker = typeof tm === 'number' ? tm : (Number.isInteger(Number(tm)) ? Number(tm) : String(tm));
   }
 
-  if (options.viktorUuid) {
-    verdict.viktorUuid = String(options.viktorUuid);
+  const vUuid = options.viktorUuid || process.env.HERMES_VIKTOR_UUID || null;
+  if (vUuid) {
+    verdict.viktorUuid = String(vUuid);
   }
+
   if (options.ackToken) {
     verdict.ackToken = String(options.ackToken);
   } else {
@@ -714,7 +764,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
     const reqLedger = reqArg ? reqArg.slice('--reqLedger='.length).split(',').map(s => s.trim()).filter(Boolean) : undefined;
     const viktorUuidArg = args.find(a => a.startsWith('--viktorUuid='));
     const viktorUuid = viktorUuidArg ? viktorUuidArg.slice('--viktorUuid='.length).trim() : undefined;
-    const verdict = runQaSuite(process.cwd(), { runMutations: runMut, reqLedger, viktorUuid });
+    const convArg = args.find(a => a.startsWith('--conversationId='));
+    const conversationId = convArg ? convArg.slice('--conversationId='.length).trim() : undefined;
+    const turnArg = args.find(a => a.startsWith('--turnMarker='));
+    const turnMarker = turnArg ? turnArg.slice('--turnMarker='.length).trim() : undefined;
+    const reqOptArg = args.find(a => a.startsWith('--requireReqLedger='));
+    const requireReqLedger = reqOptArg ? reqOptArg.slice('--requireReqLedger='.length).trim() === 'true' : undefined;
+    const verdict = runQaSuite(process.cwd(), { runMutations: runMut, reqLedger, viktorUuid, conversationId, turnMarker, requireReqLedger });
     console.log(`\nQA VERDICT SUMMARY: runner=${verdict.runner} status=${verdict.status} exitCodes=[${verdict.testExitCodes.join(',')}] diffHash=${verdict.diffHash}`);
     if (verdict.status !== 'PASS') process.exit(1);
   } catch (err) {

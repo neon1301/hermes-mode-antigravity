@@ -97,6 +97,18 @@ This guide explains the most common guard and gate notices, why they occur, and 
 
 ---
 
+### 8b. `Тестирование внешних проектов в Antigravity (payload.workspacePaths)`
+* **Поведение:** Antigravity передаёт хукам массив `payload.workspacePaths`, указывающий на корневую папку, открытую в окне IDE (`File -> Open Folder`).
+* **Проблема:** Если вы тестируете сторонний проект (например, `E:\hermes-smoke\telemetry-client`), но сессия Antigravity открыта в репозитории самого плагина (`e:\hermes-mode-antigravity`), хуки плагина (`qa-gate.mjs`, `clean-edits-guard.mjs`, `qa-runner.mjs`) будут рассчитывать `diffHash`, искать `.hermes/tasks.json` и писать логи в репозитории плагина, а не во внешнем проекте.
+* **Решение:**
+  1. **Отдельное окно IDE:** Всегда открывайте целевой проект через `File -> Open Folder` в отдельном окне Antigravity.
+  2. **Реестр требований (.hermes/tasks.json):** Создайте в корне проекта `.hermes/tasks.json` с задачами (`REQ-1..N` со статусом `DONE`) перед запуском верификации.
+  3. **Канонический запуск раннера:**
+     `node <путь-к-плагину>/hooks/qa-runner.mjs --reqLedger=REQ-1,REQ-2 --viktorUuid=<uuid> --conversationId=<convId> --turnMarker=<turn>`
+  4. **Отказ от реестра для быстрых тестов:** Если проект ad-hoc и реестр требований не ведётся, передайте `--requireReqLedger=false` или установите `HERMES_REQUIRE_REQ_LEDGER=0`.
+
+---
+
 ### 9. `E2E Smoke Verification Checklist (12 Points)`
 1. **Trigger:** Start a new chat with `/hermes` or `@dmitry`.
 2. **Phase 0 Handshake:** Verify `ask_question` appears with model + tier options.
