@@ -15,7 +15,7 @@ import {
 import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
-import { computeWorkingTreeDiffHash, resolveBaseRef } from './qa-runner.mjs';
+import { computeWorkingTreeDiffHash, resolveBaseRef, getHermesConfig } from './qa-runner.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -309,13 +309,7 @@ let postEditAskIdx = -1;
 let postEditAskAnswer = '';
 let postEditAskToolCallId = '';
 
-let hermesConfig = {};
-try {
-  const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');
-  if (fs.existsSync(cfgPath)) {
-    hermesConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-  }
-} catch {}
+const hermesConfig = getHermesConfig(activeWorkspaceDir);
 const qaVerdictMode = process.env.HERMES_QA_VERDICT_MODE || hermesConfig.qaVerdictMode || 'artifact';
 
 const nonAuditorSubagentIds = new Set();
@@ -693,8 +687,14 @@ if (qaVerdictMode === 'artifact') {
         verdictData.testExitCodes.length > 0 &&
         verdictData.testExitCodes.every((c) => Number.isInteger(c) && c === 0);
 
-      // 5. reqLedger must be array and non-empty
+      // 5. reqLedger must be array and non-empty (REQ-3: zero fabrication)
       const hasReqLedger = Array.isArray(verdictData?.reqLedger) && verdictData.reqLedger.length > 0;
+      let hasCompleteTasksCoverage = true;
+      const ledgerSet = new Set(verdictData?.reqLedger || []);
+      const promptReqs = [...lastUserContent.matchAll(/\b(REQ-\d+)\b/gi)].map((m) => m[1].toUpperCase());
+      if (promptReqs.length > 0) {
+        hasCompleteTasksCoverage = promptReqs.every((req) => ledgerSet.has(req));
+      }
 
       // 6. diffHash binding (changes-under-review, ADR-0005)
       const workingTreeHash = computeWorkingTreeDiffHash(activeWorkspaceDir);
@@ -709,30 +709,57 @@ if (qaVerdictMode === 'artifact') {
          (workingTreeHash !== '0000000000000000' && verdictData.diffHash === workingTreeHash))
       );
 
-      // 7. Freshness TTL (within 5 minutes)
+      // 7. Freshness TTL (configurable via hermesConfig.qaVerdictTtlMs, Rule 9 / REQ-6)
+      const verdictTtlMs = hermesConfig.qaVerdictTtlMs || 300000;
       const reviewedAtMs = Date.parse(verdictData?.timestamp || verdictData?.reviewedAt || '');
-      const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= 5 * 60 * 1000;
+      const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= verdictTtlMs;
 
-      // 8. Transcript proof: Viktor must have been invoked in this turn
+      // 8. Transcript proof: Viktor must have been explicitly invoked in this turn
       const hasTranscriptProof = invokedSpecialists.has('viktor');
 
       // 8b. Transcript QA PASS delivery: Viktor must have delivered QA PASS in incoming message after last edit
       const hasTranscriptQaPass = viktorTranscriptQaPass && (lastWriteIdx === -1 || lastViktorQaStepIdx > lastWriteIdx);
 
-      // 9. Viktor UUID / ackToken binding
-      const hasAckToken = Boolean(verdictData?.ackToken || verdictData?.viktorUuid);
-      const hasValidViktorUuid = !verdictData?.viktorUuid ||
-        viktorSubagentUuids.size === 0 ||
-        viktorSubagentUuids.has(String(verdictData.viktorUuid).toLowerCase());
+      // 8c. Anti-Show Protection: Viktor's delivery text must include the diffHash (REQ-4)
+      const hasViktorDeliveryWithHash = viktorDeliveryTexts.some(
+        (txt) =>
+          (verdictData?.diffHash && txt.includes(verdictData.diffHash)) ||
+          (workingTreeHash !== '0000000000000000' && txt.includes(workingTreeHash)) ||
+          (currentDiffHash !== 'empty' && txt.includes(currentDiffHash))
+      );
 
-      // 10. Mutation check (B3)
+      // 9. Viktor UUID binding (REQ-4: strictly mandatory, must match active subagent UUID)
+      const hasValidViktorUuid = Boolean(
+        verdictData?.viktorUuid &&
+        viktorSubagentUuids.has(String(verdictData.viktorUuid).toLowerCase())
+      );
+
+      // 9b. Dynamic ackToken binding (REQ-4: static default 'viktor-qa-pass' rejected)
+      const hasAckToken = Boolean(
+        verdictData?.ackToken &&
+        typeof verdictData.ackToken === 'string' &&
+        verdictData.ackToken !== 'viktor-qa-pass' &&
+        verdictData.ackToken.trim().length >= 8
+      );
+
+      // 9c. conversationId + turnMarker binding (mirroring security-verdict)
+      const hasConvMatch = !verdictData?.conversationId || String(verdictData.conversationId) === String(convId);
+      const hasTurnMatch = verdictData?.turnMarker === undefined || String(verdictData.turnMarker) === String(turnMarker);
+
+      // 10. Mutation check (B3, Rule 13, REQ-2)
       let isMutationOk = true;
       const mutationMode = process.env.HERMES_MUTATION_MODE || hermesConfig.mutationMode || 'advisory';
-      if (mutationMode === 'strict' && verdictData?.mutation) {
-        const mutStatus = verdictData.mutation.status;
-        const survived = Number(verdictData.mutation.survived ?? 0);
-        if (mutStatus === 'REJECT' || survived > 0) {
+      if (mutationMode === 'strict') {
+        const mut = verdictData?.mutation;
+        if (!mut) {
           isMutationOk = false;
+        } else {
+          const mutStatus = mut.status;
+          const survived = Number(mut.survived ?? 0);
+          const mutantsTotal = Number(mut.mutantsTotal ?? 0);
+          if (mutStatus !== 'PASS' || mutantsTotal === 0 || survived > 0 || mut.killRate === null) {
+            isMutationOk = false;
+          }
         }
       }
 
@@ -742,12 +769,16 @@ if (qaVerdictMode === 'artifact') {
         isPass &&
         hasZeroExitCodes &&
         hasReqLedger &&
+        hasCompleteTasksCoverage &&
         hasDiffHashMatch &&
         isFresh &&
         hasTranscriptProof &&
         hasTranscriptQaPass &&
+        hasViktorDeliveryWithHash &&
         hasAckToken &&
         hasValidViktorUuid &&
+        hasConvMatch &&
+        hasTurnMatch &&
         isMutationOk
       ) {
         hasQaPass = true;
@@ -764,13 +795,17 @@ if (qaVerdictMode === 'artifact') {
             isPass,
             hasZeroExitCodes,
             hasReqLedger,
+            hasCompleteTasksCoverage,
             hasDiffHashMatch,
             isDegenerateEmptyVerdict,
             isFresh,
             hasTranscriptProof,
             hasTranscriptQaPass,
+            hasViktorDeliveryWithHash,
             hasAckToken,
             hasValidViktorUuid,
+            hasConvMatch,
+            hasTurnMatch,
             isMutationOk
           }
         });

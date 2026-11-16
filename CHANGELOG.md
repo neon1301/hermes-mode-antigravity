@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.1] - 2026-11-16
+
+### Mechanical QA Rails Honesty & Anti-Tamper Hardening (HERMES-QA-HONESTY-PATCH)
+- **diffHash Hermetic Isolation (REQ-1 / P0):**
+  - Hermetically isolated `.hermes/` and configured internal paths (`excludePaths` via Rule 9) from `computeWorkingTreeDiffHash`.
+  - Filtered `.hermes/` from `git status --porcelain -uall`, untracked file discovery, and `git diff` pathspecs (`:(exclude).hermes`).
+  - Fixed self-invalidation vulnerability in repositories lacking `.gitignore` where writing `qa-verdict.json` or appending to `gate-log.jsonl` altered the verdict hash.
+- **Rule 13 Mutation Testing Honesty & Real Report Parsing (REQ-2 / P0):**
+  - Eliminated metric fabrication in `runMutationTesting`: zero mutants or missing tooling now yields `status: "no-mutants"` or `"unavailable"`, `killRate: null` (never fabricated `1.0` or false `PASS`).
+  - Added real artifact parsing for Stryker (`reports/mutation/mutation.json`) and Stryker.NET (`StrykerOutput/**/mutation-report.json`).
+  - Enforced strict gate rejection in `mutationMode: "strict"` when mutants survive, report is unavailable, or `killRate` is null.
+- **Requirements Ledger Integrity & Zero Fabrication (REQ-3 / P1):**
+  - Removed hardcoded default `['REQ-1']` fallback in `qa-runner.mjs`; unresolved requirements fail-closed (`reqLedger: []`).
+  - `qa-gate.mjs` verifies `reqLedger` strictly covers all requirements specified in user prompt (`REQ-1..N`) and active sprint tasks.
+- **Symmetric Viktor Binding & Anti-Show Protection (REQ-4 / P1):**
+  - Made `viktorUuid` strictly mandatory on `qa-verdict.json`, validating against active subagent session UUIDs.
+  - Eliminated static default `ackToken: "viktor-qa-pass"` in favor of dynamic UUID tokens.
+  - Added `conversationId` and `turnMarker` binding on `qa-verdict.json` mirroring `security-verdict.json`.
+  - Enforced Anti-Show Protection: Viktor's delivery text must explicitly contain `diffHash`.
+- **Verdict Artifact Tamper Protection (REQ-5 / P1):**
+  - `clean-edits-guard.mjs` intercepts and denies `write_file` and `edit_file` targeting verdict artifacts (`qa-verdict.json`, `security-verdict.json`, `mutation-report.json`, `test-summary.json`).
+  - Verdict creation restricted to mechanical OS processes (`qa-runner.mjs`).
+- **Dynamic Configuration & Freshness TTL (REQ-6):**
+  - Added `qaVerdictTtlMs` (default 5 min = 300,000 ms) and `excludePaths` to `getHermesConfig()` and `.hermes/config.json`.
+  - Softened overclaims in `ADR-0005` with realistic threat modeling and residual risk documentation.
+- **CI Matrix Resilience (REQ-7):**
+  - Configured `strategy.fail-fast: false` in `.github/workflows/ci.yml` across Ubuntu and Windows test runners.
+
 ## [4.1.0] - 2026-11-16
 
 ### Mechanical QA Rails & Artifact-Driven Gate Acceptance (HERMES-QA-MECHANICAL-RAILS, B1–B5)

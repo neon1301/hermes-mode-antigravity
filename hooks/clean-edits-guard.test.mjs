@@ -220,6 +220,31 @@ const cases = [
     name: 'allow_emulator_subagent_localhost_network',
     expected: 'allow',
     payload: { isSubagent: true, subagentRole: 'emulator', toolCall: { name: 'run_command', args: { CommandLine: 'curl http://localhost:8080/modbus' } } }
+  },
+  {
+    name: 'deny_write_file_qa_verdict',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/qa-verdict.json', Content: '{"fake":true}' } } }
+  },
+  {
+    name: 'deny_edit_file_security_verdict',
+    expected: 'deny',
+    payload: { toolCall: { name: 'edit_file', args: { Path: '.hermes/security-verdict.json', Replacement: '{"fake":true}', Target: 'old' } } }
+  },
+  {
+    name: 'deny_write_file_mutation_report',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/mutation-report.json', Content: '{"status":"PASS"}' } } }
+  },
+  {
+    name: 'deny_write_file_test_summary',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/test-summary.json', Content: '{"status":"PASS"}' } } }
+  },
+  {
+    name: 'allow_run_command_qa_runner',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'node hooks/qa-runner.mjs' } } }
   }
 ];
 

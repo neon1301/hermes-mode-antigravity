@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["diffHash", "timestamp"],
   "properties": {
-    "status": { "type": "string", "enum": ["PASS", "REJECT", "unavailable", "advisory"] },
+    "status": { "type": "string", "enum": ["PASS", "REJECT", "unavailable", "advisory", "no-mutants"] },
     "mutantsTotal": { "type": "integer", "minimum": 0 },
     "killed": { "type": "integer", "minimum": 0 },
     "survived": { "type": "integer", "minimum": 0 },
@@ -12,7 +12,7 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "killRate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "killRate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
     "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
     "tool": { "type": "string" },
     "diffHash": { "type": "string" },

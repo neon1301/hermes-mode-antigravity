@@ -319,8 +319,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
   const expectedBreakdown = {
     'consistency': 18,
     'context-injector': 18,
-    'clean-edits-guard': 119,
-    'qa-gate': 91,
+    'clean-edits-guard': 124,
+    'qa-gate': 97,
     'rule-engine': 20,
     'session-report': 6,
     'eval-harness': 71,
@@ -336,8 +336,8 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
       throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
     }
   }
-  if (summary.total !== 381 || summary.passed !== 381) {
-    throw new Error(`test-summary.json expected total=381, passed=381, got total=${summary.total}, passed=${summary.passed}`);
+  if (summary.total !== 392 || summary.passed !== 392) {
+    throw new Error(`test-summary.json expected total=392, passed=392, got total=${summary.total}, passed=${summary.passed}`);
   }
   const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
   const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);

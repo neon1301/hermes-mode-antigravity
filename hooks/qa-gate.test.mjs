@@ -49,8 +49,8 @@ function writeQaVerdictFixture(wsDir = process.cwd(), overrides = {}) {
     status: 'PASS',
     diffHash: overrides.diffHash || '01ba4719c80b6fe9',
     testExitCodes: [0],
-    reqLedger: ['REQ-1'],
-    ackToken: 'viktor-qa-pass',
+    reqLedger: overrides.reqLedger !== undefined ? overrides.reqLedger : ['REQ-1'],
+    ackToken: overrides.ackToken || crypto.randomUUID(),
     agent: 'viktor',
     timestamp: new Date().toISOString(),
     ...overrides
@@ -218,7 +218,7 @@ const cases = [
               ]
             },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h} [SECURITY PASS]</SYSTEM_MESSAGE>` }
           ])
         });
       } finally {
@@ -276,7 +276,7 @@ const cases = [
             },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
             { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "22222222-2222-2222-2222-222222222222"}' },
-            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h} [SECURITY PASS]</SYSTEM_MESSAGE>` },
             { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="22222222-2222-2222-2222-222222222222">[COMPLIANCE PASS]</SYSTEM_MESSAGE>' }
           ])
         });
@@ -466,7 +466,7 @@ const cases = [
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
             { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
-            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h} [SECURITY PASS]</SYSTEM_MESSAGE>` },
             { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
           ])
         });
@@ -806,7 +806,7 @@ const cases = [
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
             { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
-            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h} [SECURITY PASS]</SYSTEM_MESSAGE>` },
             { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
           ])
         });
@@ -1018,7 +1018,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1456,7 +1456,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1468,6 +1468,7 @@ const cases = [
     name: 'reject_qa_verdict_when_diffhash_stale',
     expected: 'continue',
     run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
       const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: 'stale-diffhash-9999', viktorUuid: '11111111-1111-1111-1111-111111111111' });
       try {
         return runGate({
@@ -1480,7 +1481,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1505,7 +1506,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1530,7 +1531,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1555,7 +1556,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1580,7 +1581,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1605,7 +1606,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0' });
       } finally {
@@ -1685,7 +1686,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0', HERMES_MUTATION_MODE: 'strict' });
       } finally {
@@ -1698,8 +1699,9 @@ const cases = [
     expected: 'continue',
     run: () => {
       // Degenerate empty diffHash (01ba4719c80b6fe9) MUST be rejected when real changes exist
+      const h = '01ba4719c80b6fe9';
       const qaPath = writeQaVerdictFixture(process.cwd(), {
-        diffHash: '01ba4719c80b6fe9',
+        diffHash: h,
         viktorUuid: '11111111-1111-1111-1111-111111111111'
       });
       try {
@@ -1713,7 +1715,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: 'HEAD~1' });
       } finally {
@@ -1725,8 +1727,9 @@ const cases = [
     name: 'reject_qa_verdict_when_diffhash_is_e3b0_empty_and_changes_present',
     expected: 'continue',
     run: () => {
+      const h = 'e3b0c44298fc1c14';
       const qaPath = writeQaVerdictFixture(process.cwd(), {
-        diffHash: 'e3b0c44298fc1c14',
+        diffHash: h,
         viktorUuid: '11111111-1111-1111-1111-111111111111'
       });
       try {
@@ -1740,7 +1743,7 @@ const cases = [
               { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
             ] },
             { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h}</SYSTEM_MESSAGE>` }
           ])
         }, { HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: 'HEAD~1' });
       } finally {
@@ -1926,11 +1929,17 @@ try {
   totalChecks++;
   const testWsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-runner-regen-'));
   try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: testWsDir, stdio: 'ignore' });
     fs.writeFileSync(path.join(testWsDir, 'package.json'), JSON.stringify({ name: 'test-pkg', scripts: { test: 'node -e "process.exit(0)"' } }));
+    execSync('git add package.json && git commit -m "init"', { cwd: testWsDir, stdio: 'ignore' });
+    const testHermesDir = path.join(testWsDir, '.hermes');
+    fs.mkdirSync(testHermesDir, { recursive: true });
+    fs.writeFileSync(path.join(testHermesDir, 'tasks.json'), JSON.stringify({ tasks: [{ id: 'REQ-1', status: 'DONE' }] }), 'utf-8');
+
     const result = runQaSuite(testWsDir, { silent: true });
     const verdictPath = path.join(testWsDir, '.hermes', 'qa-verdict.json');
     const writtenVerdict = JSON.parse(fs.readFileSync(verdictPath, 'utf-8'));
-    if (writtenVerdict.status === 'PASS' && writtenVerdict.diffHash && writtenVerdict.diffHash !== '01ba4719c80b6fe9') {
+    if (writtenVerdict.status === 'PASS' && writtenVerdict.diffHash && writtenVerdict.diffHash !== '01ba4719c80b6fe9' && writtenVerdict.diffHash !== '0000000000000000') {
       console.log(`PASS qa_runner_regenerates_valid_verdict_with_real_diffhash (diffHash=${writtenVerdict.diffHash})`);
     } else {
       failed++;
@@ -2075,6 +2084,275 @@ try {
     }
   } finally {
     fs.rmSync(repo9Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 10 (REQ-1 / P0): diffHash hermetically ignores .hermes/ in repo without .gitignore
+  totalChecks++;
+  const repo10Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r10-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo10Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo10Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo10Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo10Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo10Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo10Dir, stdio: 'ignore' });
+
+    const hashBeforeHermes = computeWorkingTreeDiffHash(repo10Dir, { baseRef: baseCommit });
+
+    const hermesFolder = path.join(repo10Dir, '.hermes');
+    fs.mkdirSync(hermesFolder, { recursive: true });
+    fs.writeFileSync(path.join(hermesFolder, 'qa-verdict.json'), JSON.stringify({ runner: 'mechanical' }));
+    const hashAfterVerdict = computeWorkingTreeDiffHash(repo10Dir, { baseRef: baseCommit });
+
+    fs.writeFileSync(path.join(hermesFolder, 'gate-log.jsonl'), '{"event":"Stop"}\n');
+    const hashAfterGateLog = computeWorkingTreeDiffHash(repo10Dir, { baseRef: baseCommit });
+
+    if (hashBeforeHermes === hashAfterVerdict && hashAfterVerdict === hashAfterGateLog && hashBeforeHermes !== '0000000000000000') {
+      console.log(`PASS diffhash_hermetically_ignores_dot_hermes_without_gitignore (hash=${hashBeforeHermes})`);
+    } else {
+      failed++;
+      console.log(`FAIL diffhash_hermetically_ignores_dot_hermes_without_gitignore: before=${hashBeforeHermes}, afterVerdict=${hashAfterVerdict}, afterLog=${hashAfterGateLog}`);
+    }
+  } finally {
+    fs.rmSync(repo10Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 11 (REQ-2 / P0): Strict mutation mode rejects unavailable report / null killRate
+  totalChecks++;
+  const repo11Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r11-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo11Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo11Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo11Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo11Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo11Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo11Dir, stdio: 'ignore' });
+    const h11 = computeWorkingTreeDiffHash(repo11Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo11Dir, {
+      diffHash: h11,
+      viktorUuid: '11111111-1111-1111-1111-111111111111',
+      mutation: { status: 'unavailable', mutantsTotal: 0, killed: 0, survived: 0, killRate: null, diffHash: h11, timestamp: new Date().toISOString() }
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo11Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r11_test',
+        workspacePaths: [repo11Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r11_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test strict mutation rejection' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo11Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h11}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo11Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit, HERMES_MUTATION_MODE: 'strict' }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_mutation_unavailable_in_strict_mode');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_mutation_unavailable_in_strict_mode: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo11Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 12 (REQ-3 / P1): Reject verdict when prompt requested REQ-1 & REQ-2 but verdict only has REQ-1
+  totalChecks++;
+  const repo12Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r12-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo12Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo12Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo12Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo12Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo12Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo12Dir, stdio: 'ignore' });
+    const h12 = computeWorkingTreeDiffHash(repo12Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo12Dir, {
+      diffHash: h12,
+      reqLedger: ['REQ-1'], // Missing REQ-2 requested by user!
+      viktorUuid: '11111111-1111-1111-1111-111111111111'
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo12Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r12_test',
+        workspacePaths: [repo12Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r12_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes implement REQ-1 and REQ-2' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo12Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h12}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo12Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_prompt_requirements_not_covered');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_prompt_requirements_not_covered: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo12Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 13 (REQ-4 / P1): Reject verdict when viktorUuid is missing
+  totalChecks++;
+  const repo13Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r13-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo13Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo13Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo13Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo13Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo13Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo13Dir, stdio: 'ignore' });
+    const h13 = computeWorkingTreeDiffHash(repo13Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo13Dir, {
+      diffHash: h13,
+      viktorUuid: undefined // Missing UUID!
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo13Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r13_test',
+        workspacePaths: [repo13Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r13_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test missing viktorUuid' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo13Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h13}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo13Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_viktor_uuid_missing');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_viktor_uuid_missing: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo13Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 14 (REQ-4 / P1): Reject verdict when ackToken is static default 'viktor-qa-pass'
+  totalChecks++;
+  const repo14Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r14-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo14Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo14Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo14Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo14Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo14Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo14Dir, stdio: 'ignore' });
+    const h14 = computeWorkingTreeDiffHash(repo14Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo14Dir, {
+      diffHash: h14,
+      ackToken: 'viktor-qa-pass', // Static constant rejected!
+      viktorUuid: '11111111-1111-1111-1111-111111111111'
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo14Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r14_test',
+        workspacePaths: [repo14Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r14_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test static ackToken' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo14Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] diffHash:${h14}</SYSTEM_MESSAGE>` }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo14Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_acktoken_is_static_default');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_acktoken_is_static_default: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo14Dir, { recursive: true, force: true });
+  }
+
+  // Acceptance Criterion 15 (REQ-4 / P1): Reject verdict when Viktor delivery text lacks diffHash
+  totalChecks++;
+  const repo15Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-gate-r15-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo15Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo15Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo15Dir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: repo15Dir, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(repo15Dir, 'index.ts'), 'export const a = 2;\n');
+    execSync('git add index.ts && git commit -m "c1"', { cwd: repo15Dir, stdio: 'ignore' });
+    const h15 = computeWorkingTreeDiffHash(repo15Dir, { baseRef: baseCommit });
+
+    writeQaVerdictFixture(repo15Dir, {
+      diffHash: h15,
+      viktorUuid: '11111111-1111-1111-1111-111111111111'
+    });
+
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo15Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r15_test',
+        workspacePaths: [repo15Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r15_test', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test delivery text without hash' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo15Dir, 'index.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] All tests passing</SYSTEM_MESSAGE>' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo15Dir, HERMES_SEC_REVIEW: '0', HERMES_BASE_REF: baseCommit }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    if (parsedGate.decision === 'continue') {
+      console.log('PASS reject_verdict_when_delivery_text_missing_diffhash');
+    } else {
+      failed++;
+      console.log(`FAIL reject_verdict_when_delivery_text_missing_diffhash: expected continue, got ${parsedGate.decision}`);
+    }
+  } finally {
+    fs.rmSync(repo15Dir, { recursive: true, force: true });
   }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });

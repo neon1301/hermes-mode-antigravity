@@ -89,5 +89,8 @@ Verified across 11 dedicated negative and compliance tests in `hooks/qa-gate.tes
 
 ## 5. Consequences
 
-- **Positive:** Immune to LLM hallucinated test passes. Process exit codes are captured directly from OS kernel. Full parity between AppSec (`security-verdict.json`) and QA (`qa-verdict.json`).
-- **Residual Limitations:** Mutation testing requires installed external toolchain; reported as `unavailable` when tools are absent.
+- **Positive:** Substantially mitigates LLM-hallucinated test passes by delegating test execution and exit code verification to operating system child processes. Establishes symmetric cryptographic rigor between AppSec (`security-verdict.json`) and QA (`qa-verdict.json`). Protected against model self-signing via PreToolUse tamper protection (`clean-edits-guard.mjs`).
+- **Residual Limitations & Threat Model:**
+  - Mutation testing requires an installed external toolchain; reported honestly as `unavailable` or `no-mutants` (with `killRate: null`) when absent, adhering to Rule 13.
+  - The security model relies on the integrity of the host OS environment, Node.js runtime, and mechanical runner scripts; if an adversary has arbitrary shell execution outside the model sandbox, verdict files could theoretically be written via shell commands. Tamper protection specifically prevents model tool calls (`write_file`, `edit_file`) from forging verdicts.
+  - DiffHash binding hermetically isolates `.hermes/` to avoid self-invalidation, meaning changes within `.hermes/` itself (e.g. config edits) do not alter the code diff hash.

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Hermes Fleet Plugin Installer for Google Antigravity (v4.1.0)
+# Hermes Fleet Plugin Installer for Google Antigravity (v4.1.1)
 set -euo pipefail
 
 echo "=========================================="
-echo "  Hermes Fleet v4.1.0 Installer for Antigravity"
+echo "  Hermes Fleet v4.1.1 Installer for Antigravity"
 echo "=========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

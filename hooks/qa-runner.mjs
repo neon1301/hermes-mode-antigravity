@@ -34,13 +34,19 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     }
   } catch {}
 
+  const envExclude = process.env.HERMES_EXCLUDE_PATHS
+    ? process.env.HERMES_EXCLUDE_PATHS.split(',').map(s => s.trim()).filter(Boolean)
+    : null;
+
   return {
     qaVerdictMode: process.env.HERMES_QA_VERDICT_MODE || config.qaVerdictMode || 'artifact',
     mutationMode: process.env.HERMES_MUTATION_MODE || config.mutationMode || 'advisory',
     mutationThreshold: Number(process.env.HERMES_MUTATION_THRESHOLD || config.mutationThreshold || 0.70),
     mutationBudget: Number(process.env.HERMES_MUTATION_BUDGET || config.mutationBudget || 20),
     testTimeoutMs: Number(process.env.HERMES_TEST_TIMEOUT_MS || config.testTimeoutMs || 180000),
-    baseRef: process.env.HERMES_BASE_REF || config.baseRef || null
+    qaVerdictTtlMs: Number(process.env.HERMES_QA_VERDICT_TTL_MS || config.qaVerdictTtlMs || 300000),
+    baseRef: process.env.HERMES_BASE_REF || config.baseRef || null,
+    excludePaths: envExclude || config.excludePaths || ['.hermes']
   };
 }
 
@@ -128,42 +134,69 @@ export function resolveBaseRef(workspaceDir = process.cwd(), options = {}) {
 }
 
 /**
+ * Helper to check if a file path is covered by an excluded prefix (Rule 9).
+ */
+export function isPathExcluded(filePath, excludePaths = ['.hermes']) {
+  if (!filePath) return false;
+  const norm = filePath.replace(/\\/g, '/').replace(/^\.?\//, '');
+  return excludePaths.some((ex) => {
+    const normEx = ex.replace(/\\/g, '/').replace(/^\.?\//, '').replace(/\/$/, '');
+    return norm === normEx || norm.startsWith(normEx + '/') || norm.includes('/' + normEx + '/');
+  });
+}
+
+/**
  * Computes deterministic SHA-256 diffHash of changes under review.
  * Binds verdict to committed and uncommitted changes relative to base.
  * Single source of truth for qa-runner, qa-gate, and recovery journal.
+ * Hermetically excludes .hermes/ and configured internal paths (REQ-1 / P0).
  */
 export function computeWorkingTreeDiffHash(workspaceDir = process.cwd(), options = {}) {
   try {
+    const cfg = getHermesConfig(workspaceDir);
+    const excludePaths = options.excludePaths || cfg.excludePaths || ['.hermes'];
+    const pathspecExcludes = excludePaths.map((p) => `:(exclude)${p.replace(/\\/g, '/').replace(/^\.?\//, '').replace(/\/$/, '')}`);
     const baseRef = resolveBaseRef(workspaceDir, options);
-    const status = execFileSync('git', ['status', '--porcelain', '-uall'], {
+
+    const rawStatus = execFileSync('git', ['status', '--porcelain', '-uall'], {
       cwd: workspaceDir,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore']
     }).trim();
 
-    // Collect untracked files content to avoid blind spots
+    // Filter status lines to exclude Hermes internal artifacts (.hermes, etc.)
+    const statusLines = rawStatus ? rawStatus.split(/\r?\n/).filter((line) => {
+      const match = line.match(/^..\s+(.*)$/);
+      if (!match) return true;
+      let p = match[1].trim();
+      if (p.includes(' -> ')) p = p.split(' -> ')[1].trim();
+      p = p.replace(/^"|"$/g, '');
+      return !isPathExcluded(p, excludePaths);
+    }) : [];
+    const status = statusLines.join('\n');
+
+    // Collect untracked files content to avoid blind spots, ignoring excluded paths
     let untrackedPayload = '';
-    if (status.includes('?? ')) {
-      const untracked = status
-        .split(/\r?\n/)
-        .filter(l => l.startsWith('?? '))
-        .map(l => l.slice(3).trim())
-        .sort();
-      for (const f of untracked) {
-        try {
-          const full = path.resolve(workspaceDir, f);
-          if (fs.existsSync(full) && fs.statSync(full).isFile()) {
-            const fileHash = crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex');
-            untrackedPayload += `\n${f}:${fileHash}`;
-          }
-        } catch {}
-      }
+    const untracked = statusLines
+      .filter((l) => l.startsWith('?? '))
+      .map((l) => l.slice(3).trim().replace(/^"|"$/g, ''))
+      .filter((p) => !isPathExcluded(p, excludePaths))
+      .sort();
+
+    for (const f of untracked) {
+      try {
+        const full = path.resolve(workspaceDir, f);
+        if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+          const fileHash = crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex');
+          untrackedPayload += `\n${f}:${fileHash}`;
+        }
+      } catch {}
     }
 
     if (baseRef) {
-      // Base resolved: compare base against working tree
-      // git diff <baseRef> covers both committed changes since base AND uncommitted working tree edits
-      const diff = execFileSync('git', ['diff', baseRef], {
+      // Base resolved: compare base against working tree excluding internal paths
+      const diffArgs = ['diff', baseRef, '--', '.', ...pathspecExcludes];
+      const diff = execFileSync('git', diffArgs, {
         cwd: workspaceDir,
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
@@ -198,7 +231,8 @@ export function computeWorkingTreeDiffHash(workspaceDir = process.cwd(), options
 
     let diff = '';
     try {
-      diff = execFileSync('git', ['diff', 'HEAD'], {
+      const fallbackDiffArgs = ['diff', 'HEAD', '--', '.', ...pathspecExcludes];
+      diff = execFileSync('git', fallbackDiffArgs, {
         cwd: workspaceDir,
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
@@ -340,6 +374,80 @@ export function detectMutationTool(workspaceDir = process.cwd(), stack = 'unknow
 }
 
 /**
+ * Parses mutation report artifacts from disk for Stryker/Stryker.NET (Rule 13).
+ */
+export function parseMutationReport(workspaceDir, tool) {
+  try {
+    // 1. Stryker (Node)
+    const strykerJsonPath = path.join(workspaceDir, 'reports', 'mutation', 'mutation.json');
+    if (fs.existsSync(strykerJsonPath)) {
+      const data = JSON.parse(fs.readFileSync(strykerJsonPath, 'utf-8'));
+      let killed = 0;
+      let survived = 0;
+      const escaped = [];
+      if (data.files && typeof data.files === 'object') {
+        for (const [file, fData] of Object.entries(data.files)) {
+          if (Array.isArray(fData?.mutants)) {
+            for (const m of fData.mutants) {
+              const status = String(m?.status || '');
+              if (status === 'Killed' || status === 'Timeout') {
+                killed++;
+              } else if (status === 'Survived' || status === 'NoCoverage') {
+                survived++;
+                escaped.push(`${file}:${m?.id || m?.mutatorName || 'mutant'}`);
+              }
+            }
+          }
+        }
+      }
+      return { found: true, killed, survived, escaped, mutantsTotal: killed + survived };
+    }
+
+    // 2. Stryker.NET (.NET)
+    const strykerOutputDir = path.join(workspaceDir, 'StrykerOutput');
+    if (fs.existsSync(strykerOutputDir)) {
+      const findReports = (dir) => {
+        let results = [];
+        for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, item.name);
+          if (item.isDirectory()) {
+            results.push(...findReports(full));
+          } else if (item.name === 'mutation-report.json') {
+            results.push(full);
+          }
+        }
+        return results;
+      };
+      const reports = findReports(strykerOutputDir);
+      if (reports.length > 0) {
+        reports.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+        const data = JSON.parse(fs.readFileSync(reports[0], 'utf-8'));
+        let killed = 0;
+        let survived = 0;
+        const escaped = [];
+        if (data.files) {
+          for (const [file, fData] of Object.entries(data.files)) {
+            if (Array.isArray(fData?.mutants)) {
+              for (const m of fData.mutants) {
+                const s = String(m?.status || '');
+                if (s === 'Killed' || s === 'Timeout') killed++;
+                else if (s === 'Survived' || s === 'NoCoverage') {
+                  survived++;
+                  escaped.push(`${file}:${m?.id || 'mutant'}`);
+                }
+              }
+            }
+          }
+        }
+        return { found: true, killed, survived, escaped, mutantsTotal: killed + survived };
+      }
+    }
+  } catch {}
+
+  return { found: false, killed: 0, survived: 0, escaped: [], mutantsTotal: 0 };
+}
+
+/**
  * Executes mutation testing MVP (advisory-first, Rule 13 honest reporting).
  */
 export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
@@ -360,7 +468,7 @@ export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
       killed: 0,
       survived: 0,
       escaped: [],
-      killRate: 0,
+      killRate: null,
       threshold: cfg.mutationThreshold,
       tool: 'none',
       diffHash,
@@ -381,19 +489,70 @@ export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
       timeout: 60000 // 60s mutation budget timeout
     });
 
-    // Parse results from tool stdout/artifacts or default advisory summary
-    const killed = 0;
-    const survived = 0;
-    const mutantsTotal = killed + survived;
-    const killRate = mutantsTotal > 0 ? killed / mutantsTotal : 1.0;
-    const pass = killRate >= cfg.mutationThreshold;
+    if (res.error || (res.status !== 0 && res.status !== null)) {
+      const failedReport = {
+        status: 'unavailable',
+        reason: res.error ? res.error.message : `Mutation testing process exited with status ${res.status}`,
+        mutantsTotal: 0,
+        killed: 0,
+        survived: 0,
+        escaped: [],
+        killRate: null,
+        threshold: cfg.mutationThreshold,
+        tool: toolCheck.tool,
+        diffHash,
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(reportPath, JSON.stringify(failedReport, null, 2) + '\n', 'utf-8');
+      return failedReport;
+    }
+
+    const parsed = parseMutationReport(workspaceDir, toolCheck.tool);
+    if (!parsed.found) {
+      const notFoundReport = {
+        status: 'unavailable',
+        reason: `Mutation report artifact not found after executing ${toolCheck.tool}`,
+        mutantsTotal: 0,
+        killed: 0,
+        survived: 0,
+        escaped: [],
+        killRate: null,
+        threshold: cfg.mutationThreshold,
+        tool: toolCheck.tool,
+        diffHash,
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(reportPath, JSON.stringify(notFoundReport, null, 2) + '\n', 'utf-8');
+      return notFoundReport;
+    }
+
+    if (parsed.mutantsTotal === 0) {
+      const zeroMutantsReport = {
+        status: 'no-mutants',
+        reason: 'Zero mutants generated by mutation tool for the reviewed files (Rule 13)',
+        mutantsTotal: 0,
+        killed: 0,
+        survived: 0,
+        escaped: [],
+        killRate: null,
+        threshold: cfg.mutationThreshold,
+        tool: toolCheck.tool,
+        diffHash,
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(reportPath, JSON.stringify(zeroMutantsReport, null, 2) + '\n', 'utf-8');
+      return zeroMutantsReport;
+    }
+
+    const killRate = parsed.killed / parsed.mutantsTotal;
+    const pass = killRate >= cfg.mutationThreshold && parsed.survived === 0;
 
     const report = {
       status: pass ? 'PASS' : (cfg.mutationMode === 'strict' ? 'REJECT' : 'advisory'),
-      mutantsTotal,
-      killed,
-      survived,
-      escaped: [],
+      mutantsTotal: parsed.mutantsTotal,
+      killed: parsed.killed,
+      survived: parsed.survived,
+      escaped: parsed.escaped,
       killRate,
       threshold: cfg.mutationThreshold,
       tool: toolCheck.tool,
@@ -410,7 +569,7 @@ export function runMutationTesting(workspaceDir = process.cwd(), options = {}) {
       killed: 0,
       survived: 0,
       escaped: [],
-      killRate: 0,
+      killRate: null,
       threshold: cfg.mutationThreshold,
       tool: toolCheck.tool,
       diffHash,
@@ -452,7 +611,6 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
 
   // Determine overall test status
   const allZero = testExitCodes.length > 0 && testExitCodes.every(c => c === 0);
-  let status = allZero ? 'PASS' : 'REJECT';
 
   // Run mutation testing MVP (advisory-first)
   let mutationReport = null;
@@ -460,27 +618,34 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
     mutationReport = typeof options.mutation === 'object'
       ? options.mutation
       : runMutationTesting(workspaceDir, { diffHash, stack: detected.stack });
-
-    // Strict mutation mode check
-    if (cfg.mutationMode === 'strict' && mutationReport.status === 'REJECT') {
-      status = 'REJECT';
-    }
   }
 
-  // Resolve requirements ledger
+  // Resolve requirements ledger (REQ-3: fail-closed, zero fabrication)
   let reqLedger = options.reqLedger || [];
   if (!Array.isArray(reqLedger) || reqLedger.length === 0) {
-    // Discover requirements from active tasks or default to REQ-1
     try {
       const tasksPath = path.join(workspaceDir, '.hermes', 'tasks.json');
       if (fs.existsSync(tasksPath)) {
         const tasksData = JSON.parse(fs.readFileSync(tasksPath, 'utf-8'));
         if (Array.isArray(tasksData.tasks)) {
-          reqLedger = tasksData.tasks.filter(t => t.status === 'DONE').map(t => t.id);
+          reqLedger = tasksData.tasks.filter(t => t.status === 'DONE' && t.id).map(t => t.id);
         }
       }
     } catch {}
-    if (reqLedger.length === 0) reqLedger = ['REQ-1'];
+    if (!Array.isArray(reqLedger)) reqLedger = [];
+  }
+
+  const hasReqs = reqLedger.length > 0;
+  let status = (allZero && hasReqs) ? 'PASS' : 'REJECT';
+
+  // Strict mutation mode check
+  if (cfg.mutationMode === 'strict' && mutationReport) {
+    const mutStatus = mutationReport.status;
+    const survived = Number(mutationReport.survived ?? 0);
+    const mutantsTotal = Number(mutationReport.mutantsTotal ?? 0);
+    if (mutStatus !== 'PASS' || mutantsTotal === 0 || survived > 0 || mutationReport.killRate === null) {
+      status = 'REJECT';
+    }
   }
 
   const hermesDir = path.join(workspaceDir, '.hermes');
@@ -499,13 +664,21 @@ export function runQaSuite(workspaceDir = process.cwd(), options = {}) {
     timestamp: new Date().toISOString()
   };
 
+  if (options.conversationId || process.env.HERMES_CONVERSATION_ID) {
+    verdict.conversationId = String(options.conversationId || process.env.HERMES_CONVERSATION_ID);
+  }
+  if (options.turnMarker !== undefined || process.env.HERMES_TURN_MARKER !== undefined) {
+    const tm = options.turnMarker !== undefined ? options.turnMarker : process.env.HERMES_TURN_MARKER;
+    verdict.turnMarker = typeof tm === 'number' ? tm : (Number.isInteger(Number(tm)) ? Number(tm) : String(tm));
+  }
+
   if (options.viktorUuid) {
     verdict.viktorUuid = String(options.viktorUuid);
   }
   if (options.ackToken) {
     verdict.ackToken = String(options.ackToken);
   } else {
-    verdict.ackToken = 'viktor-qa-pass';
+    verdict.ackToken = crypto.randomUUID();
   }
 
   if (mutationReport) {
@@ -537,7 +710,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
   try {
     const args = process.argv.slice(2);
     const runMut = args.includes('--mutation');
-    const verdict = runQaSuite(process.cwd(), { runMutations: runMut });
+    const reqArg = args.find(a => a.startsWith('--reqLedger='));
+    const reqLedger = reqArg ? reqArg.slice('--reqLedger='.length).split(',').map(s => s.trim()).filter(Boolean) : undefined;
+    const viktorUuidArg = args.find(a => a.startsWith('--viktorUuid='));
+    const viktorUuid = viktorUuidArg ? viktorUuidArg.slice('--viktorUuid='.length).trim() : undefined;
+    const verdict = runQaSuite(process.cwd(), { runMutations: runMut, reqLedger, viktorUuid });
     console.log(`\nQA VERDICT SUMMARY: runner=${verdict.runner} status=${verdict.status} exitCodes=[${verdict.testExitCodes.join(',')}] diffHash=${verdict.diffHash}`);
     if (verdict.status !== 'PASS') process.exit(1);
   } catch (err) {

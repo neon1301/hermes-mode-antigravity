@@ -18,6 +18,8 @@
     },
     "viktorUuid": { "type": "string" },
     "ackToken": { "type": "string" },
+    "conversationId": { "type": "string" },
+    "turnMarker": { "type": ["integer", "string"] },
     "agent": { "type": "string" },
     "reqsVerified": {
       "type": "array",
@@ -28,10 +30,11 @@
     "mutation": {
       "type": "object",
       "properties": {
-        "status": { "type": "string", "enum": ["PASS", "REJECT", "unavailable", "advisory"] },
+        "status": { "type": "string", "enum": ["PASS", "REJECT", "unavailable", "advisory", "no-mutants"] },
         "mutantsTotal": { "type": "integer" },
         "killed": { "type": "integer" },
         "survived": { "type": "integer" },
+        "killRate": { "type": ["number", "null"] },
         "escaped": {
           "type": "array",
           "items": { "type": "string" }
