@@ -209,7 +209,7 @@ flowchart LR
 
 ## 🗺️ Дорожная карта инженерии (Roadmap)
 
-Реальные задачи из [`docs/backlog.md`](docs/backlog.md) и [`.hermes/tasks.json`](.hermes/tasks.json):
+Реальные задачи из [`docs/backlog.md`](docs/backlog.md) и `.hermes/tasks.json`:
 
 - **[TASK-004] (P1, v4.0.1):** Сужение области действия `hermes-hardcode-ignore` до точной строки срабатывания (±1 строка) и документирование compatibility shim в [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
 - **[TASK-005] (P2, v4.0.1):** Верификация устойчивости FIFO-распределения UUID субагентов при параллельных вызовах и привязка через `tool_call_id`.

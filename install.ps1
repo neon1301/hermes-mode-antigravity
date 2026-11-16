@@ -30,6 +30,7 @@ $items = @(
     "hooks.json",
     "LICENSE",
     "README.md",
+    "README.ru.md",
     "CHANGELOG.md",
     "TROUBLESHOOTING.md",
     "THIRD_PARTY_NOTICES.md",

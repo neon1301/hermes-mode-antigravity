@@ -209,7 +209,7 @@ Hermes Fleet comprises **14 specialized agents** and **22 professional skills** 
 
 ## 🗺️ Engineering Roadmap
 
-Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and [`.hermes/tasks.json`](.hermes/tasks.json):
+Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.json`:
 
 - **[TASK-004] (P1, v4.0.1):** Narrow `hermes-hardcode-ignore` scope to the exact violation line (±1 line) and formalize schema compatibility shim in [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
 - **[TASK-005] (P2, v4.0.1):** Verify subagent UUID FIFO assignment resilience in multi-invoke steps and bind via `tool_call_id`.
