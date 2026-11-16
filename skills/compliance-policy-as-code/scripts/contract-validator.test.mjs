@@ -118,13 +118,17 @@ test('invalid_security_verdict_non_zero_unresolved', () => {
   if (res.valid) throw new Error('Expected invalid due to unresolvedHighCritical > 0');
 });
 
-// 4. QA Verdict Schema Tests
+// 4. QA Verdict Schema Tests (Mechanical Rails)
 const qaSchema = loadSchema('qa-verdict.schema.json');
 test('valid_qa_verdict', () => {
   const valid = {
+    schemaVersion: '1.1.0',
     status: 'PASS',
+    runner: 'mechanical',
+    diffHash: '01ba4719c80b6fe9',
+    testExitCodes: [0],
+    reqLedger: ['REQ-1', 'REQ-2'],
     agent: 'viktor',
-    reqsVerified: ['REQ-1', 'REQ-2'],
     timestamp: new Date().toISOString()
   };
   const res = validateSchema(valid, qaSchema);
@@ -133,9 +137,12 @@ test('valid_qa_verdict', () => {
 
 test('invalid_qa_verdict_bad_status', () => {
   const invalid = {
+    schemaVersion: '1.1.0',
     status: 'MAYBE',
-    agent: 'viktor',
-    reqsVerified: [],
+    runner: 'mechanical',
+    diffHash: '01ba4719c80b6fe9',
+    testExitCodes: [0],
+    reqLedger: ['REQ-1'],
     timestamp: new Date().toISOString()
   };
   const res = validateSchema(invalid, qaSchema);

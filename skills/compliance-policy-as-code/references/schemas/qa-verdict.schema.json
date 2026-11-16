@@ -2,15 +2,43 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "QAVerdict",
   "type": "object",
-  "required": ["status", "agent", "reqsVerified", "timestamp"],
+  "required": ["status", "runner", "diffHash", "testExitCodes", "reqLedger", "timestamp"],
   "properties": {
+    "schemaVersion": { "type": "string" },
     "status": { "type": "string", "enum": ["PASS", "REJECT"] },
+    "runner": { "type": "string", "enum": ["mechanical"] },
+    "diffHash": { "type": "string" },
+    "testExitCodes": {
+      "type": "array",
+      "items": { "type": "integer" }
+    },
+    "reqLedger": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "viktorUuid": { "type": "string" },
+    "ackToken": { "type": "string" },
     "agent": { "type": "string" },
     "reqsVerified": {
       "type": "array",
       "items": { "type": "string" }
     },
     "reason": { "type": "string" },
-    "timestamp": { "type": "string" }
+    "timestamp": { "type": "string" },
+    "mutation": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["PASS", "REJECT", "unavailable", "advisory"] },
+        "mutantsTotal": { "type": "integer" },
+        "killed": { "type": "integer" },
+        "survived": { "type": "integer" },
+        "escaped": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tool": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    }
   }
 }
