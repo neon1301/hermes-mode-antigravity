@@ -1905,13 +1905,21 @@ try {
 
   // Acceptance Criterion 5: Runner and gate produce identical diffHash (consistency test)
   totalChecks++;
-  const runnerHash = computeWorkingTreeDiffHash(process.cwd());
-  const gateHash = computeWorkingTreeDiffHash(process.cwd());
-  if (runnerHash === gateHash && runnerHash !== '0000000000000000') {
-    console.log(`PASS qa_runner_and_qa_gate_consistency_identical_diffhash (hash=${runnerHash})`);
-  } else {
-    failed++;
-    console.log(`FAIL qa_runner_and_qa_gate_consistency_identical_diffhash: runner=${runnerHash}, gate=${gateHash}`);
+  const repo5Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-diffhash-r5-'));
+  try {
+    execSync('git init && git config user.name "Test" && git config user.email "test@example.com"', { cwd: repo5Dir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repo5Dir, 'index.ts'), 'export const a = 1;\n');
+    execSync('git add index.ts && git commit -m "base"', { cwd: repo5Dir, stdio: 'ignore' });
+    const runnerHash = computeWorkingTreeDiffHash(repo5Dir);
+    const gateHash = computeWorkingTreeDiffHash(repo5Dir);
+    if (runnerHash === gateHash && runnerHash !== '0000000000000000') {
+      console.log(`PASS qa_runner_and_qa_gate_consistency_identical_diffhash (hash=${runnerHash})`);
+    } else {
+      failed++;
+      console.log(`FAIL qa_runner_and_qa_gate_consistency_identical_diffhash: runner=${runnerHash}, gate=${gateHash}`);
+    }
+  } finally {
+    fs.rmSync(repo5Dir, { recursive: true, force: true });
   }
 
   // Acceptance Criterion 6: Runner generates valid verdict and invalidates legacy empty hash
