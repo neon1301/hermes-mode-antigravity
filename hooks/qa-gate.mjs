@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   collectToolCalls,
   detectHermesInSteps,
@@ -12,6 +14,11 @@ import {
 } from './hermes-trigger.mjs';
 import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
+import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 
 const MAX_RETURNS = 2;
 const MAX_TAIL_BYTES = 8 * 1024 * 1024;
@@ -291,6 +298,8 @@ const editedUiFiles = new Set();
 const invokedSpecialists = new Set();
 const touchedSnapshots = [];
 let hasQaPass = false;
+let viktorTranscriptQaPass = false;
+let lastViktorQaStepIdx = -1;
 let hasUxPass = false;
 let hasCompliancePass = false;
 let hasSecurityPass = false;
@@ -298,6 +307,15 @@ let lastWriteIdx = -1;
 let postEditAskIdx = -1;
 let postEditAskAnswer = '';
 let postEditAskToolCallId = '';
+
+let hermesConfig = {};
+try {
+  const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');
+  if (fs.existsSync(cfgPath)) {
+    hermesConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+  }
+} catch {}
+const qaVerdictMode = process.env.HERMES_QA_VERDICT_MODE || hermesConfig.qaVerdictMode || 'artifact';
 
 const nonAuditorSubagentIds = new Set();
 const viktorSubagentUuids = new Set();
@@ -370,7 +388,12 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
         viktorDeliveryTexts.push(sysText);
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
-          hasQaPass = true;
+          viktorTranscriptQaPass = true;
+          lastViktorQaStepIdx = stepIdx;
+          if (qaVerdictMode === 'legacy') {
+            console.warn('[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.');
+            hasQaPass = true;
+          }
         }
         if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
           hasSecurityPass = true;
@@ -599,6 +622,24 @@ function computeDiffHash(snapshots = []) {
   return h.digest('hex');
 }
 
+function computeWorkingTreeDiffHash(workspaceDir = process.cwd()) {
+  try {
+    const status = execSync('git status --porcelain', {
+      cwd: workspaceDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    const diff = execSync('git diff', {
+      cwd: workspaceDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    return crypto.createHash('sha256').update(status + '\n' + diff).digest('hex').slice(0, 16);
+  } catch {
+    return '0000000000000000';
+  }
+}
+
 function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCount = 0, event = 'Stop' } = {}) {
   if (!isHermesSession) return;
   try {
@@ -630,6 +671,125 @@ function logCostMetrics({ convId, turnMarker, editedFilesCount = 0, toolCallsCou
 }
 
 const currentDiffHash = computeDiffHash(touchedSnapshots);
+
+// Mechanical QA Rails Acceptance (REQ-1, REQ-2, REQ-3 / B1)
+const qaVerdictFile = path.join(activeWorkspaceDir, '.hermes', 'qa-verdict.json');
+if (qaVerdictMode === 'artifact') {
+  hasQaPass = false; // Never accept transcript token alone in artifact mode
+  if (fs.existsSync(qaVerdictFile)) {
+    try {
+      const verdictData = JSON.parse(fs.readFileSync(qaVerdictFile, 'utf-8'));
+
+      // 1. Schema check
+      let isSchemaValid = true;
+      const schemaPaths = [
+        path.join(activeWorkspaceDir, 'skills', 'compliance-policy-as-code', 'references', 'schemas', 'qa-verdict.schema.json'),
+        path.join(rootDir, 'skills', 'compliance-policy-as-code', 'references', 'schemas', 'qa-verdict.schema.json')
+      ];
+      for (const sp of schemaPaths) {
+        if (fs.existsSync(sp)) {
+          try {
+            const schema = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+            const val = validateSchema(verdictData, schema);
+            isSchemaValid = val.valid;
+          } catch {
+            isSchemaValid = false;
+          }
+          break;
+        }
+      }
+
+      // 2. Runner must be 'mechanical' (Zero LLM-prose)
+      const isMechanicalRunner = verdictData?.runner === 'mechanical';
+
+      // 3. Status must be PASS
+      const isPass = verdictData?.status === 'PASS';
+
+      // 4. Test exit codes: must exist, array of integers, all === 0
+      const hasZeroExitCodes = Array.isArray(verdictData?.testExitCodes) &&
+        verdictData.testExitCodes.length > 0 &&
+        verdictData.testExitCodes.every((c) => Number.isInteger(c) && c === 0);
+
+      // 5. reqLedger must be array and non-empty
+      const hasReqLedger = Array.isArray(verdictData?.reqLedger) && verdictData.reqLedger.length > 0;
+
+      // 6. diffHash binding
+      const workingTreeHash = computeWorkingTreeDiffHash(activeWorkspaceDir);
+      const hasDiffHashMatch = Boolean(
+        verdictData?.diffHash &&
+        (verdictData.diffHash === currentDiffHash ||
+         (workingTreeHash !== '0000000000000000' && verdictData.diffHash === workingTreeHash))
+      );
+
+      // 7. Freshness TTL (within 5 minutes)
+      const reviewedAtMs = Date.parse(verdictData?.timestamp || verdictData?.reviewedAt || '');
+      const isFresh = !isNaN(reviewedAtMs) && Math.abs(Date.now() - reviewedAtMs) <= 5 * 60 * 1000;
+
+      // 8. Transcript proof: Viktor must have been invoked in this turn
+      const hasTranscriptProof = invokedSpecialists.has('viktor');
+
+      // 8b. Transcript QA PASS delivery: Viktor must have delivered QA PASS in incoming message after last edit
+      const hasTranscriptQaPass = viktorTranscriptQaPass && (lastWriteIdx === -1 || lastViktorQaStepIdx > lastWriteIdx);
+
+      // 9. Viktor UUID / ackToken binding
+      const hasAckToken = Boolean(verdictData?.ackToken || verdictData?.viktorUuid);
+      const hasValidViktorUuid = !verdictData?.viktorUuid ||
+        viktorSubagentUuids.size === 0 ||
+        viktorSubagentUuids.has(String(verdictData.viktorUuid).toLowerCase());
+
+      // 10. Mutation check (B3)
+      let isMutationOk = true;
+      const mutationMode = process.env.HERMES_MUTATION_MODE || hermesConfig.mutationMode || 'advisory';
+      if (mutationMode === 'strict' && verdictData?.mutation) {
+        const mutStatus = verdictData.mutation.status;
+        const survived = Number(verdictData.mutation.survived ?? 0);
+        if (mutStatus === 'REJECT' || survived > 0) {
+          isMutationOk = false;
+        }
+      }
+
+      if (
+        isSchemaValid &&
+        isMechanicalRunner &&
+        isPass &&
+        hasZeroExitCodes &&
+        hasReqLedger &&
+        hasDiffHashMatch &&
+        isFresh &&
+        hasTranscriptProof &&
+        hasTranscriptQaPass &&
+        hasAckToken &&
+        hasValidViktorUuid &&
+        isMutationOk
+      ) {
+        hasQaPass = true;
+      } else {
+        logGateDecision({
+          decision: 'continue',
+          reason: 'qa-verdict.json rejected: mechanical verification check failed',
+          checks: {
+            isSchemaValid,
+            isMechanicalRunner,
+            isPass,
+            hasZeroExitCodes,
+            hasReqLedger,
+            hasDiffHashMatch,
+            isFresh,
+            hasTranscriptProof,
+            hasTranscriptQaPass,
+            hasAckToken,
+            hasValidViktorUuid,
+            isMutationOk
+          }
+        });
+      }
+    } catch (err) {
+      logGateDecision({ decision: 'continue', reason: `qa-verdict.json parse error: ${err.message}` });
+    }
+  } else {
+    logGateDecision({ decision: 'continue', reason: 'qa-verdict.json missing: mechanical artifact required in artifact mode' });
+  }
+}
 const secVerdictFile = path.join(activeWorkspaceDir, '.hermes', 'security-verdict.json');
 if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
   try {
