@@ -24,6 +24,40 @@ function runGate(payload, envExtra = {}) {
   return JSON.parse(out);
 }
 
+function computeSnapshotsHash(edits = []) {
+  const h = crypto.createHash('sha256');
+  for (const e of edits) {
+    const targetPath = e.Path || e.path || '';
+    const snippet = e.Content || e.Replacement || e.CodeContent || '';
+    let diskContent = '';
+    try {
+      if (fs.existsSync(targetPath)) diskContent = fs.readFileSync(targetPath, 'utf-8');
+    } catch {}
+    h.update(`${targetPath}\n${snippet}\n${diskContent}`);
+  }
+  return h.digest('hex');
+}
+
+function writeQaVerdictFixture(wsDir = process.cwd(), overrides = {}) {
+  const hermesDir = path.join(wsDir, '.hermes');
+  if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+  const p = path.join(hermesDir, 'qa-verdict.json');
+  const verdict = {
+    schemaVersion: '1.1.0',
+    runner: 'mechanical',
+    status: 'PASS',
+    diffHash: overrides.diffHash || '01ba4719c80b6fe9',
+    testExitCodes: [0],
+    reqLedger: ['REQ-1'],
+    ackToken: 'viktor-qa-pass',
+    agent: 'viktor',
+    timestamp: new Date().toISOString(),
+    ...overrides
+  };
+  fs.writeFileSync(p, JSON.stringify(verdict, null, 2) + '\n', 'utf-8');
+  return p;
+}
+
 const cases = [
   {
     name: 'allow_non_hermes_even_with_edits',
@@ -163,25 +197,33 @@ const cases = [
   {
     name: 'allow_2_files_with_system_message_qa_pass',
     expected: 'allow',
-    run: () => runGate({
-      conversationId: 'c4',
-      terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t4', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@dmitry fix' },
-        {
-          step_index: 1,
-          source: 'MODEL',
-          type: 'PLANNER_RESPONSE',
-          tool_calls: [
-            { name: 'edit_file', args: { Path: 'src/a.ts' } },
-            { name: 'edit_file', args: { Path: 'src/b.ts' } },
-            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
-          ]
-        },
-        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' }
-      ])
-    })
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/a.ts' }, { Path: 'src/b.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c4',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t4', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '@dmitry fix' },
+            {
+              step_index: 1,
+              source: 'MODEL',
+              type: 'PLANNER_RESPONSE',
+              tool_calls: [
+                { name: 'edit_file', args: { Path: 'src/a.ts' } },
+                { name: 'edit_file', args: { Path: 'src/b.ts' } },
+                { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+              ]
+            },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' }
+          ])
+        });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   },
   {
     name: 'continue_4_files_missing_compliance_pass',
@@ -209,30 +251,38 @@ const cases = [
   {
     name: 'allow_4_files_with_both_system_passes',
     expected: 'allow',
-    run: () => runGate({
-      conversationId: 'c6',
-      terminationReason: 'NO_TOOL_CALL',
-      transcriptPath: writeTranscript('t6', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes refactor module' },
-        {
-          step_index: 1,
-          source: 'MODEL',
-          type: 'PLANNER_RESPONSE',
-          tool_calls: [
-            { name: 'edit_file', args: { Path: 'src/1.ts' } },
-            { name: 'edit_file', args: { Path: 'src/2.ts' } },
-            { name: 'edit_file', args: { Path: 'src/3.ts' } },
-            { name: 'edit_file', args: { Path: 'src/4.ts' } },
-            { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
-            { name: 'invoke_subagent', args: { TypeName: 'stanislav' } }
-          ]
-        },
-        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-        { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "22222222-2222-2222-2222-222222222222"}' },
-        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
-        { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="22222222-2222-2222-2222-222222222222">[COMPLIANCE PASS]</SYSTEM_MESSAGE>' }
-      ])
-    })
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/1.ts' }, { Path: 'src/2.ts' }, { Path: 'src/3.ts' }, { Path: 'src/4.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c6',
+          terminationReason: 'NO_TOOL_CALL',
+          transcriptPath: writeTranscript('t6', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes refactor module' },
+            {
+              step_index: 1,
+              source: 'MODEL',
+              type: 'PLANNER_RESPONSE',
+              tool_calls: [
+                { name: 'edit_file', args: { Path: 'src/1.ts' } },
+                { name: 'edit_file', args: { Path: 'src/2.ts' } },
+                { name: 'edit_file', args: { Path: 'src/3.ts' } },
+                { name: 'edit_file', args: { Path: 'src/4.ts' } },
+                { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
+                { name: 'invoke_subagent', args: { TypeName: 'stanislav' } }
+              ]
+            },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "22222222-2222-2222-2222-222222222222"}' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="22222222-2222-2222-2222-222222222222">[COMPLIANCE PASS]</SYSTEM_MESSAGE>' }
+          ])
+        });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   },
   {
     name: 'allow_abnormal_termination_reasons',
@@ -399,22 +449,30 @@ const cases = [
   {
     name: 'allow_when_ui_window_edited_with_qa_pass_and_kritik_ux_pass',
     expected: 'allow',
-    run: () => runGate({
-      conversationId: 'c_ui_with_ux_pass',
-      terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t_ui_with_ux_pass', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix popup window flicker' },
-        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
-          { name: 'edit_file', args: { Path: 'src/UI/PopupWindow.cs' } },
-          { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
-          { name: 'invoke_subagent', args: { TypeName: 'kritik' } }
-        ] },
-        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-        { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
-        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
-        { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
-      ])
-    })
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/UI/PopupWindow.cs' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_ui_with_ux_pass',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_ui_with_ux_pass', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix popup window flicker' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/UI/PopupWindow.cs' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
+              { name: 'invoke_subagent', args: { TypeName: 'kritik' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
+          ])
+        });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   },
   {
     name: 'continue_when_kritik_returns_ux_reject',
@@ -731,22 +789,30 @@ const cases = [
   {
     name: 'allow_when_css_file_has_both_qa_and_ux_passes',
     expected: 'allow',
-    run: () => runGate({
-      conversationId: 'c_css_with_passes',
-      terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t_css_with_passes', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update styling' },
-        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
-          { name: 'edit_file', args: { Path: 'src/styles/main.css' } },
-          { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
-          { name: 'invoke_subagent', args: { TypeName: 'kritik' } }
-        ] },
-        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-        { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
-        { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
-        { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
-      ])
-    })
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/styles/main.css' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_css_with_passes',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_css_with_passes', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update styling' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/styles/main.css' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } },
+              { name: 'invoke_subagent', args: { TypeName: 'kritik' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "33333333-3333-3333-3333-333333333333"}' },
+            { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>' },
+            { step_index: 5, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="33333333-3333-3333-3333-333333333333">[UX PASS]</SYSTEM_MESSAGE>' }
+          ])
+        });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   },
   {
     name: 'reject_forged_lead_security_verdict_without_subagent_invocation',
@@ -798,6 +864,7 @@ const cases = [
         reviewedAt: new Date().toISOString(),
         unresolvedHighCritical: 0
       }), 'utf-8');
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
       try {
         return runGate({
           conversationId: 'c_sec_valid',
@@ -814,6 +881,7 @@ const cases = [
         });
       } finally {
         if (fs.existsSync(vPath)) fs.unlinkSync(vPath);
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
     }
   },
@@ -935,19 +1003,27 @@ const cases = [
   {
     name: 'allow_when_security_review_env_disabled',
     expected: 'allow',
-    run: () => runGate({
-      conversationId: 'c_sec_disabled',
-      terminationReason: 'model_stop',
-      transcriptPath: writeTranscript('t_sec_disabled', [
-        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug' },
-        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
-          { name: 'edit_file', args: { Path: 'src/app.ts' } },
-          { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
-        ] },
-        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
-        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
-      ])
-    }, { HERMES_SEC_REVIEW: '0' })
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_sec_disabled',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_sec_disabled', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix bug' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
   },
   {
     name: 'cost_log_created_in_hermes_session',
@@ -995,6 +1071,7 @@ const cases = [
         reviewedAt: new Date().toISOString(),
         unresolvedHighCritical: 0
       }), 'utf-8');
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h1, viktorUuid: '11111111-1111-1111-1111-111111111111' });
       try {
         return runGate({
           conversationId: 'c_r3_test',
@@ -1011,6 +1088,7 @@ const cases = [
         });
       } finally {
         if (fs.existsSync(vPath)) fs.unlinkSync(vPath);
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
     }
   },
@@ -1353,9 +1431,264 @@ const cases = [
             { step_index: 5, source: 'SYSTEM', type: 'GENERIC', content: JSON.stringify({ conversationId: viktorUuid }) },
             { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', sender: viktorUuid, content: '[QA PASS] Rewrite parity verified.' }
           ])
-        }, { HERMES_SEC_REVIEW: '0' });
+        }, { HERMES_SEC_REVIEW: '0', HERMES_QA_VERDICT_MODE: 'legacy' });
       } finally {
         fs.rmSync(testWs, { recursive: true, force: true });
+      }
+    }
+  },
+  // B4: Mechanical QA Rails Negative & Anti-Spoofing Vectors
+  {
+    name: 'reject_qa_verdict_when_runner_not_mechanical',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { runner: 'manual-llm-prose', diffHash: h, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_runner',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_runner', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test runner' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_diffhash_stale',
+    expected: 'continue',
+    run: () => {
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: 'stale-diffhash-9999', viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_diffhash',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_diffhash', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test diffhash' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_viktor_uuid_mismatch',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, viktorUuid: '99999999-9999-9999-9999-999999999999' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_uuid',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_uuid', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test uuid' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_missing_test_exit_codes',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, testExitCodes: undefined, viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_exit_missing',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_exit_missing', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test exit codes' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_non_zero_exit_code',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, testExitCodes: [0, 1], viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_exit_nonzero',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_exit_nonzero', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test exit nonzero' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_req_ledger_empty',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, reqLedger: [], viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_req_empty',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_req_empty', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test req empty' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_schema_invalid',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), { diffHash: h, status: 'INVALID_STATUS', viktorUuid: '11111111-1111-1111-1111-111111111111' });
+      try {
+        return runGate({
+          conversationId: 'c_neg_schema',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_schema', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test schema invalid' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
+      }
+    }
+  },
+  {
+    name: 'reject_qa_verdict_when_file_missing',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_neg_missing_file',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_neg_missing_file', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test missing verdict' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+          { name: 'edit_file', args: { Path: 'src/app.ts' } },
+          { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+        ] },
+        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+      ])
+    }, { HERMES_SEC_REVIEW: '0' })
+  },
+  {
+    name: 'reject_transcript_only_qa_pass_without_legacy_flag',
+    expected: 'continue',
+    run: () => runGate({
+      conversationId: 'c_neg_no_legacy',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_neg_no_legacy', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test transcript only' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+          { name: 'edit_file', args: { Path: 'src/app.ts' } },
+          { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+        ] },
+        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+      ])
+    }, { HERMES_SEC_REVIEW: '0' })
+  },
+  {
+    name: 'allow_transcript_only_qa_pass_with_legacy_flag',
+    expected: 'allow',
+    run: () => runGate({
+      conversationId: 'c_pos_legacy',
+      terminationReason: 'model_stop',
+      transcriptPath: writeTranscript('t_pos_legacy', [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test legacy flag' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+          { name: 'edit_file', args: { Path: 'src/app.ts' } },
+          { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+        ] },
+        { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+        { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+      ])
+    }, { HERMES_SEC_REVIEW: '0', HERMES_QA_VERDICT_MODE: 'legacy' })
+  },
+  {
+    name: 'reject_qa_verdict_when_mutant_survived_in_strict_mode',
+    expected: 'continue',
+    run: () => {
+      const h = computeSnapshotsHash([{ Path: 'src/app.ts' }]);
+      const qaPath = writeQaVerdictFixture(process.cwd(), {
+        diffHash: h,
+        viktorUuid: '11111111-1111-1111-1111-111111111111',
+        mutation: { status: 'REJECT', survived: 3, mutantsTotal: 10, killed: 7, diffHash: h, timestamp: new Date().toISOString() }
+      });
+      try {
+        return runGate({
+          conversationId: 'c_neg_mutation_strict',
+          terminationReason: 'model_stop',
+          transcriptPath: writeTranscript('t_neg_mutation_strict', [
+            { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes test strict mutation' },
+            { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+              { name: 'edit_file', args: { Path: 'src/app.ts' } },
+              { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+            ] },
+            { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "11111111-1111-1111-1111-111111111111"}' },
+            { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="11111111-1111-1111-1111-111111111111">[QA PASS]</SYSTEM_MESSAGE>' }
+          ])
+        }, { HERMES_SEC_REVIEW: '0', HERMES_MUTATION_MODE: 'strict' });
+      } finally {
+        if (fs.existsSync(qaPath)) fs.unlinkSync(qaPath);
       }
     }
   }
