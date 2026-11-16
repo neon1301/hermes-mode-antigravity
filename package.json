@@ -15,7 +15,8 @@
     "test:report": "node hooks/session-report.test.mjs",
     "test:eval": "node hooks/eval-harness.test.mjs",
     "test:contracts": "node skills/compliance-policy-as-code/scripts/contract-validator.test.mjs",
-    "test:refinery": "node hooks/refinery.test.mjs"
+    "test:refinery": "node hooks/refinery.test.mjs",
+    "test:journal": "node hooks/journal.test.mjs"
   },
   "keywords": [
     "antigravity",

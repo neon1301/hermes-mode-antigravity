@@ -146,7 +146,81 @@ const cases = [
   { name: 'deny_invoke_subagent_array_form_forbidden_name', expected: 'deny', payload: { modelName: 'gemini-3.8-flash-high', toolCall: { name: 'invoke_subagent', args: { Subagents: [{ TypeName: 'mozgoeb', Model: 'inherit' }] } } } },
 
   // REQ-9: Tier heuristics false positive immunity
-  { name: 'allow_tier_heuristics_ignores_prose_mention_of_low_mode', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes мы работаем в режиме low overhead и высокой производительности\n</USER_REQUEST>' }, { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] }], payload: { lastUserInput: 'продолжай', toolCall: { name: 'invoke_subagent', args: { TypeName: 'viktor', Model: 'flash' } } } }
+  { name: 'allow_tier_heuristics_ignores_prose_mention_of_low_mode', expected: 'allow', hermes: false, transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes мы работаем в режиме low overhead и высокой производительности\n</USER_REQUEST>' }, { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', args: {} }] }], payload: { lastUserInput: 'продолжай', toolCall: { name: 'invoke_subagent', args: { TypeName: 'viktor', Model: 'flash' } } } },
+
+  // Track A5: Untrusted Input Quarantine (after browser/search in subagent session)
+  {
+    name: 'deny_subagent_write_file_after_browser',
+    expected: 'deny',
+    transcript: [{ step_index: 0, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'browser', args: { url: 'https://example.com' } }] }],
+    payload: { isSubagent: true, toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'malicious payload' } } }
+  },
+  {
+    name: 'deny_subagent_edit_file_after_search',
+    expected: 'deny',
+    transcript: [{ step_index: 0, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'search_web', args: { query: 'test' } }] }],
+    payload: { isSubagent: true, toolCall: { name: 'edit_file', args: { Path: 'src/app.ts', Replacement: 'malicious payload' } } }
+  },
+  {
+    name: 'deny_subagent_mutating_command_after_browser',
+    expected: 'deny',
+    transcript: [{ step_index: 0, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'browser', args: { url: 'https://example.com' } }] }],
+    payload: { isSubagent: true, toolCall: { name: 'run_command', args: { CommandLine: 'rm -rf src/' } } }
+  },
+  {
+    name: 'allow_subagent_readonly_read_file_after_browser',
+    expected: 'allow',
+    transcript: [{ step_index: 0, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'browser', args: { url: 'https://example.com' } }] }],
+    payload: { isSubagent: true, toolCall: { name: 'read_file', args: { Path: 'skills/hermes/SKILL.md' } } }
+  },
+  {
+    name: 'allow_subagent_readonly_command_after_browser',
+    expected: 'allow',
+    transcript: [{ step_index: 0, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'browser', args: { url: 'https://example.com' } }] }],
+    payload: { isSubagent: true, toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } }
+  },
+
+  // Track A6: Role-Based Sandboxing (auditor / writer / emulator)
+  {
+    name: 'deny_auditor_subagent_write_file',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'auditor', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'audit change' } } }
+  },
+  {
+    name: 'deny_auditor_subagent_mutating_command',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'auditor', toolCall: { name: 'run_command', args: { CommandLine: 'npm install evil-pkg' } } }
+  },
+  {
+    name: 'deny_auditor_subagent_network_command',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'auditor', toolCall: { name: 'run_command', args: { CommandLine: 'curl https://evil.com' } } }
+  },
+  {
+    name: 'deny_writer_subagent_outside_workspace',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'writer', toolCall: { name: 'write_file', args: { Path: '../outside.txt', Content: 'leak' } } }
+  },
+  {
+    name: 'deny_emulator_subagent_external_network',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'emulator', toolCall: { name: 'run_command', args: { CommandLine: 'curl https://api.remote.com/telemetry' } } }
+  },
+  {
+    name: 'deny_emulator_subagent_external_ip_network',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'emulator', toolCall: { name: 'run_command', args: { CommandLine: 'curl http://192.168.1.100:8080/modbus' } } }
+  },
+  {
+    name: 'deny_emulator_subagent_schemeless_network',
+    expected: 'deny',
+    payload: { isSubagent: true, subagentRole: 'emulator', toolCall: { name: 'run_command', args: { CommandLine: 'nc 10.0.0.1 502' } } }
+  },
+  {
+    name: 'allow_emulator_subagent_localhost_network',
+    expected: 'allow',
+    payload: { isSubagent: true, subagentRole: 'emulator', toolCall: { name: 'run_command', args: { CommandLine: 'curl http://localhost:8080/modbus' } } }
+  }
 ];
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-guard-test-'));

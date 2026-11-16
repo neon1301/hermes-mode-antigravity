@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-337%2F337%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-361%2F361%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -127,7 +127,7 @@ flowchart LR
 
 ✍️ Контур B (Правка Lead Act/Write):
   - Применён Patch Blueprint через edit_file
-  - Выполнен Single Build Gate: 337/337 тестов прошли (3.4 с)
+  - Выполнен Single Build Gate: 361/361 тестов прошли (3.4 с)
 
 🛡️ Гейт верификации (UUID-привязанные вердикты):
   - @viktor: 🟢 [QA PASS] — Парсер кадров проверен на всех 4 промышленных протоколах
@@ -222,7 +222,7 @@ flowchart LR
 В Hermes встроен **автономный локальный CI-гейт (Zero Billing Dependency)**:
 
 ```bash
-# Запуск всех 10 тестовых сьютов локально (337 тестов)
+# Запуск всех 11 тестовых сьютов локально (361 тестов)
 npm test
 
 # Windows PowerShell Local CI

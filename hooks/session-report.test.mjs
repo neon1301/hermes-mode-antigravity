@@ -100,5 +100,63 @@ test('session_report_resolves_workspacePaths_payload', () => {
   }
 });
 
+// Track B7: Resolved Rate % calculation
+test('session_report_calculates_resolved_rate_when_findings_present', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-report-findings-'));
+  const hermesDir = path.join(tmpDir, '.hermes');
+  fs.mkdirSync(hermesDir, { recursive: true });
+
+  const qaVerdict = path.join(hermesDir, 'qa-verdict.json');
+  fs.writeFileSync(qaVerdict, JSON.stringify({
+    status: 'PASS',
+    totalFindings: 10,
+    resolvedFindings: 8
+  }), 'utf-8');
+
+  const report = generateSessionReport(tmpDir);
+  if (!report.includes('| **Resolved Rate (%)** | 8/10 (80.0%) |')) {
+    throw new Error('Expected resolved rate 8/10 (80.0%) in report');
+  }
+  if (!report.includes('| **Реально исправлено** | 8 |')) {
+    throw new Error('Expected resolved count 8 in report');
+  }
+});
+
+// Track B7: Data Honesty when no findings data
+test('session_report_honesty_zero_data_outputs_net_dannyh', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-report-empty-'));
+  const report = generateSessionReport(tmpDir);
+  if (!report.includes('| **Resolved Rate (%)** | нет данных |')) {
+    throw new Error('Rule 13 violation: expected "нет данных" when no findings');
+  }
+  if (!report.includes('*нет данных (хост Antigravity не передал OTel gen_ai.usage.*)*')) {
+    throw new Error('Rule 13 violation: expected "нет данных" for unprovided OTel tokens');
+  }
+});
+
+// Track B8: OTel GenAI telemetry aggregation
+test('session_report_aggregates_otel_gen_ai_tokens_when_present', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-report-otel-'));
+  const hermesDir = path.join(tmpDir, '.hermes');
+  fs.mkdirSync(hermesDir, { recursive: true });
+
+  const gateLog = path.join(hermesDir, 'gate-log.jsonl');
+  fs.writeFileSync(gateLog, [
+    JSON.stringify({ 'gen_ai.usage.input_tokens': 150, 'gen_ai.usage.output_tokens': 50, decision: 'allow' }),
+    JSON.stringify({ 'gen_ai.usage.input_tokens': 300, 'gen_ai.usage.output_tokens': 100, decision: 'deny' })
+  ].join('\n') + '\n', 'utf-8');
+
+  const report = generateSessionReport(tmpDir);
+  if (!report.includes('| **gen_ai.usage.input_tokens** | 450 |')) {
+    throw new Error('Expected aggregated OTel input tokens 450');
+  }
+  if (!report.includes('| **gen_ai.usage.output_tokens** | 150 |')) {
+    throw new Error('Expected aggregated OTel output tokens 150');
+  }
+  if (!report.includes('| **Зафиксировано OTel-операций** | 2 |')) {
+    throw new Error('Expected 2 recorded OTel operations');
+  }
+});
+
 console.log(`SESSION-REPORT SUMMARY: ${total - failed}/${total} passed`);
 if (failed > 0) process.exit(1);

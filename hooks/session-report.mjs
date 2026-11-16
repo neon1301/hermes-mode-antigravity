@@ -90,6 +90,71 @@ export function generateSessionReport(dirOrPayload = null) {
     } catch {}
   }
 
+  // 5. Findings & Resolved Rate (Track B7 - Rule 13)
+  let findingsStats = { total: 0, resolved: 0, hasData: false, rateStr: 'нет данных' };
+  const qaVerdictPath = path.join(hermesDir, 'qa-verdict.json');
+  const findingsPath = path.join(hermesDir, 'findings.json');
+
+  if (fs.existsSync(findingsPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(findingsPath, 'utf-8'));
+      const list = Array.isArray(data?.findings) ? data.findings : (Array.isArray(data) ? data : []);
+      if (list.length > 0) {
+        findingsStats.hasData = true;
+        findingsStats.total = list.length;
+        findingsStats.resolved = list.filter(f => f.status === 'resolved' || f.resolved === true).length;
+      }
+    } catch {}
+  } else if (fs.existsSync(qaVerdictPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(qaVerdictPath, 'utf-8'));
+      if (Number.isInteger(data?.totalFindings) && data.totalFindings > 0) {
+        findingsStats.hasData = true;
+        findingsStats.total = data.totalFindings;
+        findingsStats.resolved = Number.isInteger(data?.resolvedFindings) ? data.resolvedFindings : 0;
+      } else if (Array.isArray(data?.findings) && data.findings.length > 0) {
+        findingsStats.hasData = true;
+        findingsStats.total = data.findings.length;
+        findingsStats.resolved = data.findings.filter(f => f.status === 'resolved' || f.resolved === true).length;
+      }
+    } catch {}
+  }
+
+  if (findingsStats.hasData && findingsStats.total > 0) {
+    const pct = ((findingsStats.resolved / findingsStats.total) * 100).toFixed(1);
+    findingsStats.rateStr = `${findingsStats.resolved}/${findingsStats.total} (${pct}%)`;
+  }
+
+  // 6. OpenTelemetry GenAI Telemetry (Track B8 - Rule 13)
+  let otelStats = {
+    hasData: false,
+    inputTokens: 0,
+    outputTokens: 0,
+    operationsCount: 0
+  };
+
+  const logsToScan = [gateLogPath, costLogPath, path.join(hermesDir, 'journal.jsonl')];
+  for (const p of logsToScan) {
+    if (fs.existsSync(p)) {
+      try {
+        const lines = fs.readFileSync(p, 'utf-8').trim().split('\n').filter(Boolean);
+        for (const line of lines) {
+          try {
+            const entry = JSON.parse(line);
+            const inTok = entry['gen_ai.usage.input_tokens'];
+            const outTok = entry['gen_ai.usage.output_tokens'];
+            if (typeof inTok === 'number' || typeof outTok === 'number') {
+              otelStats.hasData = true;
+              if (typeof inTok === 'number') otelStats.inputTokens += inTok;
+              if (typeof outTok === 'number') otelStats.outputTokens += outTok;
+              otelStats.operationsCount++;
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+  }
+
   // 5. Stale Data Warning (Rule 14)
   let staleWarning = '';
   if (gateStats.lastEvent !== 'нет данных') {
@@ -142,6 +207,22 @@ export function generateSessionReport(dirOrPayload = null) {
     `| **Суммарно правок файлов (Stop)** | ${costStats.totalFilesEdited} | \`.hermes/cost-log.jsonl\` |`,
     `| **Суммарно вызовов инструментов** | ${costStats.totalToolCalls} | \`.hermes/cost-log.jsonl\` |`,
     `| **Расход токенов хоста** | *нет данных (хост Antigravity не предоставляет счётчики токенов)* | Rule 13 (Data Honesty) |`,
+    ``,
+    `## 🎯 Эффективность устранения замечаний (Resolved Rate, Track B7)`,
+    ``,
+    `| Метрика | Значение | Источник (Rule 13) |`,
+    `| :--- | :--- | :--- |`,
+    `| **Всего замечаний QA/UX** | ${findingsStats.hasData ? findingsStats.total : 'нет данных'} | \`.hermes/qa-verdict.json\` / \`.hermes/findings.json\` |`,
+    `| **Реально исправлено** | ${findingsStats.hasData ? findingsStats.resolved : 'нет данных'} | \`.hermes/qa-verdict.json\` / \`.hermes/findings.json\` |`,
+    `| **Resolved Rate (%)** | ${findingsStats.rateStr} | Rule 13 (Data Honesty) |`,
+    ``,
+    `## 🛰️ OpenTelemetry GenAI Telemetry (Track B8)`,
+    ``,
+    `| Метрика OTel | Значение | Источник (Rule 13) |`,
+    `| :--- | :--- | :--- |`,
+    `| **gen_ai.usage.input_tokens** | ${otelStats.hasData ? otelStats.inputTokens : '*нет данных (хост Antigravity не передал OTel gen_ai.usage.*)*'} | \`.hermes/*.jsonl\` |`,
+    `| **gen_ai.usage.output_tokens** | ${otelStats.hasData ? otelStats.outputTokens : '*нет данных (хост Antigravity не передал OTel gen_ai.usage.*)*'} | \`.hermes/*.jsonl\` |`,
+    `| **Зафиксировано OTel-операций** | ${otelStats.hasData ? otelStats.operationsCount : 0} | \`.hermes/*.jsonl\` |`,
     ``,
     `## 📜 Недавние коммиты Git`,
     ``,

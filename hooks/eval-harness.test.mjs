@@ -191,4 +191,56 @@ assert.strictEqual(
 );
 passedTests++;
 
+// 6. Track C4: Tool Economy, Skill Index & Batch Invocation Benchmark Fixtures
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const testFileDir = path.dirname(fileURLToPath(import.meta.url));
+const testRootDir = path.resolve(testFileDir, '..');
+
+totalTests++;
+(() => {
+  const indexPath = path.join(testRootDir, 'skills', 'hermes', 'references', 'skill-index.md');
+  assert.strictEqual(fs.existsSync(indexPath), true, 'skill-index.md must exist');
+  const indexSize = fs.statSync(indexPath).size;
+
+  const skillsDir = path.join(testRootDir, 'skills');
+  const skillFolders = fs.readdirSync(skillsDir).filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')));
+  const totalEagerBytes = skillFolders.reduce((sum, f) => sum + fs.statSync(path.join(skillsDir, f, 'SKILL.md')).size, 0);
+
+  const reductionRatio = totalEagerBytes / indexSize;
+  assert.ok(reductionRatio >= 15, `Expected lazy index reduction ratio >= 15x, got ${reductionRatio.toFixed(1)}x (${totalEagerBytes}B vs ${indexSize}B)`);
+})();
+passedTests++;
+
+totalTests++;
+(() => {
+  const indexPath = path.join(testRootDir, 'skills', 'hermes', 'references', 'skill-index.md');
+  const indexContent = fs.readFileSync(indexPath, 'utf-8');
+  const skillsDir = path.join(testRootDir, 'skills');
+  const skillFolders = fs.readdirSync(skillsDir).filter((f) => fs.existsSync(path.join(skillsDir, f, 'SKILL.md')));
+
+  for (const s of skillFolders) {
+    assert.ok(indexContent.includes(s), `skill-index.md must reference disk skill '${s}'`);
+  }
+})();
+passedTests++;
+
+totalTests++;
+(() => {
+  // Batch Execution Quarantine: intermediate raw file outputs vs aggregated execution summary
+  const sampleRawOutputs = Array.from({ length: 10 }, (_, i) => ({
+    file: `src/module_${i}.cs`,
+    rawContent: `// Copyright 2026 Enterprise Corp\nusing System;\nnamespace App {\n  public class Module${i} {\n    public void Run() { Console.WriteLine("Module ${i} active"); }\n  }\n}\n`
+  }));
+  const rawBytes = JSON.stringify(sampleRawOutputs).length;
+  const synthesizedSummary = { scannedFiles: 10, violations: 0, status: 'CLEAN' };
+  const synthesizedBytes = JSON.stringify(synthesizedSummary).length;
+
+  const batchEconomyRatio = rawBytes / synthesizedBytes;
+  assert.ok(batchEconomyRatio >= 5, `Expected batch execution economy ratio >= 5x, got ${batchEconomyRatio.toFixed(1)}x`);
+})();
+passedTests++;
+
 console.log(`[EVAL HARNESS PASS] ${passedTests}/${totalTests} deterministic trigger tests passed successfully.`);

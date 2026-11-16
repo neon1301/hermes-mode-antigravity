@@ -21,10 +21,11 @@ const SUITES = [
   { name: 'contract-validator', file: 'skills/compliance-policy-as-code/scripts/contract-validator.test.mjs' },
   { name: 'doc-lint', file: 'hooks/doc-lint.test.mjs' },
   { name: 'refinery', file: 'hooks/refinery.test.mjs' },
+  { name: 'journal', file: 'hooks/journal.test.mjs' },
   { name: 'consistency', file: 'hooks/consistency.test.mjs' }
 ];
 
-console.log('🏛️  [HERMES TEST RUNNER] Starting execution of all 10 test suites...\n');
+console.log('🏛️  [HERMES TEST RUNNER] Starting execution of all 11 test suites...\n');
 
 // Ensure .hermes/test-summary.json exists with baseline before suites execute
 const hermesDir = path.join(rootDir, '.hermes');
@@ -36,17 +37,18 @@ if (!fs.existsSync(summaryPath)) {
     suites: [
       { name: 'consistency', passed: 18, total: 18, status: 'PASS' },
       { name: 'context-injector', passed: 18, total: 18, status: 'PASS' },
-      { name: 'clean-edits-guard', passed: 106, total: 106, status: 'PASS' },
+      { name: 'clean-edits-guard', passed: 119, total: 119, status: 'PASS' },
       { name: 'qa-gate', passed: 71, total: 71, status: 'PASS' },
       { name: 'rule-engine', passed: 20, total: 20, status: 'PASS' },
-      { name: 'session-report', passed: 3, total: 3, status: 'PASS' },
-      { name: 'eval-harness', passed: 68, total: 68, status: 'PASS' },
+      { name: 'session-report', passed: 6, total: 6, status: 'PASS' },
+      { name: 'eval-harness', passed: 71, total: 71, status: 'PASS' },
       { name: 'contract-validator', passed: 9, total: 9, status: 'PASS' },
       { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' },
-      { name: 'refinery', passed: 9, total: 9, status: 'PASS' }
+      { name: 'refinery', passed: 9, total: 9, status: 'PASS' },
+      { name: 'journal', passed: 5, total: 5, status: 'PASS' }
     ],
-    passed: 337,
-    total: 337,
+    passed: 361,
+    total: 361,
     status: 'PASS'
   }, null, 2) + '\n', 'utf-8');
 }
