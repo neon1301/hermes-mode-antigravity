@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v4.6.2)
+# Регламент HERMES (Hermes Fleet Protocol v4.7.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 

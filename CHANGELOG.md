@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.7.0] - 2026-11-18
+
+### «Руль» — Plan Gate, Auto-Spec EARS-lite, TDD Pre-Implementation & Mechanical Lessons (TASK-017)
+- **Plan Gate — Plan Before Code (REQ-1, REQ-5, P1):**
+  - Added modular pure-stdlib engines `hooks/consent-validator.mjs`, `hooks/plan-gate.mjs`, and `hooks/lessons-ledger.mjs`, wired into `hooks/clean-edits-guard.mjs`, `hooks/qa-gate.mjs`, and `hooks/context-injector.mjs`.
+  - Enforced strict order `Step 0 → Council Gate → Plan Gate (.hermes/plan.md) → User Confirmation ([Делай]) → Code` for Standard/Complex tasks independently of council mode (including solo and `councilGate: "off"`), while keeping Micro/Fast-Path, direct `@specialist`, and `/hermes fix-warnings` unchanged (compound prompts such as «исправь опечатку и отрефактори модуль» strictly require a plan).
+  - Protected `.hermes/plan-state.json`, `.hermes/plan-ledger.jsonl`, and `.hermes/lessons.jsonl` inside immutable `DEFAULT_PROTECTED_VERDICT_PATHS` (14 protected paths total) and hardened `SHELL_MUTATE_PATTERNS` (multiline `python -c`/`node -e`, PowerShell `-EncodedCommand`/`-enc`, `.hermes/plan.md` shell writes). Added `define_subagent|swarm` to `hooks.json` `PreToolUse` matcher, Lead-side `invoke_subagent(self)` check, conditional `isSubagent` live plan-hash check, pre-/post-persistent anti-TOCTOU, and `isPlanAsk` exclusion from Step 0 Model Handshake.
+  - Hardened 5-step plan consent validator: authentic `USER_EXPLICIT` or harness-bound direct-next + `DONE` + banner only (MODEL prose and `<SYSTEM_MESSAGE>` echoes denied), strict binding to selected option text (not option number), Cyrillic negation-guard («не надо план, делай сразу», «план не подтверждаю», «никакого плана» → deny), colloquial approval allowlist («Делай, без проблем» → allow), Edit-Dominance («Убрать лишнее», «Добавить своё», «Делай, но убери Д1» → revision v2, never approval), and task-bound `taskHash` + SHA-256 `planHash` reconfirmation on v2 edits.
+- **EARS-lite Mechanical Plan Lint (REQ-2, P1):**
+  - Enforced 4 required `.hermes/plan.md` sections (`ВОТ ЧТО Я ПОНЯЛ`, `ВОТ ЧТО Я ДОБАВЛЮ САМ`, `ЧЕГО Я НЕ ДЕЛАЮ`, `СПРОШУ ТОЛЬКО ОДНО-ДВА`, allowing honest empty in «Добавлю сам») and per-item `КОГДА <условие> — СИСТЕМА ДОЛЖНА <поведение>. Проверка: <тест или артефакт>` (rejecting empty stubs like `Проверка: ок` without false-denying real identifiers like `block_ok_button`).
+  - Required «так принято» / `best practice` convention claims to carry `https://` URL + verbatim quote + date (inline or `## Источники` footnote `[n]`), existing local `path:line`, or the honest marker «мой выбор, не конвенция».
+- **TDD Red Phase (`pre-implementation`) in Progress Journal (REQ-3, P1):**
+  - Updated `syncProgressJournal` with a 4-factor monotonic one-way ratchet and segment/suffix `isStrictTestPath`: `test-summary.json` FAILs written while only test files have been edited for the current `taskHash` are recorded with `phase: "pre-implementation"` and excluded from `consecutiveFails`. First production source write permanently switches the task to `phase: "implementation"` (preserving all v4.5.1 stall locks; `qa-verdict`/`security-verdict` REJECTs always count as `implementation`).
+- **Mechanical Error Memory `.hermes/lessons.jsonl` (REQ-4, P2):**
+  - Hooks append `{ ts, taskHash, rule, reasonHash, count, source: "mechanical" }` exclusively on real events: `QA REJECT` / `SECURITY REJECT` / `Rewrite Parity` on Stop (`hooks/qa-gate.mjs`), repeated `deny >= 2` per rule in the same task, and `stall_breaker` (`hooks/clean-edits-guard.mjs`) — never from MODEL prose.
+  - `hooks/context-injector.mjs` injects the last `<= 5` unique mechanical lessons within a strict `<= 2048` UTF-8 byte budget using static `RULE_HINTS`.
+- **Documentation, Honest Boundaries & 24 New Test Locks (REQ-6, REQ-7, REQ-8):**
+  - Added `skills/hermes/references/plan-steering-protocol.md`, updated `docs/known-boundaries.md` (explicitly deferring independent grader, team stop on deny, A2A, eval suite, and `TASK-005` remainder to `v4.7.1` «Инспектор»), added Plan Gate deny index to `TROUBLESHOOTING.md` & fixed numbering in `docs/troubleshooting.md`, and registered `TASK-017` in `docs/backlog.md`.
+  - Expanded test coverage to 537/537 PASS across 11 suites (`clean-edits-guard` 261/261, `context-injector` 19/19, `qa-gate` 104/104) with 0 bytes growth on `skills/hermes/references/fleet-protocol.md`.
+
+---
+
 ## [4.6.2] - 2026-11-18
 
 ### Gate Config Tamper Protection, Reason-Safe `hermes-hardcode-ignore` & Fail-Closed Error Handling (TASK-016)

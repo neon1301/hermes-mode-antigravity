@@ -20,6 +20,24 @@ import {
   freezeOrVerifyCriteria,
   syncCouncilOutcomeAndReputation
 } from './council-learning.mjs';
+import {
+  CorruptArtifactError,
+  extractAuthenticAskAnswer,
+  isStrictTestPath,
+  readGateModeConfig,
+  readProtectedJsonlStrict,
+  readProtectedJsonStrict,
+  resolveTaskContext
+} from './consent-validator.mjs';
+import {
+  isPlanAskArgs,
+  verifyPlanGate,
+  verifySubagentPlanIntegrity
+} from './plan-gate.mjs';
+import {
+  recordMechanicalLesson,
+  trackDenyAndMaybeRecordLesson
+} from './lessons-ledger.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -69,6 +87,7 @@ function isHermesActive(payload) {
 
 let isHermesSession = false;
 let activeWorkspaceDir = process.cwd();
+let activeTaskHash = 'unknown';
 
 function logGateDecision({ toolName, decision, reason, model, tier, subType, source } = {}) {
   if (!isHermesSession) return;
@@ -107,104 +126,15 @@ function logGateDecision({ toolName, decision, reason, model, tier, subType, sou
   }
 }
 
-class CorruptArtifactError extends Error {
-  constructor(artifactName, detail) {
-    super(`Corrupt protected artifact ${artifactName}: ${detail}`);
-    this.name = 'CorruptArtifactError';
-    this.artifactName = artifactName;
-    this.detail = detail;
-  }
-}
-
-function readProtectedJsonStrict(filePath, artifactName) {
-  if (!fs.existsSync(filePath)) return null;
-  let raw;
-  try {
-    raw = fs.readFileSync(filePath, 'utf-8');
-  } catch (err) {
-    throw new CorruptArtifactError(artifactName, err?.message || 'unreadable');
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new CorruptArtifactError(artifactName, err?.message || 'invalid JSON');
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new CorruptArtifactError(artifactName, 'expected JSON object');
-  }
-  return { raw, data: parsed };
-}
-
-function readProtectedJsonlStrict(filePath, artifactName) {
-  if (!fs.existsSync(filePath)) return [];
-  let raw;
-  try {
-    raw = fs.readFileSync(filePath, 'utf-8');
-  } catch (err) {
-    throw new CorruptArtifactError(artifactName, err?.message || 'unreadable');
-  }
-  const records = [];
-  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  for (let i = 0; i < lines.length; i++) {
-    try {
-      const rec = JSON.parse(lines[i]);
-      if (!rec || typeof rec !== 'object' || Array.isArray(rec)) {
-        throw new Error(`line ${i + 1}: expected JSON object`);
-      }
-      records.push(rec);
-    } catch (err) {
-      throw new CorruptArtifactError(artifactName, `line ${i + 1}: ${err?.message || 'invalid JSON'}`);
-    }
-  }
-  return records;
-}
-
 const VALID_COUNCIL_GATE_MODES = new Set(['ask', 'auto', 'off']);
 
 function readCouncilGateConfig(workspaceDir) {
-  let mode = 'ask';
-  let source = 'default';
-  let invalidReason = null;
-
-  const cfgPath = path.join(workspaceDir, '.hermes', 'config.json');
-  if (fs.existsSync(cfgPath)) {
-    try {
-      const rawCfg = fs.readFileSync(cfgPath, 'utf-8');
-      const cfg = JSON.parse(rawCfg);
-      if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
-        invalidReason = '.hermes/config.json root is not a JSON object';
-      } else if (cfg.councilGate !== undefined) {
-        const candidate = typeof cfg.councilGate === 'string' ? cfg.councilGate.trim().toLowerCase() : '';
-        if (VALID_COUNCIL_GATE_MODES.has(candidate)) {
-          mode = candidate;
-          source = 'config:.hermes/config.json';
-        } else {
-          invalidReason = `invalid councilGate value in .hermes/config.json`;
-        }
-      }
-    } catch (err) {
-      invalidReason = `failed to parse .hermes/config.json: ${err?.message || 'invalid JSON'}`;
-    }
-  }
-
-  if (process.env.HERMES_COUNCIL_GATE) {
-    const envVal = String(process.env.HERMES_COUNCIL_GATE).trim().toLowerCase();
-    if (VALID_COUNCIL_GATE_MODES.has(envVal)) {
-      mode = envVal;
-      source = 'env:HERMES_COUNCIL_GATE';
-      invalidReason = null;
-    } else {
-      mode = 'ask';
-      source = 'default:invalid_env_fallback';
-      invalidReason = `invalid HERMES_COUNCIL_GATE env value`;
-    }
-  } else if (invalidReason) {
-    mode = 'ask';
-    source = 'default:invalid_config_fallback';
-  }
-
-  return { mode, source, invalidReason };
+  return readGateModeConfig(workspaceDir, {
+    key: 'councilGate',
+    envVar: 'HERMES_COUNCIL_GATE',
+    validModes: VALID_COUNCIL_GATE_MODES,
+    defaultMode: 'ask'
+  });
 }
 
 function allow(meta = {}) {
@@ -213,6 +143,14 @@ function allow(meta = {}) {
 }
 
 function deny(reason, meta = {}) {
+  if (isHermesSession && meta?.rule && meta?.skipLessonTrack !== true) {
+    trackDenyAndMaybeRecordLesson({
+      activeWorkspaceDir,
+      taskHash: meta.taskHash || activeTaskHash,
+      rule: meta.rule,
+      reason
+    });
+  }
   logGateDecision({ decision: 'deny', reason, ...meta });
   process.stdout.write(JSON.stringify({ decision: 'deny', reason }));
 }
@@ -378,8 +316,9 @@ const SHELL_PATCH_CREATE_RE = new RegExp(
 
 const SHELL_MUTATE_PATTERNS = [
   { name: 'sed -i / perl -i', re: /(?:^|[;&|\n]\s*|(?:xargs|find\b[^\n]*-exec|(?:ba|z)?sh\s+-c)\s+[^\n]*)(?:sed\s+(?:-[a-z]*i\S*|--in-place(?:=\S*)?)(?:\s|$)|perl\s+-[^\n;&|]*i\b)/i },
-  { name: 'python -c file write', re: /\bpython[3]?(?:\s+-[a-zA-Z0-9_=-]+)*\s+-c\b[^\n]*(?:\bopen\([^)]*['"][wa]['"]|\bwrite_text\(|\bwrite_bytes\(|\bos\.(?:remove|unlink|replace|rename)\(|\bshutil\.(?:copy(?:2|file)?|move)\(|\.unlink\()/i },
-  { name: 'node -e file write', re: /\bnode(?:\s+--?[a-zA-Z0-9_=-]+)*\s+(?:-e|--eval)\b[^\n]*\b(?:writeFile|appendFile|unlink|rm|rename|copyFile|truncate)(?:Sync)?\b/i },
+  { name: 'python -c file write', re: /\bpython[3]?(?:\s+-[a-zA-Z0-9_=-]+)*\s+-c\b[\s\S]*(?:\bopen\([^)]*['"][wa]['"]|\bwrite_text\(|\bwrite_bytes\(|\bos\.(?:remove|unlink|replace|rename)\(|\bshutil\.(?:copy(?:2|file)?|move)\(|\.unlink\()/i },
+  { name: 'node -e file write', re: /\bnode(?:\s+--?[a-zA-Z0-9_=-]+)*\s+(?:-e|--eval)\b[\s\S]*\b(?:writeFile|appendFile|unlink|rm|rename|copyFile|truncate|openSync|writeSync|createWriteStream|promises\.(?:writeFile|appendFile|unlink|rm|rename))(?:Sync)?\b/i },
+  { name: 'PowerShell EncodedCommand', re: /\b(?:pwsh|powershell)(?:\.exe)?\b[^\n]*(?:\s-(?:e|ec|enc|encodedcommand)\b)/i },
   {
     name: 'shell Set-Content/Out-File/redirect/tee on source file',
     re: new RegExp(
@@ -389,7 +328,7 @@ const SHELL_MUTATE_PATTERNS = [
   },
   {
     name: 'shell redirect or write to protected hermes artifact',
-    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|cmd(?:\.exe)?\s+\/[ck]\s+|\s["'])(?:set-content|out-file|add-content|clear-content|new-item|ni|remove-item|rm|del|erase|unlink|truncate|mv|cp|move|copy|move-item|copy-item|rename-item|rni|ri|mi|cpi|sc|ac|clc|rd|rmdir|tee(?:-object)?)\b(?:[^"'|\n;&]|"[^"\n]*"|'[^'\n]*')*\.hermes[\\/](?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost|council-outcomes|instincts|council-criteria|config)\.(?:json|jsonl)\.?(?=$|[\s"'|;&])|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/][^"\n]*\.(?:json|jsonl)"|'[^'\n]*\.hermes[\\/][^'\n]*\.(?:json|jsonl)'|[^\s"'|;&>]*\.hermes[\\/][^\s"'|;&>]*\.(?:json|jsonl))(?=$|[\s"'|;&])|\[(?:system\.)?io\.file\]::(?:writeall(?:text|lines|bytes)|appendall(?:text|lines)|delete|move|copy|replace|create)\b[^\n]*\.hermes[\\/]/i
+    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|cmd(?:\.exe)?\s+\/[ck]\s+|\s["'])(?:set-content|out-file|add-content|clear-content|new-item|ni|remove-item|rm|del|erase|unlink|truncate|mv|cp|move|copy|move-item|copy-item|rename-item|rni|ri|mi|cpi|sc|ac|clc|rd|rmdir|tee(?:-object)?)\b(?:[^"'|\n;&]|"[^"\n]*"|'[^'\n]*')*\.hermes[\\/](?:(?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost|council-outcomes|instincts|council-criteria|config|plan-state|plan-ledger|lessons)\.(?:json|jsonl)|plan\.md)\.?(?=$|[\s"'|;&])|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/](?:[^"\n]*\.(?:json|jsonl)|plan\.md)"|'[^'\n]*\.hermes[\\/](?:[^'\n]*\.(?:json|jsonl)|plan\.md)'|[^\s"'|;&>]*\.hermes[\\/](?:[^\s"'|;&>]*\.(?:json|jsonl)|plan\.md))(?=$|[\s"'|;&])|\[(?:system\.)?io\.(?:file|streamwriter|filestream)\](?:::(?:writeall(?:text|lines|bytes)|appendall(?:text|lines)|delete|move|copy|replace|create|openwrite)\b|::new\b)[^\n]*\.hermes[\\/]/i
   },
   { name: 'git apply', re: /(?:^|[;&|\n]\s*)git\s+apply\b/i }
 ];
@@ -659,7 +598,7 @@ function isMetaOrArtifactPath(filePath) {
          norm.includes('/brain/');
 }
 
-function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
+function syncProgressJournal({ activeWorkspaceDir, taskHash, combinedSteps = [], taskStartIdx = 0 }) {
   const hermesDir = path.join(activeWorkspaceDir, '.hermes');
   const journalPath = path.join(hermesDir, 'progress-journal.jsonl');
   let currentOutcome = null;
@@ -667,6 +606,7 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   let failTimestamp = null;
   let passTimestamp = null;
   let rawArtifactsContent = '';
+  let failFromVerdict = false;
 
   const pickLatestTs = (a, b) => {
     if (!a) return b || null;
@@ -676,6 +616,26 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
     if (!isNaN(ta) && !isNaN(tb)) return tb >= ta ? b : a;
     return b;
   };
+
+  // REQ-3 (v4.7.0): Detect prior test/production writes strictly BEFORE current toolCall for this task
+  let hasPriorTestWrite = false;
+  let hasPriorProductionWrite = false;
+  if (Array.isArray(combinedSteps) && combinedSteps.length > 0) {
+    const start = Math.max(0, taskStartIdx);
+    for (let i = start; i < combinedSteps.length; i++) {
+      for (const tc of collectToolCalls(combinedSteps[i])) {
+        const tcName = String(tc?.name || '').toLowerCase();
+        if (!FILE_WRITE_TOOLS.has(tcName)) continue;
+        const p = String(tc?.args?.Path || tc?.args?.TargetFile || tc?.args?.AbsolutePath || tc?.args?.path || '');
+        if (!p || isMetaOrArtifactPath(p) || !SOURCE_CODE_EXT_RE.test(p)) continue;
+        if (isStrictTestPath(p, activeWorkspaceDir)) {
+          hasPriorTestWrite = true;
+        } else {
+          hasPriorProductionWrite = true;
+        }
+      }
+    }
+  }
 
   // 1. Check test-summary.json (fail-closed if present and corrupt; ignored if absent)
   const summaryPath = path.join(hermesDir, 'test-summary.json');
@@ -706,6 +666,7 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
     const ts = qav.timestamp || qav.ts || null;
     if (String(qav.status).toUpperCase() === 'REJECT') {
       currentOutcome = 'FAIL';
+      failFromVerdict = true;
       failTimestamp = pickLatestTs(failTimestamp, ts);
     } else if (String(qav.status).toUpperCase() === 'PASS' && currentOutcome !== 'FAIL') {
       currentOutcome = 'PASS';
@@ -721,6 +682,7 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
     const ts = sv.timestamp || sv.ts || null;
     if (String(sv.status).toUpperCase() === 'REJECT') {
       currentOutcome = 'FAIL';
+      failFromVerdict = true;
       failTimestamp = pickLatestTs(failTimestamp, ts);
     }
   }
@@ -730,14 +692,23 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   const existingAttemptKeys = new Set();
   let lastEntry = null;
   let consecutiveFails = 0;
+  let hasPriorImplJournalEntry = false;
   const journalRecords = readProtectedJsonlStrict(journalPath, '.hermes/progress-journal.jsonl');
   for (const rec of journalRecords) {
     if (rec.taskHash === taskHash) {
       lastEntry = rec;
       const key = `${rec.taskHash}|${rec.outcome}|${rec.diffHash || 'null'}|${rec.ts}`;
       existingAttemptKeys.add(key);
-      if (rec.outcome === 'FAIL') consecutiveFails++;
-      else if (rec.outcome === 'PASS') consecutiveFails = 0;
+      if (rec.phase !== 'pre-implementation') {
+        hasPriorImplJournalEntry = true;
+      }
+      if (rec.outcome === 'FAIL') {
+        if (rec.phase !== 'pre-implementation') {
+          consecutiveFails++;
+        }
+      } else if (rec.outcome === 'PASS') {
+        consecutiveFails = 0;
+      }
     }
   }
 
@@ -758,17 +729,29 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
       }
       if (!isStale && !existingAttemptKeys.has(currentKey)) {
         if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+        // 4-factor monotonic one-way ratchet for TDD Red phase (REQ-3)
+        const isPreImplFail =
+          currentOutcome === 'FAIL' &&
+          !failFromVerdict &&
+          hasPriorTestWrite &&
+          !hasPriorProductionWrite &&
+          !hasPriorImplJournalEntry;
+        const phase = isPreImplFail ? 'pre-implementation' : 'implementation';
         const record = {
           taskHash,
           outcome: currentOutcome,
+          phase,
           diffHash: currentDiffHash || null,
           ts: attemptTs
         };
         try {
           fs.appendFileSync(journalPath, JSON.stringify(record) + '\n', 'utf-8');
           existingAttemptKeys.add(currentKey);
-          if (currentOutcome === 'FAIL') consecutiveFails++;
-          else if (currentOutcome === 'PASS') consecutiveFails = 0;
+          if (currentOutcome === 'FAIL') {
+            if (phase !== 'pre-implementation') consecutiveFails++;
+          } else if (currentOutcome === 'PASS') {
+            consecutiveFails = 0;
+          }
         } catch {}
       }
     }
@@ -1168,8 +1151,13 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const convId = String(payload?.conversationId || transcriptPath || '');
   const turnMarker = taskStartStep?.step_index ?? taskStartIdx;
 
-  // REQ-3 (v4.5.0): Progress Journal & Stall Circuit Breaker
-  const { consecutiveFails, isStalled } = syncProgressJournal({ activeWorkspaceDir, taskHash });
+  // REQ-3 (v4.5.0 + v4.7.0): Progress Journal & Stall Circuit Breaker (TDD pre-implementation aware)
+  const { consecutiveFails, isStalled } = syncProgressJournal({
+    activeWorkspaceDir,
+    taskHash,
+    combinedSteps,
+    taskStartIdx
+  });
 
   // Check state on disk (.hermes/council-state.json) — fail-closed if present and corrupt
   const councilStatePath = path.join(activeWorkspaceDir, '.hermes', 'council-state.json');
@@ -1218,28 +1206,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       }
     }
 
-    let escalationAnswer = '';
-    if (escalationAskIdx >= 0) {
-      for (let i = escalationAskIdx + 1; i < combinedSteps.length; i++) {
-        const s = combinedSteps[i];
-        const isDirectNext = i === escalationAskIdx + 1;
-        const sContent = String(s?.content || '');
-        const stepType = String(s?.type || '').toUpperCase();
-        const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
-        const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
-        const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-        const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
-        const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
-        const isBoundByToolId = Boolean(escalationAskToolCallId && stepToolCallId && stepToolCallId === escalationAskToolCallId);
-        const isSystemToolOutput = (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') && isBoundByToolId && isGenericOrTool && !s?.sender && !/<SYSTEM_MESSAGE/i.test(sContent);
-        const isBoundOrUnboundDirectNext = escalationAskToolCallId ? isBoundByToolId : (isDirectNext && !stepToolCallId);
-        const isAuthenticHarnessOutput = isDirectNext && isGenericOrTool && hasStatusDone && isBoundOrUnboundDirectNext && hasHarnessBanner;
-        if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
-          escalationAnswer = sContent;
-          break;
-        }
-      }
-    }
+    const escalationAnswer = escalationAskIdx >= 0
+      ? extractAuthenticAskAnswer(combinedSteps, escalationAskIdx, escalationAskToolCallId)
+      : '';
 
     const trimmedEsc = escalationAnswer.trim();
 
@@ -1312,9 +1281,15 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     } else if (trimmedEsc && isRoundtableChosen) {
       // Escalation roundtable will proceed to council check below
     } else {
-      deny(
-        `Hermes Gate (Stall Escalation): Зафиксировано ${consecutiveFails} последовательных провалов тестов/QA по текущей задаче (stalled). Дальнейшая запись кода заблокирована!\nЧтобы продолжить, выберите один из путей:\n1) Эскалация: проведите опрос пользователя через ask_question («Застряли: собрать стол?») и соберите круглый стол;\n2) Получите явный ответ пользователя с разрешением продолжить самостоятельно (override);\n3) Исправьте код так, чтобы механические тесты вернули PASS.\n[EN: Hermes Gate (Stall Escalation): Task stalled after ${consecutiveFails} consecutive test/QA failures. Further writes blocked until escalation roundtable, user override, or real PASS.]`
-      );
+      const stallReason = `Hermes Gate (Stall Escalation): Зафиксировано ${consecutiveFails} последовательных провалов тестов/QA по текущей задаче (stalled). Дальнейшая запись кода заблокирована!\nЧтобы продолжить, выберите один из путей:\n1) Эскалация: проведите опрос пользователя через ask_question («Застряли: собрать стол?») и соберите круглый стол;\n2) Получите явный ответ пользователя с разрешением продолжить самостоятельно (override);\n3) Исправьте код так, чтобы механические тесты вернули PASS.\n[EN: Hermes Gate (Stall Escalation): Task stalled after ${consecutiveFails} consecutive test/QA failures. Further writes blocked until escalation roundtable, user override, or real PASS.]`;
+      recordMechanicalLesson({
+        activeWorkspaceDir,
+        taskHash,
+        rule: 'stall_breaker',
+        reason: `stalled after ${consecutiveFails} consecutive failures`,
+        count: consecutiveFails
+      });
+      deny(stallReason, { toolName, rule: 'stall_breaker', taskHash, skipLessonTrack: true });
       process.exit(0);
     }
   }
@@ -1381,48 +1356,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       }
     }
 
-    for (let i = councilAskIdx + 1; i < combinedSteps.length; i++) {
-      const s = combinedSteps[i];
-      const stepIdx = i;
-      const isDirectNext = stepIdx === councilAskIdx + 1;
-      const sContent = String(s?.content || '');
-      const stepType = String(s?.type || '').toUpperCase();
-      const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
-
-      const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
-      const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-      const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
-      const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
-
-      const isBoundByToolId = Boolean(
-        councilAskToolCallId &&
-        stepToolCallId &&
-        stepToolCallId === councilAskToolCallId
-      );
-
-      const isSystemToolOutput =
-        (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') &&
-        isBoundByToolId &&
-        isGenericOrTool &&
-        !s?.sender &&
-        !/<SYSTEM_MESSAGE/i.test(sContent);
-
-      const isBoundOrUnboundDirectNext = councilAskToolCallId
-        ? isBoundByToolId
-        : (isDirectNext && !stepToolCallId);
-
-      const isAuthenticHarnessOutput =
-        isDirectNext &&
-        isGenericOrTool &&
-        hasStatusDone &&
-        isBoundOrUnboundDirectNext &&
-        hasHarnessBanner;
-
-      if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
-        councilAnswer = sContent;
-        break; // REQ-4: Do not accumulate later messages!
-      }
-    }
+    councilAnswer = extractAuthenticAskAnswer(combinedSteps, councilAskIdx, councilAskToolCallId);
   }
 
   if (councilGateConfig !== 'auto' && !councilAnswer.trim()) {
@@ -1900,26 +1834,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         }
       }
 
-      let earlyAnswer = '';
-      for (let i = earlyStopAskIdx + 1; i < combinedSteps.length; i++) {
-        const s = combinedSteps[i];
-        const isDirectNext = i === earlyStopAskIdx + 1;
-        const sContent = String(s?.content || '');
-        const stepType = String(s?.type || '').toUpperCase();
-        const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
-        const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
-        const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
-        const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
-        const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
-        const isBoundByToolId = Boolean(earlyStopToolCallId && stepToolCallId && stepToolCallId === earlyStopToolCallId);
-        const isSystemToolOutput = (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') && isBoundByToolId && isGenericOrTool && !s?.sender && !/<SYSTEM_MESSAGE/i.test(sContent);
-        const isBoundOrUnboundDirectNext = earlyStopToolCallId ? isBoundByToolId : (isDirectNext && !stepToolCallId);
-        const isAuthenticHarnessOutput = isDirectNext && isGenericOrTool && hasStatusDone && isBoundOrUnboundDirectNext && hasHarnessBanner;
-        if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
-          earlyAnswer = sContent;
-          break;
-        }
-      }
+      const earlyAnswer = extractAuthenticAskAnswer(combinedSteps, earlyStopAskIdx, earlyStopToolCallId);
       const trimmedEarly = earlyAnswer.trim();
 
       const strippedEarly = trimmedEarly.replace(/^A\d+[:.)]\s*/i, '').trim();
@@ -2129,15 +2044,51 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
 }
 
 try {
+const taskContext = resolveTaskContext({ combinedSteps: transcriptData.combinedSteps, payload });
+activeTaskHash = taskContext.taskHash;
+
 if (!isSubagent) {
+  const isSelfSubagentSpawn =
+    toolName === 'invoke_subagent' &&
+    extractSubagentSpecs(args).some((s) => String(s?.TypeName || s?.typeName || '').toLowerCase() === 'self');
+  const isNonMetaWrite =
+    (FILE_WRITE_TOOLS.has(toolName) && !isMetaOrArtifactPath(String(args.Path || args.TargetFile || args.AbsolutePath || args.path || ''))) ||
+    (toolName === 'define_subagent' && (args.EnableWriteTools === true || args.enableWriteTools === true)) ||
+    toolName === 'swarm' ||
+    isSelfSubagentSpawn;
+  if (isNonMetaWrite) {
+    readProtectedJsonlStrict(path.join(activeWorkspaceDir, '.hermes', 'lessons.jsonl'), '.hermes/lessons.jsonl');
+  }
   verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir });
+  verifyPlanGate({
+    toolName,
+    args,
+    payload,
+    activeWorkspaceDir,
+    taskContext,
+    combinedSteps: transcriptData.combinedSteps,
+    fileWriteToolsSet: FILE_WRITE_TOOLS,
+    isMetaOrArtifactPath,
+    extractSubagentSpecs,
+    logGateDecision,
+    deny
+  });
+} else {
+  verifySubagentPlanIntegrity({
+    toolName,
+    args,
+    activeWorkspaceDir,
+    fileWriteToolsSet: FILE_WRITE_TOOLS,
+    isMetaOrArtifactPath,
+    deny
+  });
 }
 
 if (FILE_WRITE_TOOLS.has(toolName)) {
   const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
 
-  // REQ-5 (P1) / REQ-1 (v4.2.1) / REQ-1 (v4.6.2): Immutable built-in verdict & gate config tamper protection.
-  // .hermes/config.json is protected from agent writes; config/env can only EXTEND (union) protected paths, never weaken them.
+  // REQ-5 (P1) / REQ-1 (v4.2.1) / REQ-1 (v4.6.2) / REQ-1 & REQ-4 (v4.7.0): Immutable built-in 14 protected paths.
+  // .hermes/config.json, plan-state.json, plan-ledger.jsonl & lessons.jsonl are protected from agent writes; config/env can only EXTEND (union) protected paths, never weaken them.
   const DEFAULT_PROTECTED_VERDICT_PATHS = [
     '.hermes/qa-verdict.json',
     '.hermes/security-verdict.json',
@@ -2149,7 +2100,10 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     '.hermes/council-outcomes.jsonl',
     '.hermes/instincts.json',
     '.hermes/council-criteria.json',
-    '.hermes/config.json'
+    '.hermes/config.json',
+    '.hermes/plan-state.json',
+    '.hermes/plan-ledger.jsonl',
+    '.hermes/lessons.jsonl'
   ];
   const protectedVerdictSet = new Set(DEFAULT_PROTECTED_VERDICT_PATHS);
   try {
@@ -2223,14 +2177,16 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
 
   if (isProtectedVerdict) {
     deny(
-      `Hermes Tamper Protection (REQ-5 / REQ-1): прямое редактирование или создание защищённого артефакта/конфига гейтов (${targetPath}) через инструмент модели ${toolName} запрещено. Вердикты и конфигурация гейтов управляются исключительно пользователем или механическим раннером.\n[EN: Hermes Tamper Protection (REQ-5 / REQ-1): direct modification or creation of protected verdict/gate config artifact (${targetPath}) via model tool ${toolName} is forbidden. Verdicts and gate config must be managed exclusively by the user or mechanical runner.]`
+      `Hermes Tamper Protection (REQ-5 / REQ-1): прямое редактирование или создание защищённого артефакта/конфига гейтов (${targetPath}) через инструмент модели ${toolName} запрещено. Вердикты и конфигурация гейтов управляются исключительно пользователем или механическим раннером.\n[EN: Hermes Tamper Protection (REQ-5 / REQ-1): direct modification or creation of protected verdict/gate config artifact (${targetPath}) via model tool ${toolName} is forbidden. Verdicts and gate config must be managed exclusively by the user or mechanical runner.]`,
+      { toolName, rule: 'tamper_protected' }
     );
     process.exit(0);
   }
 
   if (PATCH_FILE_RE.test(targetPath)) {
     deny(
-      `Hermes Rule 8 (Clean Edits Policy): запрещено создавать или редактировать временные патч-скрипты (${targetPath}). Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating or modifying temporary patch scripts (${targetPath}) is forbidden. Use edit_file / write_file directly.]`
+      `Hermes Rule 8 (Clean Edits Policy): запрещено создавать или редактировать временные патч-скрипты (${targetPath}). Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating or modifying temporary patch scripts (${targetPath}) is forbidden. Use edit_file / write_file directly.]`,
+      { toolName, rule: 'rule8_clean_edits' }
     );
     process.exit(0);
   }
@@ -2283,7 +2239,8 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
             });
           } else {
             deny(
-              `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} (строка ${idx + 1}) обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или добавьте точечный комментарий '// hermes-hardcode-ignore: <причина>' в пределах ±1 строки.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (line ${idx + 1}). Extract value to config/environment variable or add line-scoped '// hermes-hardcode-ignore: <reason>' within ±1 line.]`
+              `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} (строка ${idx + 1}) обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или добавьте точечный комментарий '// hermes-hardcode-ignore: <причина>' в пределах ±1 строки.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (line ${idx + 1}). Extract value to config/environment variable or add line-scoped '// hermes-hardcode-ignore: <reason>' within ±1 line.]`,
+              { toolName, rule: 'rule9_hardcode' }
             );
             process.exit(0);
           }
@@ -2293,7 +2250,8 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
         const uncoveredText = ruleLines.map((line, idx) => (findScopedIgnore(idx) ? '' : line)).join('\n');
         if (rule.test(uncoveredText)) {
           deny(
-            `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name} (многострочное совпадение). Вынесите значение в конфиг/переменную окружения.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (multiline match). Extract value to config/environment variable.]`
+            `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name} (многострочное совпадение). Вынесите значение в конфиг/переменную окружения.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (multiline match). Extract value to config/environment variable.]`,
+            { toolName, rule: 'rule9_hardcode' }
           );
           process.exit(0);
         }
@@ -2306,7 +2264,8 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
         for (const rule of L1_BLOCK_PATTERNS) {
           if (rule.test(written)) {
             deny(
-              `Hermes Security Layer 1: в ${targetPath} обнаружен критический паттерн [${rule.name}]. Если вызов легитимен, добавьте inline-обоснование '// hermes-security-ignore: <причина>'.\n[EN: Hermes Security Layer 1: critical pattern [${rule.name}] detected in ${targetPath}. If legitimate, add inline '// hermes-security-ignore: <reason>'.]`
+              `Hermes Security Layer 1: в ${targetPath} обнаружен критический паттерн [${rule.name}]. Если вызов легитимен, добавьте inline-обоснование '// hermes-security-ignore: <причина>'.\n[EN: Hermes Security Layer 1: critical pattern [${rule.name}] detected in ${targetPath}. If legitimate, add inline '// hermes-security-ignore: <reason>'.]`,
+              { toolName, rule: 'sec_l1_pattern' }
             );
             process.exit(0);
           }
@@ -2350,14 +2309,16 @@ if (toolName === 'run_command') {
   const cmd = stripGitCommitMessages(rawCmd);
   if (SHELL_PATCH_CREATE_RE.test(cmd)) {
     deny(
-      'Hermes Rule 8 (Clean Edits Policy): запрещено создавать временные патч-скрипты (patch_*.ps1/.bat/.py/.sh) через shell. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating temporary patch scripts via shell is forbidden. Use edit_file / write_file directly.]'
+      'Hermes Rule 8 (Clean Edits Policy): запрещено создавать временные патч-скрипты (patch_*.ps1/.bat/.py/.sh) через shell. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: creating temporary patch scripts via shell is forbidden. Use edit_file / write_file directly.]',
+      { toolName, rule: 'rule8_clean_edits' }
     );
     process.exit(0);
   }
   for (const mut of SHELL_MUTATE_PATTERNS) {
     if (mut.re.test(cmd)) {
       deny(
-        `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: modifying source code via ${mut.name} is forbidden. Use edit_file / write_file directly.]`
+        `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: modifying source code via ${mut.name} is forbidden. Use edit_file / write_file directly.]`,
+        { toolName, rule: 'rule8_clean_edits' }
       );
       process.exit(0);
     }
@@ -2491,12 +2452,13 @@ if (requiresStep0Handshake) {
         const hasHandshake = combinedSteps.some((s) =>
           collectToolCalls(s).some((tc) => {
             if (String(tc?.name || '').toLowerCase() !== 'ask_question') return false;
-            // Exclude Council Gate ask_question from fulfilling Step 0 Model Handshake (REQ-2)
+            // Exclude Council Gate and Plan Gate ask_question from fulfilling Step 0 Model Handshake (REQ-2 / v4.7.0)
             const tcArgs = tc?.args || {};
             const argsStr = typeof tcArgs === 'string' ? tcArgs : JSON.stringify(tcArgs);
             const isCouncilAsk = /(?:посоветоваться\s+с\s+(?:советом|работниками)|собрать\s+совет|совет\s+специалистов|собраться\s+за\s+столом|круглый\s+стол|советом\s+экспертов|совет\s+экспертов|council\b|roundtable\b)/i.test(argsStr) &&
               !/(?:модел|model|уровен|tier|medium|high|low)/i.test(argsStr);
-            return !isCouncilAsk;
+            const isPlanAsk = isPlanAskArgs(argsStr);
+            return !isCouncilAsk && !isPlanAsk;
           })
         );
         if (!hasHandshake) {

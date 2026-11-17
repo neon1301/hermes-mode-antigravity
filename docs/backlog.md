@@ -74,19 +74,19 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-005] Subagent UUID FIFO Assignment Verification & tool_call_id Binding
 * **Priority:** P2
-* **Target Version:** v4.6.0 (Partially Closed) -> v4.7.0 (Remainder)
+* **Target Version:** v4.6.0 (Partially Closed) -> v4.7.1 (Remainder)
 * **Status:** 🟡 PARTIALLY COMPLETED in v4.6.0
 * **Completed in v4.6.0:**
   - Implemented `tool_call_id`-first `invoke_subagent -> conversationId` binding (`bindingConfidence: "exact"`) in `hooks/clean-edits-guard.mjs` (`verifyCouncilGate`), with single-invoke FIFO (`"fifo"`) and ambiguous multi-invoke marking (`"uncertain"`).
   - Enforced that `"uncertain"` bindings continue to participate in quorum while strictly NOT accruing reputation (`binding_uncertain_no_reputation` lock).
 * **Honest Remainder (Next Step):**
-  - Extending identical `tool_call_id` binding verification to `hooks/qa-gate.mjs` L2 auditor (`viktor`/`kritik`) UUID extraction and validating out-of-order multi-invoke harness delivery under live Antigravity runtime remains open for `v4.7.0`.
+  - Extending identical `tool_call_id` binding verification to `hooks/qa-gate.mjs` L2 auditor (`viktor`/`kritik`) UUID extraction and validating out-of-order multi-invoke harness delivery under live Antigravity runtime remains open for `v4.7.1` («Инспектор»).
 
 ---
 
 ### [TASK-006] Convoy Stall & Distributed Deadlock Detection Hook
 * **Priority:** P3
-* **Target Version:** Post-v4.7.0 Evaluation
+* **Target Version:** Post-v4.7.1 Evaluation
 * **Scope & Context:**
   Dynamic detection of circular dependency chains (`Worker A awaits Worker B awaits Worker A`) in multi-agent swarms using `.hermes/tasks.json` dependency graph.
 
@@ -220,3 +220,16 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Scoped `hermes-hardcode-ignore` blanket detection strictly to the marker zone (suffixes and pre-delimiter words), eliminating false denies on free-form reason text while keeping strict `±1` line scoping, Layer 1 immunity, v1-legacy shim, and multiline checks intact.
   - Added fail-closed `deny` (RU + `[EN: ...]`) on internal hook errors and corrupt existing protected artifacts while keeping missing optional artifacts non-blocking for clean new repositories.
   - Documented protocol vs mechanical limits in `docs/known-boundaries.md` and added 16 deterministic test locks (13 REQ-5 + 3 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (239/239 PASS, 513/513 total across 11 suites) with 0 bytes growth on `fleet-protocol.md`.
+
+---
+
+### [TASK-017] Hermes Fleet v4.7.0 «Руль» — Plan Gate, Auto-Spec EARS-lite, TDD Pre-Implementation & Mechanical Lessons
+* **Priority:** P1 / P2
+* **Target Version:** v4.7.0
+* **Status:** ✅ COMPLETED in v4.7.0
+* **Resolution:**
+  - Extracted 3 pure-stdlib modules (`hooks/consent-validator.mjs`, `hooks/plan-gate.mjs`, `hooks/lessons-ledger.mjs`) and expanded built-in immutable protected paths from 11 to 14 (`+.hermes/plan-state.json`, `+.hermes/plan-ledger.jsonl`, `+.hermes/lessons.jsonl`), plus patched `hooks.json` `PreToolUse` matcher with `define_subagent|swarm` and hardened `SHELL_MUTATE_PATTERNS`.
+  - Implemented Plan Gate (`verifyPlanGate`) running strictly after `verifyCouncilGate` and orthogonally to council mode (`councilGate: "off"` does not disable `planGate`), requiring `.hermes/plan.md` (meta-path), 4-section + EARS-lite lint (`КОГДА` / `ДОЛЖНА` / `Проверка:` + convention-claim source/honest marker), hardened 5-step consent validation (option-order text binding, Cyrillic negation-guard, colloquial approval allowlist, Edit-Dominance, anti-prose/SYSTEM echo), pre-/post-persistent anti-TOCTOU, and `v2` reconfirmation ledger.
+  - Implemented REQ-3 TDD `pre-implementation` 4-factor monotonic ratchet in `syncProgressJournal` using `isStrictTestPath`, so Red tests prior to first production write never trip the stall circuit breaker while post-implementation stalls and v4.5.1 locks remain unweakened.
+  - Implemented REQ-4 mechanical error memory `.hermes/lessons.jsonl` (`{ ts, taskHash, rule, reasonHash, count, source: "mechanical" }`) populated exclusively by hooks (`QA REJECT` on Stop, repeated `deny >= 2` per rule in task, `stall_breaker`), injected by `hooks/context-injector.mjs` (`<= 5` unique entries, `<= 2048` UTF-8 bytes) via static `RULE_HINTS`.
+  - Added modular `skills/hermes/references/plan-steering-protocol.md`, updated `docs/known-boundaries.md` (explicitly deferring independent grader, team stop on deny, A2A, eval suite, and `TASK-005` remainder to `v4.7.1` «Инспектор»), fixed `docs/troubleshooting.md` numbering & synced `TROUBLESHOOTING.md`, and added 24 deterministic test locks across existing 11 suites with 0 bytes growth on `fleet-protocol.md`.

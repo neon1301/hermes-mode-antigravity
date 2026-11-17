@@ -230,6 +230,51 @@ const cases = [
         emptyArrOk: resolveWorkspaceDir({ workspacePaths: [] }, fb) === fb
       };
     }
+  },
+  {
+    name: 'injector_loads_lessons_within_budget_allow',
+    check: (res) => {
+      const msg = String(res.injectSteps?.[0]?.systemMessage?.systemMessage || '');
+      const marker = '## 🧯 Память ошибок проекта';
+      const idx = msg.indexOf(marker);
+      if (idx < 0) return false;
+      const lessonsSection = msg.slice(idx);
+      const byteLen = Buffer.byteLength(lessonsSection, 'utf-8');
+      const bulletCount = lessonsSection.split(/\r?\n/).filter((l) => l.startsWith('- **[`')).length;
+      return byteLen <= 2048
+        && bulletCount >= 1
+        && bulletCount <= 5
+        && !lessonsSection.includes('fake_prose_rule')
+        && !lessonsSection.includes('SYSTEM_MESSAGE')
+        && lessonsSection.includes('qa_reject');
+    },
+    run: () => {
+      const lesDir = path.join(tmpDir, 'proj_lessons', '.hermes');
+      fs.mkdirSync(lesDir, { recursive: true });
+      const entries = [
+        // Non-mechanical / forged prose entry MUST be ignored
+        { ts: '2026-11-18T00:00:00Z', taskHash: 't0', rule: 'fake_prose_rule', reasonHash: 'r0', count: 5, source: 'model' },
+        // Duplicate mechanical entry (should dedup)
+        { ts: '2026-11-18T00:01:00Z', taskHash: 't1', rule: 'rule9_hardcode', reasonHash: 'r1', count: 2, source: 'mechanical' },
+        { ts: '2026-11-18T00:02:00Z', taskHash: 't1', rule: 'rule9_hardcode', reasonHash: 'r1', count: 3, source: 'mechanical' },
+        // 7 distinct mechanical rules (> 5 cap, must load <= 5 unique within <= 2048 bytes)
+        { ts: '2026-11-18T00:03:00Z', taskHash: 't2', rule: 'rule8_clean_edits', reasonHash: 'r2', count: 2, source: 'mechanical' },
+        { ts: '2026-11-18T00:04:00Z', taskHash: 't3', rule: 'plan_missing', reasonHash: 'r3', count: 2, source: 'mechanical' },
+        { ts: '2026-11-18T00:05:00Z', taskHash: 't4', rule: 'plan_lint_failed', reasonHash: 'r4', count: 2, source: 'mechanical' },
+        { ts: '2026-11-18T00:06:00Z', taskHash: 't5', rule: 'stall_breaker', reasonHash: 'r5', count: 3, source: 'mechanical' },
+        { ts: '2026-11-18T00:07:00Z', taskHash: 't6', rule: 'sec_l1_pattern', reasonHash: 'r6', count: 2, source: 'mechanical' },
+        { ts: '2026-11-18T00:08:00Z', taskHash: 't7', rule: 'qa_reject', reasonHash: 'r7', count: 1, source: 'mechanical' }
+      ];
+      fs.writeFileSync(
+        path.join(lesDir, 'lessons.jsonl'),
+        entries.map((e) => JSON.stringify(e)).join('\n') + '\n{CORRUPT_LINE_IGNORED\n',
+        'utf-8'
+      );
+      return runInjector({
+        cwd: path.join(tmpDir, 'proj_lessons'),
+        lastUserInput: '/hermes start feature'
+      });
+    }
   }
 ];
 

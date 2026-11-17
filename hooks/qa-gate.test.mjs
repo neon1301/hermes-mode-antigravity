@@ -2717,6 +2717,46 @@ try {
   } finally {
     fs.rmSync(repo21Dir, { recursive: true, force: true });
   }
+
+  // Acceptance Criterion 22 (v4.7.0 REQ-4): QA REJECT on Stop appends mechanical lesson to .hermes/lessons.jsonl
+  totalChecks++;
+  const repo22Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-qa-lesson-'));
+  try {
+    fs.writeFileSync(path.join(repo22Dir, 'app.ts'), 'export const v = 1;\n', 'utf-8');
+    const gateRes = execFileSync('node', [gatePath], {
+      cwd: repo22Dir,
+      input: JSON.stringify({
+        conversationId: 'c_r22_lesson',
+        workspacePaths: [repo22Dir],
+        terminationReason: 'model_stop',
+        transcriptPath: writeTranscript('t_r22_lesson', [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes implement feature with qa reject' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [
+            { name: 'edit_file', args: { Path: path.join(repo22Dir, 'app.ts') } },
+            { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+          ] },
+          { step_index: 2, source: 'SYSTEM', type: 'GENERIC', content: '{"conversationId": "22222222-2222-2222-2222-222222222222"}' },
+          { step_index: 3, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '<SYSTEM_MESSAGE sender="22222222-2222-2222-2222-222222222222">[QA REJECT: missing regression test for edge case]</SYSTEM_MESSAGE>' }
+        ])
+      }),
+      encoding: 'utf-8',
+      env: { ...process.env, HERMES_QA_GATE_STATE_DIR: repo22Dir, HERMES_SEC_REVIEW: '0' }
+    });
+    const parsedGate = JSON.parse(gateRes);
+    const lessonsPath = path.join(repo22Dir, '.hermes', 'lessons.jsonl');
+    const lessons = fs.existsSync(lessonsPath)
+      ? fs.readFileSync(lessonsPath, 'utf-8').trim().split('\n').map((l) => JSON.parse(l))
+      : [];
+    const matched = lessons.find((l) => l.rule === 'qa_reject' && l.source === 'mechanical' && l.taskHash && l.reasonHash && l.count >= 1);
+    if (parsedGate.decision === 'continue' && matched) {
+      console.log('PASS qa_gate_appends_mechanical_lesson_on_qa_reject');
+    } else {
+      failed++;
+      console.log(`FAIL qa_gate_appends_mechanical_lesson_on_qa_reject: decision=${parsedGate.decision}, lessons=${JSON.stringify(lessons)}`);
+    }
+  } finally {
+    fs.rmSync(repo22Dir, { recursive: true, force: true });
+  }
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }

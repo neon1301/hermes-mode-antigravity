@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { detectHermesInSteps, isCognitiveTrigger, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { getEffectiveReputationScore, REPUTATION_POLICY } from './council-learning.mjs';
+import { loadLessonsForInjection } from './lessons-ledger.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -239,6 +240,11 @@ try {
     const instinctsBlock = loadProjectInstincts(workspaceDir);
     if (instinctsBlock) {
       content += instinctsBlock;
+    }
+
+    const lessonsBlock = loadLessonsForInjection(workspaceDir, { maxEntries: 5, maxBytes: 2048 });
+    if (lessonsBlock) {
+      content += lessonsBlock;
     }
   }
 

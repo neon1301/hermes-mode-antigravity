@@ -2,6 +2,18 @@
 
 This guide explains the most common guard and gate notices, why they occur, and how to resolve them immediately.
 
+### 🔎 Quick Code Index (`Ctrl+F`)
+
+| Code / Gate | Meaning (1 line) | First Action |
+| :--- | :--- | :--- |
+| `plan_missing` | Source write blocked — `.hermes/plan.md` does not exist | Create `.hermes/plan.md` (4 sections + EARS-lite) and confirm via `ask_question` |
+| `plan_unconfirmed` | `.hermes/plan.md` exists, but authentic `[Делай]` confirmation is missing | Show plan and ask user via `ask_question` (`[Делай]` / `[Убрать лишнее]` / `[Добавить своё]`) |
+| `plan_revision_pending` | User chose `[Убрать лишнее]` / `[Добавить своё]` or edit phrasing | Update `.hermes/plan.md` to v2 and request fresh confirmation |
+| `plan_negated_consent` | User negated plan («не надо план, делай сразу», «план не подтверждаю») | Get explicit `[Делай]` confirmation or use Fast-Path / human `planGate: "off"` |
+| `plan_lint_failed` | `.hermes/plan.md` failed EARS-lite / 4-section / convention-source lint | Fix reported sections/items/sources in `.hermes/plan.md` and re-confirm |
+| `plan_tampered` | `.hermes/plan.md` SHA-256 changed after confirmation (v1 -> v2) | Confirm updated plan v2 via a new `ask_question` (never silently overwrite) |
+| `plan_stale` | `.hermes/plan.md` edited after `ask_question` was sent (TOCTOU) | Re-send updated `.hermes/plan.md` via `ask_question` |
+
 ---
 
 ### 1. `Hermes Rule 12 (Step 0 Model Handshake)`
@@ -30,6 +42,18 @@ This guide explains the most common guard and gate notices, why they occur, and 
      - To disable globally or in CI test scripts, a **human user** (outside agent tools) may set `"councilGate": "off"` in `.hermes/config.json` or export `HERMES_COUNCIL_GATE=off`.
      - **Gate Config Tamper Protection (v4.6.2):** `.hermes/config.json` is strictly protected from agent `write_file`/`edit_file`/shell mutations so an agent cannot weaken gates (`councilGate: "off"`, emptying `protectedVerdictPaths`, or downgrading `qaVerdictMode`). Built-in protected paths are immutable (config can only extend them). If `.hermes/config.json` is missing, unreadable, or invalid JSON, gates fail closed to strict mode (`councilGate: "ask"`). Every bypass/exception records its explicit `source` in `.hermes/gate-log.jsonl`.
      - In `"councilGate": "auto"` mode, the prompt dialog is bypassed, but specialist deliveries remain strictly mandatory before writing.
+
+---
+
+### 1c. `Hermes «Руль» (Plan Gate — v4.7.0)`
+* **Codes:** `plan_missing`, `plan_unconfirmed`, `plan_revision_pending`, `plan_negated_consent`, `plan_lint_failed`, `plan_tampered`, `plan_stale`.
+* **Why it happens:** For Standard/Complex tasks with new behavior (independently of council mode, including solo or `councilGate: "off"`), `clean-edits-guard` blocks code writes and write-worker spawns (`define_subagent`, `swarm`, `invoke_subagent(self)`) until `.hermes/plan.md` passes EARS-lite lint and receives authentic user confirmation (`[Делай]`), frozen mechanically into protected `.hermes/plan-state.json` and `.hermes/plan-ledger.jsonl`.
+* **Resolution by code:**
+  - **`plan_missing` / `plan_unconfirmed`:** Create `.hermes/plan.md` (meta-path, writable before confirmation) with the 4 required sections (`ВОТ ЧТО Я ПОНЯЛ`, `ВОТ ЧТО Я ДОБАВЛЮ САМ`, `ЧЕГО Я НЕ ДЕЛАЮ`, `СПРОШУ ТОЛЬКО ОДНО-ДВА`), show the 1-screen plan to the user, and call `ask_question` with `[Делай]`, `[Убрать лишнее]`, `[Добавить своё]`.
+  - **`plan_revision_pending`:** User picked «Убрать лишнее» / «Добавить своё» or a hybrid edit («Делай, но убери Д1»). Revise `.hermes/plan.md` (v2), note the reason, and request fresh confirmation.
+  - **`plan_negated_consent`:** Negations («не надо план, делай сразу», «план не подтверждаю», «никакого плана») are never treated as approval. Obtain explicit `[Делай]`, or use `--fast-path` for trivial tasks / human-authored `"planGate": "off"` in `.hermes/config.json` (`HERMES_PLAN_GATE=off`).
+  - **`plan_lint_failed`:** Ensure every item in «Понял» and «Добавлю сам» follows `КОГДА <условие> — СИСТЕМА ДОЛЖНА <поведение>. Проверка: <тест или артефакт>` (no empty stubs like `Проверка: ок`); for any «так принято» / `best practice` claim add `https://` URL + verbatim quote + date (inline or `## Источники` `[n]`), existing local `path:line`, or «мой выбор, не конвенция». («Добавлю сам» may be honestly empty: «Ничего сверх твоей просьбы».)
+  - **`plan_tampered` / `plan_stale`:** `.hermes/plan.md` changed after confirmation or after `ask_question` was sent. Send a new `ask_question` to confirm plan `v2` cleanly.
 
 ---
 

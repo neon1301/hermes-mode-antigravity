@@ -41,7 +41,7 @@ In Hermes Fleet v4.1.0+, `qaVerdictMode` defaults to `"artifact"`. A text token 
 
 ---
 
-## 3. Testing External Projects in Antigravity (`payload.workspacePaths`)
+## 2. Testing External Projects in Antigravity (`payload.workspacePaths`)
 
 ### Symptom
 When running Hermes on an external project, `qa-gate` reports diffHash mismatches, empty `reqLedger` (`reqLedger is empty`), or fails to find `.hermes/tasks.json`.
@@ -101,3 +101,25 @@ In active `/hermes` orchestrations for Standard/Complex tasks, Lead must not cut
 4. **Exceptions & Configuration:**
    - Trivial Micro/Fast-Path edits, direct `@specialist` calls, and `/hermes fix-warnings` bypass the gate automatically (every bypass logs its explicit `source` in `.hermes/gate-log.jsonl`).
    - A **human user** (outside agent tools) may configure `.hermes/config.json` with `"councilGate": "off"` (bypass) or `"councilGate": "auto"` (auto-convene without dialog, deliveries still mandatory). Agents are strictly blocked from creating or editing `.hermes/config.json` via `write_file`/`edit_file`/shell commands; missing or invalid config fails closed to `"ask"`.
+
+---
+
+## 4. Plan Gate Rejection («Руль» — v4.7.0)
+
+### Symptom
+Before writing source code or spawning write workers (`define_subagent`, `swarm`, `invoke_subagent(self)`), `clean-edits-guard` blocks with a 3-line message containing one of the codes:
+- `plan_missing` — `.hermes/plan.md` does not exist.
+- `plan_unconfirmed` — `.hermes/plan.md` exists, but authentic `[Делай]` confirmation is missing (MODEL prose and `<SYSTEM_MESSAGE>` echoes are rejected).
+- `plan_revision_pending` — user selected `[Убрать лишнее]` / `[Добавить своё]` or edit phrasing («Делай, но убери Д1»).
+- `plan_negated_consent` — user negated the plan («не надо план, делай сразу», «план не подтверждаю», «никакого плана»).
+- `plan_lint_failed` — `.hermes/plan.md` failed EARS-lite lint (missing 4 required sections, missing/stub `КОГДА`/`ДОЛЖНА`/`Проверка:`, or bare «так принято» without source/honest marker).
+- `plan_tampered` / `plan_stale` — `.hermes/plan.md` was modified after confirmation (`v1 -> v2`) or after `ask_question` was sent.
+
+### Cause
+For Standard/Complex tasks with new behavior, Plan Gate operates independently of Council Gate mode (including solo or `councilGate: "off"`). `.hermes/plan-state.json`, `.hermes/plan-ledger.jsonl`, and `.hermes/lessons.jsonl` are protected artifacts (14 total) written exclusively by hooks.
+
+### Resolution
+1. Write or update `.hermes/plan.md` (meta-path, writable before confirmation) with the 4 required sections (`ВОТ ЧТО Я ПОНЯЛ`, `ВОТ ЧТО Я ДОБАВЛЮ САМ`, `ЧЕГО Я НЕ ДЕЛАЮ`, `СПРОШУ ТОЛЬКО ОДНО-ДВА`) and EARS-lite items (`КОГДА ... — СИСТЕМА ДОЛЖНА ... Проверка: ...`).
+2. For any «так принято» / `best practice` claim, include `https://` URL + verbatim quote + date (inline or `## Источники` `[n]`), an existing local `path:line`, or the honest marker «мой выбор, не конвенция».
+3. Present the 1-screen plan and invoke `ask_question` with `[Делай]`, `[Убрать лишнее]`, `[Добавить своё]`. Revisions (`v2`) require fresh confirmation.
+4. Trivial Micro/Fast-Path edits (`--fast-path`, standalone typo fix), direct `@specialist`, and `/hermes fix-warnings` bypass automatically; a human user may disable Plan Gate via `"planGate": "off"` in `.hermes/config.json` or `HERMES_PLAN_GATE=off`.

@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.6.2)
+# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.7.0)
 
 > A fleet of 14 autonomous AI specialists and 22 industrial skills for Google Antigravity that prevents coding agents from fixing 1 of 4 places, self-signing PRs, and hardcoding IPs.
 
-[![Version](https://img.shields.io/badge/version-4.6.2-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.7.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-513%2F513%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-537%2F537%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -212,8 +212,8 @@ Hermes Fleet comprises **14 specialized agents** and **22 professional skills** 
 
 Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.json`:
 
-- **[TASK-005] (P2, Partial in v4.6.0 → v4.7.0):** `tool_call_id` binding & `bindingConfidence` implemented in `clean-edits-guard.mjs`; remaining L2 `qa-gate.mjs` FIFO verification tracked for `v4.7.0`.
-- **[TASK-006] (P3, Post-v4.7.0):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
+- **v4.7.1 («Инспектор»):** Independent grader, team stop on deny, A2A, eval suite, and **[TASK-005] (P2)** remaining L2 `qa-gate.mjs` `tool_call_id` / FIFO verification (`clean-edits-guard.mjs` binding shipped in `v4.6.0`).
+- **[TASK-006] (P3, Post-v4.7.1):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
 
 ---
 
@@ -222,7 +222,7 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 Hermes Fleet includes a **Zero-Billing Local CI Gate**:
 
 ```bash
-# Run all 11 test suites locally (513 tests)
+# Run all 11 test suites locally (537 tests)
 npm test
 
 # Windows PowerShell Local CI

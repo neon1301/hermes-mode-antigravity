@@ -16,6 +16,8 @@ import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
 import { computeWorkingTreeDiffHash, resolveBaseRef, getHermesConfig } from './qa-runner.mjs';
+import { resolveTaskContext } from './consent-validator.mjs';
+import { recordMechanicalLesson } from './lessons-ledger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -293,6 +295,7 @@ if (!hermesActive) {
 }
 
 const artifactDir = String(payload?.artifactDirectoryPath || '');
+const qaTaskHash = resolveTaskContext({ combinedSteps: steps, payload }).taskHash;
 const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
 const editedSourceFiles = new Set();
 const editedUiFiles = new Set();
@@ -382,7 +385,13 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       if (isViktorSender) {
         viktorDeliveryTexts.push(sysText);
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
-        if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT\]/.test(sysText)) {
+        if (/\[QA REJECT(?::[^\]]*)?\]/.test(sysText)) {
+          recordMechanicalLesson({ activeWorkspaceDir, taskHash: qaTaskHash, rule: 'qa_reject', reason: sysText.slice(0, 200) });
+        }
+        if (/\[SECURITY REJECT(?::[^\]]*)?\]/.test(sysText)) {
+          recordMechanicalLesson({ activeWorkspaceDir, taskHash: qaTaskHash, rule: 'security_reject', reason: sysText.slice(0, 200) });
+        }
+        if (/\[QA PASS\]/.test(strippedSysText) && !/\[QA REJECT(?::[^\]]*)?\]/.test(sysText)) {
           viktorTranscriptQaPass = true;
           lastViktorQaStepIdx = stepIdx;
           if (qaVerdictMode === 'legacy') {
@@ -390,7 +399,7 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
             hasQaPass = true;
           }
         }
-        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT\]/.test(sysText)) {
+        if (/\[SECURITY PASS\]/.test(strippedSysText) && !/\[SECURITY REJECT(?::[^\]]*)?\]/.test(sysText)) {
           hasSecurityPass = true;
         }
       }
@@ -559,6 +568,7 @@ if (isRewriteTask) {
 
   const silentlyLost = Number(parityReport?.silentlyLost ?? 0);
   if (silentlyLost > 0) {
+    recordMechanicalLesson({ activeWorkspaceDir, taskHash: qaTaskHash, rule: 'rewrite_parity_reject', reason: `silentlyLost=${silentlyLost}` });
     blockStop(
       `Hermes Gate [QA REJECT: Rewrite Parity]: Обнаружена молчаливая потеря функциональности (${silentlyLost} функций в silentlyLost > 0). Восстановите функции или согласуйте удаление с пользователем через ask_question.\n[EN: Hermes Gate [QA REJECT: Rewrite Parity]: Silent feature loss detected (${silentlyLost} features in silentlyLost > 0). Restore features or obtain explicit user removal approval via ask_question.]`,
       { missing: ['zero silentlyLost'] }
@@ -818,6 +828,7 @@ if (qaVerdictMode === 'artifact') {
         const rejectReason = failedChecks.length > 0
           ? `qa-verdict.json rejected: ${failedChecks.join('; ')}`
           : 'qa-verdict.json rejected: mechanical verification check failed';
+        recordMechanicalLesson({ activeWorkspaceDir, taskHash: qaTaskHash, rule: 'qa_reject', reason: rejectReason });
         logGateDecision({
           decision: 'continue',
           reason: rejectReason,
@@ -878,6 +889,7 @@ if (!hasSecurityPass && fs.existsSync(secVerdictFile)) {
     if (isPass && hasAckToken && noUnresolved && hasTranscriptProof && hasViktorDeliveryWithHash && hasDiffHashMatch && hasConvMatch && hasTurnMatch && isFresh) {
       hasSecurityPass = true;
     } else {
+      recordMechanicalLesson({ activeWorkspaceDir, taskHash: qaTaskHash, rule: 'security_reject', reason: 'security-verdict.json rejected: anti-self-signing check failed' });
       logGateDecision({
         decision: 'continue',
         reason: 'security-verdict.json rejected: anti-self-signing check failed',
