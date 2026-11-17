@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Архитектурная топология мультиагентной сети](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.5.1)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.6.0)
 
 > Команда из 14 автономных ИИ-специалистов и 22 промышленных скиллов для Google Antigravity, которая не даёт агенту чинить 1 из 4 мест, самоподписываться и хардкодить.
 
-[![Version](https://img.shields.io/badge/version-4.5.1-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.6.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-463%2F463%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-484%2F484%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -212,9 +212,9 @@ flowchart LR
 
 Реальные задачи из [`docs/backlog.md`](docs/backlog.md) и `.hermes/tasks.json`:
 
-- **[TASK-004] (P1, v4.6.0):** Сужение области действия `hermes-hardcode-ignore` до точной строки срабатывания (±1 строка) и документирование compatibility shim в [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
-- **[TASK-005] (P2, v4.6.0):** Верификация устойчивости FIFO-распределения UUID субагентов при параллельных вызовах и привязка через `tool_call_id`.
-- **[TASK-006] (P3, Post-v4.6.0):** Хук динамического обнаружения тупиков (Convoy stall) и распределённых взаимных блокировок в графе задач.
+- **[TASK-004] (P1, v4.7.0):** Сужение области действия `hermes-hardcode-ignore` до точной строки срабатывания (±1 строка) и документирование compatibility shim в [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
+- **[TASK-005] (P2, частично закрыто в v4.6.0 → v4.7.0):** Привязка `tool_call_id` и `bindingConfidence` реализованы в `clean-edits-guard.mjs`; остаток по L2 FIFO в `qa-gate.mjs` перенесён на `v4.7.0`.
+- **[TASK-006] (P3, Post-v4.7.0):** Хук динамического обнаружения тупиков (Convoy stall) и распределённых взаимных блокировок в графе задач.
 
 ---
 
@@ -223,7 +223,7 @@ flowchart LR
 В Hermes встроен **автономный локальный CI-гейт (Zero Billing Dependency)**:
 
 ```bash
-# Запуск всех 11 тестовых сьютов локально (463 тестов)
+# Запуск всех 11 тестовых сьютов локально (484 тестов)
 npm test
 
 # Windows PowerShell Local CI

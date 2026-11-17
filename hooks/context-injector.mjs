@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detectHermesInSteps, isCognitiveTrigger, isHermesTrigger, parseJsonl, readTranscriptSlices } from './hermes-trigger.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
+import { getEffectiveReputationScore, REPUTATION_POLICY } from './council-learning.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -68,6 +69,26 @@ function loadProjectInstincts(workspaceDir) {
       for (const inst of valid) {
         const prefix = inst.trigger ? `[${inst.domain}] Когда ${inst.trigger}: ` : `[${inst.domain}] `;
         lines.push(`- **${prefix}**${inst.rule} *(conf: ${inst.confidence.toFixed(2)})*`);
+      }
+
+      // REQ-3 (v4.6.0): Mechanical domain reputation hints (recommendation-only, observations >= 3)
+      if (parsed && typeof parsed.reputation === 'object' && parsed.reputation !== null) {
+        const repRows = [];
+        for (const [specialist, domains] of Object.entries(parsed.reputation)) {
+          if (!domains || typeof domains !== 'object') continue;
+          for (const [domain, entry] of Object.entries(domains)) {
+            if (entry && typeof entry.observations === 'number' && entry.observations >= REPUTATION_POLICY.minObservations) {
+              const eff = getEffectiveReputationScore(entry);
+              repRows.push({ specialist, domain, score: eff, n: entry.observations });
+            }
+          }
+        }
+        repRows
+          .sort((a, b) => b.score - a.score || b.n - a.n)
+          .slice(0, MAX_INSTINCTS)
+          .forEach((r) => {
+            lines.push(`- **[reputation/${r.domain}]** @${r.specialist}: score ${r.score.toFixed(2)} (n=${r.n}; только рекомендация состава, не влияет на гейты)`);
+          });
       }
     } catch {
       // Ignore malformed instincts.json

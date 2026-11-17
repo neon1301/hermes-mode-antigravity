@@ -13,6 +13,13 @@ import {
 } from './hermes-trigger.mjs';
 import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
+import {
+  detectDomain,
+  extractCriteriaSnapshot,
+  extractCriteriaSnapshotFromText,
+  freezeOrVerifyCriteria,
+  syncCouncilOutcomeAndReputation
+} from './council-learning.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -244,8 +251,8 @@ const SHELL_PATCH_CREATE_RE = new RegExp(
 
 const SHELL_MUTATE_PATTERNS = [
   { name: 'sed -i / perl -i', re: /(?:^|[;&|\n]\s*|(?:xargs|find\b[^\n]*-exec|(?:ba|z)?sh\s+-c)\s+[^\n]*)(?:sed\s+(?:-[a-z]*i\S*|--in-place(?:=\S*)?)(?:\s|$)|perl\s+-[^\n;&|]*i\b)/i },
-  { name: 'python -c file write', re: /\bpython[3]?\s+-c\b[^\n]*\b(?:open\([^)]*['"][wa]['"]|write_text\(|write_bytes\()/i },
-  { name: 'node -e file write', re: /\bnode\s+(?:-e|--eval)\b[^\n]*\b(?:writeFile(?:Sync)?|appendFile(?:Sync)?)\b/i },
+  { name: 'python -c file write', re: /\bpython[3]?\s+-c\b[^\n]*(?:\bopen\([^)]*['"][wa]['"]|\bwrite_text\(|\bwrite_bytes\(|\bos\.(?:remove|unlink|replace|rename)\(|\bshutil\.(?:copy(?:2|file)?|move)\(|\.unlink\()/i },
+  { name: 'node -e file write', re: /\bnode\s+(?:-e|--eval)\b[^\n]*\b(?:writeFile|appendFile|unlink|rm|rename|copyFile|truncate)(?:Sync)?\b/i },
   {
     name: 'shell Set-Content/Out-File/redirect/tee on source file',
     re: new RegExp(
@@ -255,7 +262,7 @@ const SHELL_MUTATE_PATTERNS = [
   },
   {
     name: 'shell redirect or write to protected hermes artifact',
-    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|\s["'])(?:set-content|out-file|add-content|tee(?:-object)?)\b[^\n|;&]*\.hermes[\\/](?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost)\.(?:json|jsonl)\b|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/][^"\n]*\.(?:json|jsonl)"|'[^'\n]*\.hermes[\\/][^'\n]*\.(?:json|jsonl)'|[^\s"'|;&>]*\.hermes[\\/][^\s"'|;&>]*\.(?:json|jsonl))(?=$|[\s"'|;&])/i
+    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|\s["'])(?:set-content|out-file|add-content|clear-content|remove-item|rm|del|erase|unlink|truncate|mv|cp|move|copy|move-item|copy-item|rename-item|ri|mi|cpi|sc|ac|clc|tee(?:-object)?)\b[^\n|;&]*\.hermes[\\/](?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost|council-outcomes|instincts|council-criteria)\.(?:json|jsonl)\b|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/][^"\n]*\.(?:json|jsonl)"|'[^'\n]*\.hermes[\\/][^'\n]*\.(?:json|jsonl)'|[^\s"'|;&>]*\.hermes[\\/][^\s"'|;&>]*\.(?:json|jsonl))(?=$|[\s"'|;&])/i
   },
   { name: 'git apply', re: /(?:^|[;&|\n]\s*)git\s+apply\b/i }
 ];
@@ -651,9 +658,229 @@ function recordCouncilCost({ activeWorkspaceDir, taskHash, mode, combinedSteps, 
   } catch {}
 }
 
+function enforceCriteriaFreezePostR2({ toolName, args, writeTargetPath, payload, activeWorkspaceDir }) {
+  const transcriptPath = payload?.transcriptPath;
+  if (!transcriptPath) return;
+  const { combinedSteps } = getTranscriptData(transcriptPath);
+  if (!combinedSteps || combinedSteps.length === 0) return;
+
+  let taskStartIdx = -1;
+  for (let i = 0; i < combinedSteps.length; i++) {
+    const s = combinedSteps[i];
+    if (isRealUserStep(s)) {
+      const text = typeof s.content === 'string' ? s.content : (s.content?.text || '');
+      if (isHermesTrigger(text, { includeMentions: false })) taskStartIdx = i;
+    }
+  }
+  if (taskStartIdx < 0) {
+    for (let i = 0; i < combinedSteps.length; i++) {
+      const s = combinedSteps[i];
+      if (isRealUserStep(s)) {
+        const text = typeof s.content === 'string' ? s.content : (s.content?.text || '');
+        if (isHermesTrigger(text, { includeMentions: true })) taskStartIdx = i;
+      }
+    }
+  }
+  if (taskStartIdx < 0) {
+    for (let i = 0; i < combinedSteps.length; i++) {
+      if (isRealUserStep(combinedSteps[i])) taskStartIdx = i;
+    }
+  }
+  if (taskStartIdx < 0) taskStartIdx = 0;
+
+  const taskStartStep = combinedSteps[taskStartIdx];
+  const userPrompt = taskStartStep
+    ? (typeof taskStartStep.content === 'string' ? taskStartStep.content : (taskStartStep.content?.text || ''))
+    : String(payload?.lastUserInput || '');
+  const cleanPrompt = userPrompt.replace(/<\/?USER_REQUEST>/gi, '').trim();
+  const taskHash = crypto.createHash('sha256').update(cleanPrompt).digest('hex').slice(0, 16);
+
+  // Scan R1/R2 wave state to check if Stage 2 (including devil's advocate) is complete
+  const toolCallIdToUuid = new Map();
+  for (let j = taskStartIdx; j < combinedSteps.length; j++) {
+    const stepJ = combinedSteps[j];
+    const stepTcId = String(stepJ?.tool_call_id || stepJ?.toolCallId || stepJ?.call_id || '');
+    if (!stepTcId) continue;
+    const cStr = typeof stepJ?.content === 'string' ? stepJ.content : JSON.stringify(stepJ);
+    const m = cStr.match(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/i) ||
+              cStr.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+    if (m) toolCallIdToUuid.set(stepTcId, m[1].toLowerCase());
+  }
+
+  const dispatchedUuids = new Set();
+  const agentToUuid = new Map();
+  const uuidToAgent = new Map();
+  const pendingFifo = [];
+  const r1Delivered = new Set();
+  const r2Dispatched = new Set();
+  const r2Delivered = new Set();
+  const opponentTypes = ['kritik', 'stanislav'];
+
+  const resolveAgent = (raw) => {
+    const lower = String(raw || '').replace(/^@/, '').toLowerCase();
+    const resolved = HERMES_AGENT_ALIASES[lower] || lower;
+    return HERMES_AGENTS.has(resolved) ? resolved : lower;
+  };
+
+  for (let i = taskStartIdx; i < combinedSteps.length; i++) {
+    const s = combinedSteps[i];
+    const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+    const stepUuids = [];
+    for (const m of contentStr.matchAll(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)) {
+      const u = m[1].toLowerCase();
+      dispatchedUuids.add(u);
+      stepUuids.push(u);
+    }
+    const stepTcs = collectToolCalls(s);
+    const invEntries = [];
+    for (const tc of stepTcs) {
+      if (String(tc?.name || '').toLowerCase() === 'invoke_subagent') {
+        const tcId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+        const specs = extractSubagentSpecs(tc?.args);
+        for (const spec of specs) invEntries.push({ tcId, spec, single: specs.length === 1 });
+      }
+    }
+    const ownTcId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+    if (invEntries.length === 0 && stepUuids.length > 0 && (!ownTcId || !toolCallIdToUuid.has(ownTcId))) {
+      for (const u of stepUuids) {
+        if (!uuidToAgent.has(u) && pendingFifo.length > 0) {
+          const name = pendingFifo.shift();
+          agentToUuid.set(name, u);
+          uuidToAgent.set(u, name);
+        }
+      }
+    }
+    let uIdx = 0;
+    for (const { tcId, spec, single } of invEntries) {
+      const name = resolveAgent(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '');
+      if (!name) continue;
+      if (tcId && single && toolCallIdToUuid.has(tcId)) {
+        const u = toolCallIdToUuid.get(tcId);
+        dispatchedUuids.add(u);
+        agentToUuid.set(name, u);
+        uuidToAgent.set(u, name);
+      } else if (uIdx < stepUuids.length) {
+        const u = stepUuids[uIdx++];
+        agentToUuid.set(name, u);
+        uuidToAgent.set(u, name);
+      } else {
+        pendingFifo.push(name);
+      }
+    }
+    for (const tc of stepTcs) {
+      if (String(tc?.name || '').toLowerCase() === 'send_message') {
+        let recipient = String(tc?.args?.Recipient || tc?.args?.recipient || tc?.args?.ConversationId || tc?.args?.conversationId || '').toLowerCase();
+        if (recipient.startsWith('@')) recipient = recipient.slice(1);
+        const rName = resolveAgent(recipient);
+        if (agentToUuid.has(rName)) recipient = agentToUuid.get(rName);
+        if (recipient && dispatchedUuids.has(recipient)) {
+          const r2Ready = dispatchedUuids.size > 0 && [...dispatchedUuids].every((u) => r1Delivered.has(u));
+          if (r2Ready && r1Delivered.has(recipient)) r2Dispatched.add(recipient);
+        }
+      }
+    }
+    if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
+      const senders = new Set();
+      for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) senders.add(m[1].toLowerCase());
+      const sSender = String(s?.sender || '').toLowerCase();
+      if (/^[0-9a-f-]{36}$/.test(sSender)) senders.add(sSender);
+      for (const u of senders) {
+        if (!dispatchedUuids.has(u)) continue;
+        if (r2Dispatched.has(u)) r2Delivered.add(u);
+        else r1Delivered.add(u);
+      }
+    }
+  }
+
+  const r2Complete =
+    dispatchedUuids.size > 0 &&
+    r2Dispatched.size > 0 &&
+    [...r2Dispatched].every((u) => r2Delivered.has(u)) &&
+    [...r2Delivered].some((u) => opponentTypes.includes(uuidToAgent.get(u)));
+
+  if (!r2Complete) return;
+
+  // Compute projected criteria snapshot if this tool call modifies council-roundtable.md or decisions.md
+  let projectedSnapshot = undefined;
+  const normTarget = String(writeTargetPath || '').replace(/\\/g, '/').toLowerCase();
+  const isCriteriaDoc = FILE_WRITE_TOOLS.has(toolName) && (
+    /(?:^|\/)\.hermes\/council-roundtable\.md$/.test(normTarget) ||
+    /(?:^|\/)\.hermes\/decisions\.md$/.test(normTarget)
+  );
+  if (isCriteriaDoc) {
+    const absTarget = path.isAbsolute(writeTargetPath) ? writeTargetPath : path.resolve(activeWorkspaceDir, writeTargetPath);
+    let existingText = '';
+    if (fs.existsSync(absTarget)) {
+      try { existingText = fs.readFileSync(absTarget, 'utf-8'); } catch {}
+    }
+    let nextText = existingText;
+    if (toolName === 'write_file' || toolName === 'write_to_file') {
+      const content = String(args?.Content ?? args?.CodeContent ?? '');
+      nextText = args?.Append ? (existingText + content) : content;
+    } else if (toolName === 'edit_file' && typeof args?.Target === 'string') {
+      nextText = existingText.split(args.Target).join(String(args.Replacement ?? ''));
+    } else if (toolName === 'replace_file_content' && typeof args?.TargetContent === 'string') {
+      nextText = existingText.replace(args.TargetContent, String(args.ReplacementContent ?? ''));
+    } else if (toolName === 'multi_replace_file_content' && Array.isArray(args?.ReplacementChunks)) {
+      for (const ch of args.ReplacementChunks) {
+        if (typeof ch?.TargetContent === 'string') {
+          nextText = nextText.replace(ch.TargetContent, String(ch.ReplacementContent ?? ''));
+        }
+      }
+    }
+    const baseName = path.basename(normTarget);
+    // Only project criteria check if this file is the active criteria source
+    const criteriaFile = path.join(activeWorkspaceDir, '.hermes', 'council-criteria.json');
+    let frozenSource = null;
+    if (fs.existsSync(criteriaFile)) {
+      try { frozenSource = JSON.parse(fs.readFileSync(criteriaFile, 'utf-8'))?.source || null; } catch {}
+    }
+    const effectiveSource = frozenSource || extractCriteriaSnapshot(activeWorkspaceDir)?.source || null;
+    if (effectiveSource && effectiveSource === baseName) {
+      projectedSnapshot = extractCriteriaSnapshotFromText(nextText, baseName);
+    }
+  }
+
+  const check = freezeOrVerifyCriteria({ activeWorkspaceDir, taskHash, projectedSnapshot });
+  if (!check.ok) {
+    deny(
+      `Hermes Gate (Council Criteria Freeze): Критерии оценки изменены после обсуждения в Стадии 2 (metric-shopping)! Замороженный хэш: ${check.frozenHash}, текущий хэш: ${check.currentHash}. Восстановите исходные критерии до Стадии 3 или проведите обсуждение заново.\n[EN: Hermes Gate (Council Criteria Freeze): Evaluation criteria were modified after Stage 2 discussion (metric-shopping detected). Frozen hash: ${check.frozenHash}, current hash: ${check.currentHash}.]`
+    );
+    process.exit(0);
+  }
+}
+
 function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
+  // REQ-1 & REQ-2 (v4.6.0): Always sync mechanical outcome & reputation if an active council-state.json exists
+  const earlyCouncilStatePath = path.join(activeWorkspaceDir, '.hermes', 'council-state.json');
+  if (fs.existsSync(earlyCouncilStatePath)) {
+    try {
+      const activeCS = JSON.parse(fs.readFileSync(earlyCouncilStatePath, 'utf-8'));
+      if (activeCS && activeCS.taskHash) {
+        syncCouncilOutcomeAndReputation({
+          activeWorkspaceDir,
+          taskHash: activeCS.taskHash,
+          councilState: activeCS,
+          validAgentsSet: HERMES_AGENTS,
+          aliases: HERMES_AGENT_ALIASES
+        });
+      }
+    } catch {}
+  }
+
   const isFileWrite = FILE_WRITE_TOOLS.has(toolName);
   const writeTargetPath = isFileWrite ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '') : '';
+  const normWriteTarget = writeTargetPath.replace(/\\/g, '/').toLowerCase();
+  const isCriteriaDocWrite = isFileWrite && (
+    /(?:^|\/)\.hermes\/council-roundtable\.md$/.test(normWriteTarget) ||
+    /(?:^|\/)\.hermes\/decisions\.md$/.test(normWriteTarget)
+  );
+
+  // REQ-4 (v4.6.0): Enforce Criteria Freeze in real roundtable flow on board/decisions edit or R3 dispatch after R2 completes
+  if (isCriteriaDocWrite || toolName === 'send_message') {
+    enforceCriteriaFreezePostR2({ toolName, args, writeTargetPath, payload, activeWorkspaceDir });
+  }
+
   const isWriteAttempt =
     (isFileWrite && !isMetaOrArtifactPath(writeTargetPath)) ||
     (toolName === 'define_subagent' && (args.EnableWriteTools === true || args.enableWriteTools === true)) ||
@@ -1046,16 +1273,25 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         conversationId: convId,
         turnMarker,
         taskHash,
+        domain: detectDomain(cleanPrompt, []),
         task: cleanPrompt.slice(0, 100),
         mode: 'solo',
         decision: 'solo',
         requiredRounds: 0,
         roundsCompleted: 0,
+        roster: [],
         isLoop,
         status: 'APPROVED',
         timestamp: new Date().toISOString()
       };
       fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
+      syncCouncilOutcomeAndReputation({
+        activeWorkspaceDir,
+        taskHash,
+        councilState: stateRecord,
+        validAgentsSet: HERMES_AGENTS,
+        aliases: HERMES_AGENT_ALIASES
+      });
     } catch {}
     logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: Lead solo decided by user' });
     return;
@@ -1136,6 +1372,8 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const dispatchedTypes = new Set();
   const agentToUuid = new Map();
   const uuidToAgent = new Map();
+  const uuidBindingConfidence = new Map();
+  const pendingFifoAgents = [];
   const opponentTypes = ['kritik', 'stanislav'];
   const opponentR2Deliveries = [];
   const r1DeliveredUuids = new Set();
@@ -1144,6 +1382,20 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const r3DispatchedUuids = new Set();
   const r3DeliveredUuids = new Set();
   const scanStartIndex = councilAskIdx >= 0 ? councilAskIdx : taskStartIdx;
+
+  // REQ-5 (v4.6.0): Pre-index exact tool_call_id -> subagent conversationId mappings across transcript steps
+  const toolCallIdToUuid = new Map();
+  for (let j = scanStartIndex; j < combinedSteps.length; j++) {
+    const stepJ = combinedSteps[j];
+    const stepTcId = String(stepJ?.tool_call_id || stepJ?.toolCallId || stepJ?.call_id || '');
+    if (!stepTcId) continue;
+    const cStr = typeof stepJ?.content === 'string' ? stepJ.content : JSON.stringify(stepJ);
+    const m = cStr.match(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/i) ||
+              cStr.match(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
+    if (m) {
+      toolCallIdToUuid.set(stepTcId, m[1].toLowerCase());
+    }
+  }
 
   for (let i = scanStartIndex; i < combinedSteps.length; i++) {
     const s = combinedSteps[i];
@@ -1156,28 +1408,68 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       stepUuids.push(u);
     }
 
-    let uuidIndex = 0;
-    for (const tc of collectToolCalls(s)) {
-      const tcName = String(tc?.name || '').toLowerCase();
-      if (tcName === 'invoke_subagent') {
+    const stepToolCalls = collectToolCalls(s);
+    const invokeEntries = [];
+    for (const tc of stepToolCalls) {
+      if (String(tc?.name || '').toLowerCase() === 'invoke_subagent') {
+        const tcId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
         const specs = extractSubagentSpecs(tc?.args);
         for (const spec of specs) {
-          const rawTName = String(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '')
-            .replace(/^@/, '')
-            .toLowerCase();
-          const resolved = resolveAgentName(rawTName);
-          const finalName = resolved || rawTName;
-          if (finalName) {
-            dispatchedTypes.add(finalName);
-            if (uuidIndex < stepUuids.length) {
-              const u = stepUuids[uuidIndex];
-              agentToUuid.set(finalName, u);
-              uuidToAgent.set(u, finalName);
-            }
+          invokeEntries.push({ tcId, spec, singleSpecInCall: specs.length === 1 });
+        }
+      }
+    }
+
+    // If this step has Created subagent UUIDs but no invoke_subagent calls and no tool_call_id match,
+    // bind any pending FIFO agents queued from earlier unbound invoke_subagent steps.
+    const stepOwnTcId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+    if (invokeEntries.length === 0 && stepUuids.length > 0 && (!stepOwnTcId || !toolCallIdToUuid.has(stepOwnTcId))) {
+      for (const u of stepUuids) {
+        if (!uuidToAgent.has(u) && pendingFifoAgents.length > 0) {
+          const nextPending = pendingFifoAgents.shift();
+          agentToUuid.set(nextPending.name, u);
+          uuidToAgent.set(u, nextPending.name);
+          uuidBindingConfidence.set(u, nextPending.confidence);
+        }
+      }
+    }
+
+    let uuidIndex = 0;
+    const isMultiUnboundInvokeStep = invokeEntries.filter((e) => !(e.tcId && e.singleSpecInCall && toolCallIdToUuid.has(e.tcId))).length > 1;
+    for (const entry of invokeEntries) {
+      const { tcId, spec, singleSpecInCall } = entry;
+      const rawTName = String(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '')
+        .replace(/^@/, '')
+        .toLowerCase();
+      const resolved = resolveAgentName(rawTName);
+      const finalName = resolved || rawTName;
+      if (finalName) {
+        dispatchedTypes.add(finalName);
+        if (tcId && singleSpecInCall && toolCallIdToUuid.has(tcId)) {
+          // Exact tool_call_id binding
+          const u = toolCallIdToUuid.get(tcId);
+          dispatchedUuids.add(u);
+          agentToUuid.set(finalName, u);
+          uuidToAgent.set(u, finalName);
+          uuidBindingConfidence.set(u, 'exact');
+        } else {
+          // FIFO fallback: unambiguous for single invoke, uncertain for multi-invoke in same step
+          const confidence = isMultiUnboundInvokeStep ? 'uncertain' : 'fifo';
+          if (uuidIndex < stepUuids.length) {
+            const u = stepUuids[uuidIndex];
+            agentToUuid.set(finalName, u);
+            uuidToAgent.set(u, finalName);
+            uuidBindingConfidence.set(u, confidence);
+          } else {
+            pendingFifoAgents.push({ name: finalName, confidence });
           }
           uuidIndex++;
         }
       }
+    }
+
+    for (const tc of stepToolCalls) {
+      const tcName = String(tc?.name || '').toLowerCase();
       if (tcName === 'send_message') {
         let recipient = String(
           tc?.args?.Recipient || tc?.args?.recipient ||
@@ -1217,12 +1509,21 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       }
 
       if (!hasBlocks) {
-        const sSender = String(s?.sender || '').toLowerCase();
-        if (/^[0-9a-f-]{36}$/.test(sSender)) {
-          messagesInStep.push({ senderUuid: sSender, text: contentStr });
+        // REQ-6 (v4.6.0): Fallback branch slices strictly per-sender segments so markers never leak across senders
+        const senderMatches = [...contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)];
+        if (senderMatches.length > 0) {
+          for (let k = 0; k < senderMatches.length; k++) {
+            const segStart = senderMatches[k].index;
+            const segEnd = k + 1 < senderMatches.length ? senderMatches[k + 1].index : contentStr.length;
+            messagesInStep.push({
+              senderUuid: senderMatches[k][1].toLowerCase(),
+              text: contentStr.slice(segStart, segEnd)
+            });
+          }
         } else {
-          for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) {
-            messagesInStep.push({ senderUuid: m[1].toLowerCase(), text: contentStr });
+          const sSender = String(s?.sender || '').toLowerCase();
+          if (/^[0-9a-f-]{36}$/.test(sSender)) {
+            messagesInStep.push({ senderUuid: sSender, text: contentStr });
           }
         }
       }
@@ -1243,6 +1544,21 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       }
     }
   }
+
+  const buildRosterSnapshot = () => {
+    const roster = [];
+    for (const u of dispatchedUuids) {
+      const name = uuidToAgent.get(u);
+      if (name) {
+        roster.push({
+          name,
+          uuid: u,
+          bindingConfidence: uuidBindingConfidence.get(u) || 'fifo'
+        });
+      }
+    }
+    return roster;
+  };
 
   if (dispatchedUuids.size === 0) {
     const msg = councilGateConfig === 'auto'
@@ -1351,6 +1667,15 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       process.exit(0);
     }
 
+    // REQ-4 (v4.6.0): Freeze criteria hash at completion of Stage 2; verify immutability before Stage 3 (anti metric-shopping)
+    const criteriaFreezeCheck = freezeOrVerifyCriteria({ activeWorkspaceDir, taskHash });
+    if (!criteriaFreezeCheck.ok) {
+      deny(
+        `Hermes Gate (Council Criteria Freeze): Критерии оценки изменены после обсуждения в Стадии 2 (metric-shopping)! Замороженный хэш: ${criteriaFreezeCheck.frozenHash}, текущий хэш: ${criteriaFreezeCheck.currentHash}. Восстановите исходные критерии до Стадии 3 или проведите обсуждение заново.\n[EN: Hermes Gate (Council Criteria Freeze): Evaluation criteria were modified after Stage 2 discussion (metric-shopping detected). Frozen hash: ${criteriaFreezeCheck.frozenHash}, current hash: ${criteriaFreezeCheck.currentHash}.]`
+      );
+      process.exit(0);
+    }
+
     // REQ-1 (v4.5.0): Check Early Stop conditions
     // Dissent Dominance: [DISSENT] strictly overrides [CONVERGED]
     const hasOpponentConverged = opponentR2Deliveries.some((text) => /(?<!not\s+|reject\s+|no\s+)\[(?:CONVERGED|NO\s+DISSENT)\]/i.test(text));
@@ -1426,8 +1751,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       const BOUNDARY_PRE = '(?<![а-яёa-z0-9_-])';
       const BOUNDARY_POST = '(?![а-яёa-z0-9_-])';
       const EARLY_STOP_NEG_PRE_WORDS = '(?:не|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|без|отмена|don\'?t|do\\s+not|never|no)';
-      const EARLY_STOP_NEG_POST_WORDS = '(?:не|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|отмена|don\'?t|do\\s+not|never|no)';
+      const EARLY_STOP_NEG_POST_WORDS = '(?:не(?!\\s+(?:проводить|проводим)\\s+(?:r3|ранжировани|стадию\\s+3))|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|отмена|don\'?t|do\\s+not|never|no)';
       const EARLY_STOP_WORDS = '(?:ранн(?:ий|его)\\s+стоп(?:а)?|заверш(?:ить|ения)|ранний|stop|завершать)';
+      const SKIP_R3_PREFIX = '(?:пропустить|пропускаем|пропустим|без(?:\\s+стадии)?|не\\s+проводить|не\\s+проводим|skip(?:ping)?|without)\\s+(?:стадию\\s+|стадии\\s+|этап\\s+)?';
 
       const EARLY_STOP_NEGATION_RE = new RegExp(
         `(?:${BOUNDARY_PRE}${EARLY_STOP_NEG_PRE_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,35}${BOUNDARY_PRE}${EARLY_STOP_WORDS}${BOUNDARY_POST})|` +
@@ -1435,11 +1761,12 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         'i'
       );
       const EARLY_STOP_REJECT_INTENT_RE = new RegExp(
-        `${BOUNDARY_PRE}(?:провести\\s+r3|полный\\s+протокол|не\\s+завершать|(?<!без\\s+(?:стадии\\s+)?)ранжировани[ея]|r3|стадия\\s+3|stage\\s+3|проводим\\s+r3)${BOUNDARY_POST}`,
+        `${BOUNDARY_PRE}(?:провести\\s+r3|проводим\\s+r3|полный\\s+протокол|не\\s+завершать|` +
+        `(?<!${SKIP_R3_PREFIX})(?:ранжировани[ея]|r3|стадия\\s+3|stage\\s+3))${BOUNDARY_POST}`,
         'i'
       );
       const EARLY_STOP_APPROVE_INTENT_RE = new RegExp(
-        `${BOUNDARY_PRE}(?:завершить\\s+сейчас|завершить\\s+без\\s+(?:стадии\\s+)?ранжирования|ранний\\s+стоп|завершить|экономия)${BOUNDARY_POST}`,
+        `${BOUNDARY_PRE}(?:завершить\\s+сейчас|завершить\\s+без\\s+(?:стадии\\s+)?(?:ранжирования|r3)|ранний\\s+стоп|завершить|экономия)${BOUNDARY_POST}`,
         'i'
       );
 
@@ -1458,10 +1785,12 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       try {
         const hermesDir = path.join(activeWorkspaceDir, '.hermes');
         if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+        const rosterSnapshot = buildRosterSnapshot();
         const stateRecord = {
           conversationId: convId,
           turnMarker,
           taskHash,
+          domain: detectDomain(cleanPrompt, rosterSnapshot),
           task: cleanPrompt.slice(0, 100),
           mode: 'roundtable',
           earlyStop: true,
@@ -1469,6 +1798,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
           requiredRounds: 2,
           roundsCompleted: 2,
           membersCount: activeR2Uuids.length,
+          roster: rosterSnapshot,
           prunedUuids: [...prunedUuids],
           reason: 'early_stop_converged',
           isLoop,
@@ -1480,6 +1810,13 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         }
         fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
         recordCouncilCost({ activeWorkspaceDir, taskHash, mode: 'roundtable', combinedSteps, payload });
+        syncCouncilOutcomeAndReputation({
+          activeWorkspaceDir,
+          taskHash,
+          councilState: stateRecord,
+          validAgentsSet: HERMES_AGENTS,
+          aliases: HERMES_AGENT_ALIASES
+        });
       } catch {}
       logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: early stop authorized by user and converged opponent' });
       return;
@@ -1555,18 +1892,20 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   try {
     const hermesDir = path.join(activeWorkspaceDir, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const rosterSnapshot = buildRosterSnapshot();
     const stateRecord = {
       conversationId: convId,
       turnMarker,
       taskHash,
+      domain: detectDomain(cleanPrompt, rosterSnapshot),
       task: cleanPrompt.slice(0, 100),
       mode,
       earlyStop: false,
       decision: isRoundtable ? 'roundtable' : 'council',
       requiredRounds,
       roundsCompleted: requiredRounds,
-      membersCount: isRoundtable ? (activeR3Uuids?.length ?? dispatchedUuids.size) : dispatchedUuids.size,
-      prunedUuids: isRoundtable ? [...prunedUuids] : [],
+      membersCount: rosterSnapshot.length || dispatchedUuids.size,
+      roster: rosterSnapshot,
       isLoop,
       status: 'APPROVED',
       timestamp: new Date().toISOString()
@@ -1581,6 +1920,13 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
     fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
     recordCouncilCost({ activeWorkspaceDir, taskHash, mode, combinedSteps, payload });
+    syncCouncilOutcomeAndReputation({
+      activeWorkspaceDir,
+      taskHash,
+      councilState: stateRecord,
+      validAgentsSet: HERMES_AGENTS,
+      aliases: HERMES_AGENT_ALIASES
+    });
   } catch {}
   logGateDecision({ toolName, decision: 'allow', reason: `Council Gate approved: all ${mode} deliveries verified (${requiredRounds} rounds)` });
 }
@@ -1600,7 +1946,10 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     '.hermes/test-summary.json',
     '.hermes/council-state.json',
     '.hermes/progress-journal.jsonl',
-    '.hermes/council-cost.jsonl'
+    '.hermes/council-cost.jsonl',
+    '.hermes/council-outcomes.jsonl',
+    '.hermes/instincts.json',
+    '.hermes/council-criteria.json'
   ];
   try {
     const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');

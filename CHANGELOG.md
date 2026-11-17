@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.6.0] - 2026-11-17
+
+### Outcome-Based Council Learning, Mechanical Domain Reputation & Criteria Freeze (TASK-014)
+- **Protected Council Outcome Ledger (REQ-1, P1):**
+  - Implemented `hooks/council-learning.mjs` and hook-written `.hermes/council-outcomes.jsonl` synced strictly from protected mechanical artifacts (`test-summary.json`, `qa-verdict.json`, `security-verdict.json`) — never MODEL prose.
+  - Added `.hermes/council-outcomes.jsonl`, `.hermes/instincts.json`, and `.hermes/council-criteria.json` to default `protectedVerdictPaths` and `SHELL_MUTATE_PATTERNS` (blocking `write_file`/`edit_file` and shell redirects/removals).
+  - Verified Lead-declared authorship (`source: "lead_declared"`) strictly against actual transcript roster (`verifiedInRoster`); unverified authors and `mode: "solo"` tasks never accrue specialist reputation.
+- **Mechanical Specialist × Domain Reputation (REQ-2 & REQ-3, P1):**
+  - Recomputed deterministically inside protected `.hermes/instincts.json` (preserving manual `instincts` rules) with documented constants: `priorScore = 0.5`, `minObservations = 3`, `maxDeltaPerObservation = ±0.15`, `halfLifeDays = 30`, clamped `[0, 1]`.
+  - Strict separation invariant: reputation affects ONLY council composition recommendations (displaying honest `n=...` via `rankRecommendedSpecialists` and `context-injector.mjs`) and NEVER alters `requiredCount`, `missingNames`, user roster, devil's advocate, or gate `allow`/`deny`.
+- **Criteria Freeze / Anti Metric-Shopping (REQ-4, P2):**
+  - Hook freezes SHA-256 hash of board criteria (`## Критерии оценки` / `## Criteria`) into `.hermes/council-criteria.json` at Stage 2 completion and verifies immutability before Stage 3 acceptance (`deny` on metric-shopping).
+  - Documented protocol-level arbitrator role (`@stanislav` or Lead log in `.hermes/decisions.md`) in `skills/hermes/references/council-learning-protocol.md`.
+- **Name → UUID Binding Honesty / Partial Closure of TASK-005 (REQ-5, P2):**
+  - Prioritized exact `tool_call_id` matching (`bindingConfidence: "exact"`) with single-invoke FIFO (`"fifo"`) and ambiguous multi-invoke marking (`"uncertain"`). Uncertain bindings participate in quorum but never accrue reputation.
+- **v4.5.1 Audit Tails Closed (REQ-6, P3):**
+  - Early stop phrasing `«Завершить сейчас, пропустить R3»` / `«Завершить сейчас, без R3»` now accepted via negative lookbehind (`SKIP_R3_PREFIX`) while preserving fail-closed rejection on bare `R3` / `Провести R3`.
+  - Fallback `[CONVERGED]` attribution (steps without `[Message]` prefixes) now slices strictly per-sender segments so markers never leak across agents.
+- **21 New Deterministic Test Locks (REQ-7 + QA Regression Locks):**
+  - Expanded `hooks/clean-edits-guard.test.mjs` to 210/210 PASS (484/484 total across 11 suites): `outcome_ledger_written_from_artifacts`, `outcome_not_written_from_model_prose`, `deny_write_file_council_outcomes`, `deny_write_file_instincts`, `deny_shell_redirect_instincts`, `reputation_min_samples_threshold`, `reputation_bounded_delta`, `reputation_decay`, `reputation_cannot_drop_named_specialist_deny`, `authorship_not_in_roster_rejected`, `solo_mode_no_specialist_reputation`, `criteria_freeze_changed_after_r2_deny`, `criteria_freeze_unchanged_allow`, `binding_uncertain_no_reputation`, `early_stop_skip_r3_phrasing_allow`, `converged_marker_fallback_segment_deny`, plus 5 QA audit regression locks (`criteria_freeze_real_r2_board_edit_tamper_deny`, `deny_shell_mv_cp_and_node_unlink_protected_artifacts`, `reputation_no_double_decay`, `declared_authors_cyrillic_and_no_rejected_leak`, `stale_artifact_not_reused_across_tasks`).
+
 ## [4.5.1] - 2026-11-17
 
 ### Stall Circuit Breaker Fix & Intent Binding for Escalation / Early-Stop Windows (HERMES-STALL-INTENT-FIX, TASK-013)

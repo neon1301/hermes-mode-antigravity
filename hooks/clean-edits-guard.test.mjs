@@ -4,6 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  extractDeclaredAuthors,
+  rankRecommendedSpecialists,
+  recomputeReputationFromOutcomes,
+  REPUTATION_POLICY,
+  syncCouncilOutcomeAndReputation
+} from './council-learning.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const hookPath = path.join(__dirname, 'clean-edits-guard.mjs');
@@ -1993,6 +2000,647 @@ const cases = [
       const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
       fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
     }
+  },
+  // v4.6.0 REQ-7: 16 Deterministic Outcome Learning, Reputation, Criteria Freeze & Binding Locks
+  {
+    name: 'outcome_ledger_written_from_artifacts',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor backend api outcome ledger test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_out1', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_out1', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_dmitry_exact', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_dmitry_exact', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry backend proposal' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const ok = true;' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-outcome-art');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(path.join(ws, '.hermes', 'test-summary.json'), JSON.stringify({
+        status: 'PASS', passed: 10, total: 10, failed: 0, timestamp: '2026-11-17T13:00:00.000Z'
+      }), 'utf-8');
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-outcome-art');
+      const outcomesPath = path.join(ws, '.hermes', 'council-outcomes.jsonl');
+      const instinctsPath = path.join(ws, '.hermes', 'instincts.json');
+      if (!fs.existsSync(outcomesPath)) throw new Error('council-outcomes.jsonl was not created');
+      const recs = fs.readFileSync(outcomesPath, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+      if (recs.length !== 1) throw new Error(`Expected 1 outcome record, got ${recs.length}`);
+      if (recs[0].outcome !== 'PASS' || recs[0].outcomeSource !== 'test-summary') {
+        throw new Error(`Unexpected outcome/source: ${JSON.stringify(recs[0])}`);
+      }
+      if (!recs[0].roster || recs[0].roster[0]?.name !== 'dmitry' || recs[0].roster[0]?.bindingConfidence !== 'exact') {
+        throw new Error(`Expected exact dmitry roster binding, got: ${JSON.stringify(recs[0].roster)}`);
+      }
+      if (!fs.existsSync(instinctsPath)) throw new Error('instincts.json was not created');
+      const inst = JSON.parse(fs.readFileSync(instinctsPath, 'utf-8'));
+      const dRep = inst?.reputation?.dmitry?.backend;
+      if (!dRep || dRep.observations !== 1 || dRep.successes !== 1) {
+        throw new Error(`Expected dmitry backend rep with 1 success, got: ${JSON.stringify(inst?.reputation)}`);
+      }
+    }
+  },
+  {
+    name: 'outcome_not_written_from_model_prose',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor backend prose only test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_prose', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_prose', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_d_prose', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_d_prose', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 8, source: 'MODEL', type: 'PLANNER_RESPONSE', content: '[QA PASS] Все тесты прошли идеально! Репутация @dmitry должна вырасти!' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const ok = true;' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-outcome-prose');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-outcome-prose');
+      if (fs.existsSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'))) {
+        throw new Error('council-outcomes.jsonl must NOT be created from MODEL prose alone');
+      }
+      if (fs.existsSync(path.join(ws, '.hermes', 'instincts.json'))) {
+        throw new Error('instincts.json must NOT be created from MODEL prose alone');
+      }
+    }
+  },
+  {
+    name: 'deny_write_file_council_outcomes',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/council-outcomes.jsonl', Content: '{"outcome":"PASS"}' } } }
+  },
+  {
+    name: 'deny_write_file_instincts',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/instincts.json', Content: '{"reputation":{}}' } } }
+  },
+  {
+    name: 'deny_shell_redirect_instincts',
+    expected: 'deny',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'echo "{}" > .hermes/instincts.json' } } }
+  },
+  {
+    name: 'reputation_min_samples_threshold',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const mkRec = (ts, outcome) => ({
+        taskHash: 't_' + ts,
+        domain: 'backend',
+        mode: 'parallel',
+        roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }],
+        declaredAuthors: [],
+        outcome,
+        outcomeSource: 'test-summary',
+        diffHash: null,
+        ts
+      });
+      const rep2 = recomputeReputationFromOutcomes([
+        mkRec('2026-11-17T10:00:00Z', 'PASS'),
+        mkRec('2026-11-17T11:00:00Z', 'PASS')
+      ], '2026-11-17T12:00:00Z');
+      const ranked2 = rankRecommendedSpecialists(['elena', 'dmitry'], 'backend', { reputation: rep2 }, '2026-11-17T12:00:00Z');
+      if (ranked2[0].name !== 'elena' || ranked2[1].active !== false) {
+        throw new Error(`Expected cold-start neutral order for n=2 (<3), got: ${JSON.stringify(ranked2)}`);
+      }
+      const rep3 = recomputeReputationFromOutcomes([
+        mkRec('2026-11-17T10:00:00Z', 'PASS'),
+        mkRec('2026-11-17T11:00:00Z', 'PASS'),
+        mkRec('2026-11-17T12:00:00Z', 'PASS')
+      ], '2026-11-17T12:00:00Z');
+      const ranked3 = rankRecommendedSpecialists(['elena', 'dmitry'], 'backend', { reputation: rep3 }, '2026-11-17T12:00:00Z');
+      if (ranked3[0].name !== 'dmitry' || !ranked3[0].active || !ranked3[0].label.includes('n=3')) {
+        throw new Error(`Expected dmitry ranked first with n=3 at threshold, got: ${JSON.stringify(ranked3)}`);
+      }
+    }
+  },
+  {
+    name: 'reputation_bounded_delta',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const mk = (i, outcome) => ({
+        taskHash: 't_' + i,
+        domain: 'backend',
+        mode: 'parallel',
+        roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }],
+        declaredAuthors: [],
+        outcome,
+        ts: '2026-11-17T12:00:00Z'
+      });
+      const rPass1 = recomputeReputationFromOutcomes([mk(1, 'PASS')], '2026-11-17T12:00:00Z').dmitry.backend.score;
+      const rFail1 = recomputeReputationFromOutcomes([mk(1, 'FAIL')], '2026-11-17T12:00:00Z').dmitry.backend.score;
+      if (Math.abs(rPass1 - REPUTATION_POLICY.priorScore) > REPUTATION_POLICY.maxDeltaPerObservation + 1e-6) {
+        throw new Error(`Single PASS delta exceeded cap: ${rPass1}`);
+      }
+      if (Math.abs(rFail1 - REPUTATION_POLICY.priorScore) > REPUTATION_POLICY.maxDeltaPerObservation + 1e-6) {
+        throw new Error(`Single FAIL delta exceeded cap: ${rFail1}`);
+      }
+      const manyPass = Array.from({ length: 40 }, (_, i) => mk(i, 'PASS'));
+      const manyFail = Array.from({ length: 40 }, (_, i) => mk(i, 'FAIL'));
+      const sMax = recomputeReputationFromOutcomes(manyPass, '2026-11-17T12:00:00Z').dmitry.backend.score;
+      const sMin = recomputeReputationFromOutcomes(manyFail, '2026-11-17T12:00:00Z').dmitry.backend.score;
+      if (sMax > 1.0 || sMax <= 0.5 || sMin < 0.0 || sMin >= 0.5) {
+        throw new Error(`Score out of bounds [0,1]: sMin=${sMin}, sMax=${sMax}`);
+      }
+    }
+  },
+  {
+    name: 'reputation_decay',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const recs = [1, 2, 3].map((i) => ({
+        taskHash: 'dec_' + i,
+        domain: 'backend',
+        mode: 'parallel',
+        roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }],
+        declaredAuthors: [],
+        outcome: 'PASS',
+        ts: '2026-01-01T00:00:00.000Z'
+      }));
+      const s0 = recomputeReputationFromOutcomes(recs, '2026-01-01T00:00:00.000Z').dmitry.backend.score;
+      const s30 = recomputeReputationFromOutcomes(recs, '2026-01-31T00:00:00.000Z').dmitry.backend.score;
+      const s90 = recomputeReputationFromOutcomes(recs, '2026-04-01T00:00:00.000Z').dmitry.backend.score;
+      const expectedHalf = 0.5 + (s0 - 0.5) * 0.5;
+      if (Math.abs(s30 - expectedHalf) > 0.005) {
+        throw new Error(`Expected 30-day half-life decay ~${expectedHalf.toFixed(4)}, got ${s30}`);
+      }
+      if (!(s0 > s30 && s30 > s90 && s90 > 0.5)) {
+        throw new Error(`Expected monotonic decay toward 0.5: s0=${s0}, s30=${s30}, s90=${s90}`);
+      }
+    }
+  },
+  {
+    name: 'reputation_cannot_drop_named_specialist_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor api low rep specialist quorum test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_lowrep', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_lowrep', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry, @elena' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_elena_only', args: { TypeName: 'elena', Role: 'Frontend Specialist' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_elena_only', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const ok = true;' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-lowrep-quorum');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(path.join(ws, '.hermes', 'instincts.json'), JSON.stringify({
+        version: 1,
+        instincts: [],
+        reputation: {
+          dmitry: { backend: { observations: 10, successes: 0, failures: 10, score: 0.05, lastTs: '2026-11-17T12:00:00.000Z' } }
+        }
+      }), 'utf-8');
+    }
+  },
+  {
+    name: 'authorship_not_in_roster_rejected',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor api unverified author test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_unver', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_unver', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_d_unver', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_d_unver', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const ok = true;' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-unver-author');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(path.join(ws, '.hermes', 'decisions.md'), '# Decision\n- Принятые идеи:\n  * Идея X (автор: @elena)\n', 'utf-8');
+      fs.writeFileSync(path.join(ws, '.hermes', 'test-summary.json'), JSON.stringify({
+        status: 'PASS', passed: 5, total: 5, failed: 0, timestamp: '2026-11-17T13:10:00.000Z'
+      }), 'utf-8');
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-unver-author');
+      const recs = fs.readFileSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'), 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+      if (!recs[0].declaredAuthors?.some((a) => a.name === 'elena' && a.source === 'lead_declared' && a.verifiedInRoster === false)) {
+        throw new Error(`Expected unverified elena in declaredAuthors, got: ${JSON.stringify(recs[0].declaredAuthors)}`);
+      }
+      const inst = JSON.parse(fs.readFileSync(path.join(ws, '.hermes', 'instincts.json'), 'utf-8'));
+      if (Object.keys(inst.reputation || {}).length !== 0) {
+        throw new Error(`Expected zero reputation updates when declared author not in roster, got: ${JSON.stringify(inst.reputation)}`);
+      }
+    }
+  },
+  {
+    name: 'solo_mode_no_specialist_reputation',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes solo mode no specialist rep test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_solo_rep', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_solo_rep', content: 'A1: Нет, оркестр решает сам (экономия токенов)' }
+    ],
+    payload: { lastUserInput: 'A1: Нет, оркестр решает сам (экономия токенов)', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const ok = true;' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-solo-rep');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(path.join(ws, '.hermes', 'test-summary.json'), JSON.stringify({
+        status: 'PASS', passed: 5, total: 5, failed: 0, timestamp: '2026-11-17T13:15:00.000Z'
+      }), 'utf-8');
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-solo-rep');
+      const inst = JSON.parse(fs.readFileSync(path.join(ws, '.hermes', 'instincts.json'), 'utf-8'));
+      if (Object.keys(inst.reputation || {}).length !== 0) {
+        throw new Error(`Expected zero specialist reputation for solo mode, got: ${JSON.stringify(inst.reputation)}`);
+      }
+    }
+  },
+  {
+    name: 'criteria_freeze_changed_after_r2_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes criteria freeze changed after r2 deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_cf_chg', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_cf_chg', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_cf1_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_cf1_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_cf1_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_cf1_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+      { step_index: 10, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+      { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 critique' },
+      { step_index: 13, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R3' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R3' } }] },
+      { step_index: 14, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 votes' },
+      { step_index: 15, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R3 votes' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-criteria-chg');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const boardPath = path.join(ws, '.hermes', 'council-roundtable.md');
+      // 1. Write original criteria and run hook at end of R2 (steps 0..12) so hook freezes criteria!
+      fs.writeFileSync(boardPath, '# Roundtable Board\n\n## Критерии оценки\n- Latency < 50ms\n- Zero heap alloc\n', 'utf-8');
+      const r2Tp = path.join(tmpDir, 't_cf_chg_r2.jsonl');
+      fs.writeFileSync(r2Tp, c.transcript.slice(0, 13).map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: c.payload.lastUserInput, workspacePaths: [ws], transcriptPath: r2Tp, toolCall: c.payload.toolCall }),
+        encoding: 'utf-8'
+      });
+      // 2. Now tamper criteria after R2 (metric-shopping!) before R3 acceptance
+      fs.writeFileSync(boardPath, '# Roundtable Board\n\n## Критерии оценки\n- Latency < 5000ms\n- Any alloc allowed\n', 'utf-8');
+    },
+    verify: (parsed) => {
+      const msg = parsed.reason || '';
+      if (!msg.includes('metric-shopping')) {
+        throw new Error(`Expected metric-shopping criteria freeze denial, got: ${msg}`);
+      }
+    }
+  },
+  {
+    name: 'criteria_freeze_unchanged_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes criteria freeze unchanged allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_cf_ok', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_cf_ok', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_cf2_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_cf2_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_cf2_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_cf2_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+      { step_index: 10, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+      { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 critique' },
+      { step_index: 13, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R3' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R3' } }] },
+      { step_index: 14, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 votes' },
+      { step_index: 15, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R3 votes' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-criteria-ok');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const boardPath = path.join(ws, '.hermes', 'council-roundtable.md');
+      fs.writeFileSync(boardPath, '# Roundtable Board\n\n## Критерии оценки\n- Latency < 50ms\n- Zero heap alloc\n', 'utf-8');
+      const r2Tp = path.join(tmpDir, 't_cf_ok_r2.jsonl');
+      fs.writeFileSync(r2Tp, c.transcript.slice(0, 13).map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: c.payload.lastUserInput, workspacePaths: [ws], transcriptPath: r2Tp, toolCall: c.payload.toolCall }),
+        encoding: 'utf-8'
+      });
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-criteria-ok');
+      if (!fs.existsSync(path.join(ws, '.hermes', 'council-criteria.json'))) {
+        throw new Error('council-criteria.json was not frozen at R2');
+      }
+    }
+  },
+  {
+    name: 'binding_uncertain_no_reputation',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor api uncertain multi invoke binding test\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_uncert', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_uncert', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry, @elena' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena', Role: 'Frontend' } }
+        ],
+        content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}\nCreated the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena R1' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-v46-uncertain');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(path.join(ws, '.hermes', 'test-summary.json'), JSON.stringify({
+        status: 'PASS', passed: 8, total: 8, failed: 0, timestamp: '2026-11-17T13:20:00.000Z'
+      }), 'utf-8');
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-uncertain');
+      const recs = fs.readFileSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'), 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+      if (!recs[0].roster || recs[0].roster.length !== 2 || !recs[0].roster.every((r) => r.bindingConfidence === 'uncertain')) {
+        throw new Error(`Expected uncertain bindingConfidence on multi-invoke without tool_call_id, got: ${JSON.stringify(recs[0].roster)}`);
+      }
+      const inst = JSON.parse(fs.readFileSync(path.join(ws, '.hermes', 'instincts.json'), 'utf-8'));
+      if (Object.keys(inst.reputation || {}).length !== 0) {
+        throw new Error(`Expected zero reputation accrued for uncertain bindings, got: ${JSON.stringify(inst.reputation)}`);
+      }
+    }
+  },
+  {
+    name: 'early_stop_skip_r3_phrasing_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop skip r3 phrasing allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_es_skip', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_es_skip', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_es_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_es_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_es_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_es_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+      { step_index: 10, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+      { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=[CONVERGED] Kritik agrees' },
+      { step_index: 13, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'es_q_skip', args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] } }] },
+      { step_index: 14, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'es_q_skip', content: 'Завершить сейчас, пропустить R3' }
+    ],
+    payload: { lastUserInput: 'Завершить сейчас, пропустить R3', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } },
+    verify: () => {
+      // Also verify "Завершить сейчас, без R3" is allowed!
+      const ws2 = path.join(tmpDir, 'ws-v46-es-bez-r3');
+      fs.mkdirSync(path.join(ws2, '.hermes'), { recursive: true });
+      const t2 = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop bez r3 phrasing allow\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_es_bez', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_es_bez', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+        { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_es2_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_es2_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+        { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_es2_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+        { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_es2_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+        { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+        { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+        { step_index: 10, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+        { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+        { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=[CONVERGED] Kritik agrees' },
+        { step_index: 13, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'es_q_bez', args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] } }] },
+        { step_index: 14, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'es_q_bez', content: 'Завершить сейчас, без R3' }
+      ];
+      const tp2 = path.join(tmpDir, 't_es_bez_r3.jsonl');
+      fs.writeFileSync(tp2, t2.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const out2 = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: 'Завершить сейчас, без R3', workspacePaths: [ws2], transcriptPath: tp2, toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } }),
+        encoding: 'utf-8'
+      }));
+      if (out2.decision !== 'allow') {
+        throw new Error(`Expected allow for "Завершить сейчас, без R3", got ${out2.decision}: ${out2.reason}`);
+      }
+    }
+  },
+  {
+    name: 'converged_marker_fallback_segment_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes converged fallback segment isolation deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_fb_seg', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_fb_seg', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_fb_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_fb_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_fb_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_fb_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'sender=aaaaaaaa-1111-2222-3333-444444444444: Dmitry R1\nsender=bbbbbbbb-1111-2222-3333-444444444444: Kritik R1' },
+      { step_index: 9, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+      {
+        step_index: 10,
+        source: 'SYSTEM',
+        type: 'SYSTEM_MESSAGE',
+        content: 'sender=aaaaaaaa-1111-2222-3333-444444444444: [CONVERGED] Dmitry thinks everything is fine\nsender=bbbbbbbb-1111-2222-3333-444444444444: Kritik still sees unresolved concurrency risks'
+      },
+      { step_index: 11, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'es_q_fb_seg', args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] } }] },
+      { step_index: 12, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'es_q_fb_seg', content: '1' }
+    ],
+    payload: { lastUserInput: '1', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'code' } } }
+  },
+  // Viktor v4.6.0 QA Audit Regression Locks (BLOCKER-1..4 + Advisory)
+  {
+    name: 'criteria_freeze_real_r2_board_edit_tamper_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes criteria freeze real r2 board tamper deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_c_real_cf', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_c_real_cf', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'tc_rcf_d', args: { TypeName: 'dmitry', Role: 'Backend' } }, { name: 'invoke_subagent', id: 'tc_rcf_k', args: { TypeName: 'kritik', Role: 'Critic' } }] },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_rcf_d', content: 'Created the following subagent:\n{"conversationId": "aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'tc_rcf_k', content: 'Created the following subagent:\n{"conversationId": "bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+      { step_index: 10, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'R2' } }, { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'R2' } }] },
+      { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 critique' }
+    ],
+    payload: {
+      lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik',
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: '.hermes/council-roundtable.md',
+          Content: '# Roundtable Board\n\n## Критерии оценки\n### Веса\n- Latency < 5000ms (relaxed!)\n'
+        }
+      }
+    },
+    setup: (c) => {
+      // Real R2 flow: NO artificial write_file('src/api.ts')! Only original board with ### subheading exists on disk.
+      const ws = path.join(tmpDir, 'ws-v46-real-r2-tamper');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'council-roundtable.md'),
+        '# Roundtable Board\n\n## Критерии оценки\n### Веса\n- Latency < 50ms (strict)\n',
+        'utf-8'
+      );
+    },
+    verify: (parsed) => {
+      const ws = path.join(tmpDir, 'ws-v46-real-r2-tamper');
+      if (!fs.existsSync(path.join(ws, '.hermes', 'council-criteria.json'))) {
+        throw new Error('council-criteria.json must be frozen on post-R2 board edit');
+      }
+      if (!(parsed.reason || '').includes('metric-shopping')) {
+        throw new Error(`Expected metric-shopping denial on real R2 board tamper, got: ${parsed.reason}`);
+      }
+    }
+  },
+  {
+    name: 'deny_shell_mv_cp_and_node_unlink_protected_artifacts',
+    expected: 'deny',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'mv fake.json .hermes/instincts.json' } } },
+    verify: () => {
+      const cmds = [
+        'cp fake.json .hermes/council-outcomes.jsonl',
+        'Copy-Item fake.json .hermes/instincts.json',
+        'Move-Item fake.json .hermes/council-criteria.json',
+        'Rename-Item .hermes/council-criteria.json old.json',
+        'ri .hermes/council-criteria.json',
+        'node -e "require(\'fs\').unlinkSync(\'.hermes/council-criteria.json\')"',
+        'node -e "require(\'fs\').copyFileSync(\'a\', \'.hermes/instincts.json\')"',
+        'python -c "import os; os.remove(\'.hermes/council-criteria.json\')"'
+      ];
+      for (const cmd of cmds) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'run_command', args: { CommandLine: cmd } } }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Shell bypass allowed for command: ${cmd}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'reputation_no_double_decay',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const recs = [1, 2, 3].map((i) => ({
+        taskHash: 'nd_' + i,
+        domain: 'backend',
+        mode: 'parallel',
+        roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }],
+        declaredAuthors: [],
+        outcome: 'PASS',
+        ts: '2026-01-01T00:00:00.000Z'
+      }));
+      const s0 = recomputeReputationFromOutcomes(recs, '2026-01-01T00:00:00.000Z').dmitry.backend.score;
+      const rep30 = recomputeReputationFromOutcomes(recs, '2026-01-31T00:00:00.000Z');
+      const expected30 = 0.5 + (s0 - 0.5) * 0.5;
+      const ranked30 = rankRecommendedSpecialists(['elena', 'dmitry'], 'backend', { reputation: rep30 }, '2026-01-31T00:00:00.000Z');
+      const dmitryScore = ranked30.find((r) => r.name === 'dmitry').effectiveScore;
+      if (Math.abs(dmitryScore - expected30) > 0.005) {
+        throw new Error(`Double decay detected! Expected ~${expected30.toFixed(4)}, got ${dmitryScore}`);
+      }
+    }
+  },
+  {
+    name: 'declared_authors_cyrillic_and_no_rejected_leak',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-decl-cyr');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'decisions.md'),
+        '# Решение старой задачи (taskHash: old_hash)\n- Принятые идеи:\n  * Старая идея @viktor\n\n# Решение текущей задачи (taskHash: cur_hash)\n- Принятые идеи:\n  * @dmitry предложил схему кэширования\n- Отклонённые варианты:\n  * Вариант B (автор: @elena)\n- Несогласие (Dissent):\n  * Замечание (автор: @kritik)\n',
+        'utf-8'
+      );
+      const authors = extractDeclaredAuthors(path.join(ws, '.hermes'), null, {}, 'cur_hash');
+      const names = authors.map((a) => a.name);
+      if (names.length !== 1 || names[0] !== 'dmitry') {
+        throw new Error(`Expected ONLY ["dmitry"], got: ${JSON.stringify(names)}`);
+      }
+    }
+  },
+  {
+    name: 'stale_artifact_not_reused_across_tasks',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v46-stale-cross-task');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'test-summary.json'),
+        JSON.stringify({ status: 'PASS', passed: 10, total: 10, failed: 0, timestamp: '2026-11-17T13:00:00.000Z' }),
+        'utf-8'
+      );
+      const stA = {
+        taskHash: 'task_A',
+        domain: 'backend',
+        mode: 'parallel',
+        roundsCompleted: 1,
+        roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }]
+      };
+      const stB = {
+        taskHash: 'task_B',
+        domain: 'frontend',
+        mode: 'parallel',
+        roundsCompleted: 1,
+        roster: [{ name: 'elena', uuid: 'bbbbbbbb-1111-2222-3333-444444444444', bindingConfidence: 'exact' }]
+      };
+      const r1 = syncCouncilOutcomeAndReputation({ activeWorkspaceDir: ws, taskHash: 'task_A', councilState: stA });
+      const r2 = syncCouncilOutcomeAndReputation({ activeWorkspaceDir: ws, taskHash: 'task_B', councilState: stB });
+      if (!r1.appended || r2.appended || r2.outcomesCount !== 1) {
+        throw new Error(`Stale artifact from task_A leaked to task_B: r1=${JSON.stringify(r1)}, r2=${JSON.stringify(r2)}`);
+      }
+    }
   }
 ];
 
@@ -2013,17 +2661,16 @@ let totalChecks = cases.length;
 const councilStateFile = path.join(process.cwd(), '.hermes', 'council-state.json');
 const progressJournalFile = path.join(process.cwd(), '.hermes', 'progress-journal.jsonl');
 const councilCostFile = path.join(process.cwd(), '.hermes', 'council-cost.jsonl');
+const councilOutcomesFile = path.join(process.cwd(), '.hermes', 'council-outcomes.jsonl');
+const instinctsFile = path.join(process.cwd(), '.hermes', 'instincts.json');
+const councilCriteriaFile = path.join(process.cwd(), '.hermes', 'council-criteria.json');
 
 try {
   cases.forEach((c, index) => {
-    if (fs.existsSync(councilStateFile)) {
-      try { fs.unlinkSync(councilStateFile); } catch {}
-    }
-    if (fs.existsSync(progressJournalFile)) {
-      try { fs.unlinkSync(progressJournalFile); } catch {}
-    }
-    if (fs.existsSync(councilCostFile)) {
-      try { fs.unlinkSync(councilCostFile); } catch {}
+    for (const f of [councilStateFile, progressJournalFile, councilCostFile, councilOutcomesFile, instinctsFile, councilCriteriaFile]) {
+      if (fs.existsSync(f)) {
+        try { fs.unlinkSync(f); } catch {}
+      }
     }
     if (c.setup) c.setup(c);
     const out = execFileSync('node', [hookPath], {

@@ -63,7 +63,7 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-004] Narrow `hermes-hardcode-ignore` Scope to Trigger Line (±1 Line) & ADR 0001 Schema Shim
 * **Priority:** P1
-* **Target Version:** v4.6.0
+* **Target Version:** v4.7.0
 * **Scope & Context:**
   - `hermes-hardcode-ignore` currently acts on the entire write operation. Narrow scope to the line of violation (±1 line).
   - **Spec Law «Done when»:** Negative test «ignore on line 5 does not suppress hardcode on line 40» is proven red on current codebase, green after fix.
@@ -73,19 +73,19 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-005] Subagent UUID FIFO Assignment Verification & tool_call_id Binding
 * **Priority:** P2
-* **Target Version:** v4.6.0
-* **Status:** [ГИПОТЕЗА]
-* **Scope & Context:**
-  - **Hypothesis:** FIFO distribution of UUIDs from `pendingSubagents` might misassign `viktor`/`kritik` if multiple subagents are invoked in a single step with out-of-order execution.
-  - **Cheapest Refuting Check (Дешевейшая проверка):** Deterministic test with two simultaneous `invoke_subagent` calls and reversed `conversationId` ordering in subsequent GENERIC steps.
-  - If platform does not guarantee sequential FIFO order: bind via `tool_call_id`.
-  - If platform guarantees FIFO order: document as a known platform constraint in `docs/adr/0001-l2-diff-review-and-anti-self-signing.md`.
+* **Target Version:** v4.6.0 (Partially Closed) -> v4.7.0 (Remainder)
+* **Status:** 🟡 PARTIALLY COMPLETED in v4.6.0
+* **Completed in v4.6.0:**
+  - Implemented `tool_call_id`-first `invoke_subagent -> conversationId` binding (`bindingConfidence: "exact"`) in `hooks/clean-edits-guard.mjs` (`verifyCouncilGate`), with single-invoke FIFO (`"fifo"`) and ambiguous multi-invoke marking (`"uncertain"`).
+  - Enforced that `"uncertain"` bindings continue to participate in quorum while strictly NOT accruing reputation (`binding_uncertain_no_reputation` lock).
+* **Honest Remainder (Next Step):**
+  - Extending identical `tool_call_id` binding verification to `hooks/qa-gate.mjs` L2 auditor (`viktor`/`kritik`) UUID extraction and validating out-of-order multi-invoke harness delivery under live Antigravity runtime remains open for `v4.7.0`.
 
 ---
 
 ### [TASK-006] Convoy Stall & Distributed Deadlock Detection Hook
 * **Priority:** P3
-* **Target Version:** Post-v4.6.0 Evaluation
+* **Target Version:** Post-v4.7.0 Evaluation
 * **Scope & Context:**
   Dynamic detection of circular dependency chains (`Worker A awaits Worker B awaits Worker A`) in multi-agent swarms using `.hermes/tasks.json` dependency graph.
 
@@ -179,3 +179,17 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Attributed `[CONVERGED]`/`[NO DISSENT]` strictly to devil's advocate sender UUID message chunks (preventing cross-sender contamination within multi-message SYSTEM steps).
   - Fixed numeric answer `"1"` on escalation window to enforce 3-stage roundtable instead of falling back to 1-round parallel council.
   - Documented Model Cascade protocol recommendation (with honest platform constraints), marked README demo output as illustrative example, synced Roadmaps with backlog, and added 15 deterministic test locks (463/463 PASS, guard 189).
+
+---
+
+### [TASK-014] Outcome-Based Council Learning: Outcome Ledger, Mechanical Domain Reputation & Criteria Freeze
+* **Priority:** P1
+* **Target Version:** v4.6.0
+* **Status:** ✅ COMPLETED in v4.6.0
+* **Resolution:**
+  - Implemented modular learning engine `hooks/council-learning.mjs` and wired into `hooks/clean-edits-guard.mjs` and `hooks/context-injector.mjs`.
+  - Added hook-written protected `.hermes/council-outcomes.jsonl` synced strictly from mechanical artifacts (`test-summary.json`, `qa-verdict.json`, `security-verdict.json`) — never MODEL prose — with `lead_declared` authorship verification against actual roster and solo exclusion.
+  - Added mechanical specialist × domain reputation inside protected `.hermes/instincts.json` (`observations >= 3` threshold, `[0, 1]` bounds, `±0.15` single-observation delta cap, `30`-day half-life decay toward `0.5`). Reputation strictly affects recommendations (`n=...`) and never alters quorum, `requiredCount`, user roster, or gate `allow`/`deny`.
+  - Implemented mechanical Criteria Freeze (`.hermes/council-criteria.json` SHA-256 hash at end of R2, verified before R3 acceptance -> `deny` on metric-shopping), documented protocol-level arbitrator role in `skills/hermes/references/council-learning-protocol.md`.
+  - Partially closed `TASK-005` (`tool_call_id` exact binding + `bindingConfidence: "uncertain"` skipping reputation while preserving quorum) and closed v4.5.1 audit tails (`early_stop` skip-R3 phrasing + fallback per-sender `[CONVERGED]` segment isolation).
+  - Added 21 deterministic test locks (16 REQ-7 + 5 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (210/210 PASS, 484/484 total across 11 suites).

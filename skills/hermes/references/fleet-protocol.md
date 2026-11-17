@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v4.5.1)
+# Регламент HERMES (Hermes Fleet Protocol v4.6.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 
@@ -60,7 +60,7 @@
 5. **Аудит, Чекпоинты, Durable-Журнал и Инстинкты (Rule 5):**
    - Чекпоинты — в `.hermes/checkpoint.md`, граф задач — в `.hermes/tasks.json`.
    - **Durable Recovery Journal (B6):** `.hermes/journal.jsonl` append-only (инструменты, гейты, волны, diffHash). `/hermes resume` восстанавливает состояние через replay журнала и сверку diffHash.
-   - **Инстинкты проекта (`.hermes/instincts.json`):** Подгрузка правил проекта (`confidence >= 0.7`) при старте. При `<!-- HERMES_COMPACT_SUGGESTED -->` — рекомендовать `/compact`.
+   - **Инстинкты (`.hermes/instincts.json`):** Правила (`conf>=0.7`) и репутация (только рекомендации: [council-learning-protocol.md](council-learning-protocol.md)). При `<!-- HERMES_COMPACT_SUGGESTED -->` — `/compact`.
 6. **Прямые вызовы (@специалист, Rule 6):** Запрос перенаправляется адресату через `send_message`, ответ возвращается пользователю.
 7. **Git-Flow (`[TASK-ID]`, Rule 7):** Формат `[TASK-ID] <type>: <description>`. Пуш строго после верификации Viktor и Stanislav.
 8. **Clean Edits & No Patch Scripts (Rule 8):** Правки через `edit_file`, новые — `write_file`. Патч-скрипты (`*.ps1`, `.bat`, `.py`) запрещены.
