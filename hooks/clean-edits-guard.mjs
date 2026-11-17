@@ -5,8 +5,9 @@ import {
   collectToolCalls,
   detectHermesInSteps,
   HERMES_AGENTS,
+  HERMES_AGENT_ALIASES,
   isHermesTrigger,
-   isRealUserStep,
+  isRealUserStep,
   parseJsonl,
   readTranscriptSlices
 } from './hermes-trigger.mjs';
@@ -729,14 +730,29 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   let requiredCount = 1;
   let expectedNames = [];
 
+  const resolveAgentName = (raw) => {
+    const lower = String(raw || '').toLowerCase();
+    const resolved = HERMES_AGENT_ALIASES[lower] || lower;
+    return HERMES_AGENTS.has(resolved) ? resolved : null;
+  };
+
+  const extractValidAgents = (text) => {
+    const rawNames = [...String(text || '').matchAll(/@([a-z0-9_-]+)/gi)]
+      .map((m) => resolveAgentName(m[1]))
+      .filter(Boolean);
+    return [...new Set(rawNames)];
+  };
+
   if (isOption2) {
-    requiredCount = 1;
-    const rawNames = [...(councilAnswer + ' ' + option2Text).matchAll(/@([a-z0-9_-]+)/gi)].map((m) => m[1].toLowerCase());
-    expectedNames = [...new Set(rawNames)];
+    const answerAgents = extractValidAgents(councilAnswer);
+    const optionAgents = extractValidAgents(option2Text);
+    expectedNames = answerAgents.length > 0 ? answerAgents : optionAgents;
+    requiredCount = expectedNames.length > 0 ? expectedNames.length : 1;
   } else {
     // Option 1 (Full Council) or auto
-    const rawNames = [...(councilAnswer + ' ' + option1Text).matchAll(/@([a-z0-9_-]+)/gi)].map((m) => m[1].toLowerCase());
-    expectedNames = [...new Set(rawNames)];
+    const answerAgents = extractValidAgents(councilAnswer);
+    const optionAgents = extractValidAgents(option1Text);
+    expectedNames = answerAgents.length > 0 ? answerAgents : optionAgents;
     requiredCount = expectedNames.length > 0 ? expectedNames.length : 1;
   }
 
@@ -749,19 +765,24 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     const s = combinedSteps[i];
     for (const tc of collectToolCalls(s)) {
       if (String(tc?.name || '').toLowerCase() === 'invoke_subagent') {
-        const tName = String(tc?.args?.TypeName || tc?.args?.typeName || '').toLowerCase();
-        if (tName) dispatchedTypes.add(tName);
+        const specs = extractSubagentSpecs(tc?.args);
+        for (const spec of specs) {
+          const rawTName = String(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '')
+            .replace(/^@/, '')
+            .toLowerCase();
+          const resolved = resolveAgentName(rawTName);
+          if (resolved) dispatchedTypes.add(resolved);
+          else if (rawTName) dispatchedTypes.add(rawTName);
+        }
       }
     }
     const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
-    const createdMatch = contentStr.match(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/i);
-    if (createdMatch) {
-      dispatchedUuids.add(createdMatch[1].toLowerCase());
+    for (const m of contentStr.matchAll(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)) {
+      dispatchedUuids.add(m[1].toLowerCase());
     }
     if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
-      const senderMatch = contentStr.match(/sender=["']?([0-9a-f-]{36})["']?/i);
-      if (senderMatch) {
-        deliveredUuids.add(senderMatch[1].toLowerCase());
+      for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) {
+        deliveredUuids.add(m[1].toLowerCase());
       }
     }
   }
@@ -779,6 +800,18 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       `Hermes Gate (Council Gate): По выбранному варианту совета требуется запуск минимум ${requiredCount} специалист(ов), но запущено ${dispatchedUuids.size}. Запустите всех требуемых специалистов перед первой записью.\n[EN: Hermes Gate (Council Gate): Selected council option requires >= ${requiredCount} specialists, but only ${dispatchedUuids.size} dispatched.]`
     );
     process.exit(0);
+  }
+
+  // REQ-1 (v4.2.2): Check named specialist coverage if expectedNames is not empty
+  if (expectedNames.length > 0) {
+    const missingNames = expectedNames.filter((name) => !dispatchedTypes.has(name));
+    if (missingNames.length > 0) {
+      const missingList = missingNames.map((n) => `@${n}`).join(', ');
+      deny(
+        `Hermes Gate (Council Gate): По выбранному варианту совета не запущены обязательные специалисты: ${missingList}. Запустите всех назначенных специалистов через invoke_subagent перед первой записью.\n[EN: Hermes Gate (Council Gate): Missing required council specialists: ${missingList}. Invoke all designated specialists via invoke_subagent before writing.]`
+      );
+      process.exit(0);
+    }
   }
 
   const pendingUuids = [...dispatchedUuids].filter((id) => !deliveredUuids.has(id));

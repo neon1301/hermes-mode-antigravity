@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.2.2] - 2026-11-17
+
+### Specialist Council Quorum by Name & Reporting Hygiene (HERMES-COUNCIL-NAMES)
+- **Named Specialist Quorum Enforcement (REQ-1):**
+  - Updated `verifyCouncilGate` in `hooks/clean-edits-guard.mjs`: `expectedNames` are filtered to valid fleet specialists (`HERMES_AGENTS`), ignoring extraneous `@tokens`.
+  - Added named coverage verification: detects `missingNames` not invoked in `dispatchedTypes` and denies with actionable error specifying missing specialists.
+  - Enriched existing council fixtures with authentic `invoke_subagent` calls with `TypeName`.
+  - Added 4 deterministic test locks:
+    - `deny_council_gate_option1_missing_named_specialist` (counts match, but wrong specialist invoked)
+    - `allow_council_gate_option1_all_named_specialists_present` (all expected specialists invoked and delivered)
+    - `deny_council_gate_option2_wrong_key_specialist` (key specialist mismatch)
+    - `allow_council_gate_option2_correct_key_specialist_with_invoke` (correct key specialist invoked and delivered)
+- **Reporting & Core Measurement Hygiene (REQ-2):**
+  - Added measurement requirement to `docs/release-checklist.md`: core protocol size and test totals must be measured directly from disk and `.hermes/test-summary.json`, never recalled from memory.
+  - Verified exact core `fleet-protocol.md` size adherence to the $\le 12\,288$ B budget.
+
 ## [4.2.1] - 2026-11-17
 
 ### Council Gate Hardening & Delayed Honesty (HERMES-COUNCIL-HARDENING)

@@ -305,7 +305,13 @@ const cases = [
       { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
       { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_3', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?' }] } }] },
       { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_3', content: 'A1: (Recommended) Собрать совет: @dmitry' },
-      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Created the following subagent:\n{\n  "conversationId": "11111111-2222-3333-4444-555555555555"\n}' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "11111111-2222-3333-4444-555555555555"\n}'
+      },
       { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=11111111-2222-3333-4444-555555555555 content=[BACKEND PASS] Blueprint approved' }
     ],
     payload: { lastUserInput: 'A1: (Recommended) Собрать совет: @dmitry', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const x = 1;' } } }
@@ -396,7 +402,13 @@ const cases = [
       { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes standard feature\n</USER_REQUEST>' },
       { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
       { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
-      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Created the following subagent:\n{\n  "conversationId": "22222222-3333-4444-5555-666666666666"\n}' },
+      {
+        step_index: 3,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "22222222-3333-4444-5555-666666666666"\n}'
+      },
       { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=22222222-3333-4444-5555-666666666666 content=[BACKEND PASS] Blueprint approved' }
     ],
     payload: { lastUserInput: '/hermes standard feature', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const z = 3;' } } }
@@ -443,10 +455,112 @@ const cases = [
       { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
       { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_opt2', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
       { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_opt2', content: 'A1: Только ключевой специалист: @dmitry' },
-      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Created the following subagent:\n{\n  "conversationId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"\n}' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Key Specialist' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"\n}'
+      },
       { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-cccc-dddd-eeee-ffffffffffff content=Dmitry solo review' }
     ],
     payload: { lastUserInput: '/hermes focused feature', toolCall: { name: 'write_file', args: { Path: 'src/focused.ts', Content: 'code' } } }
+  },
+  {
+    name: 'deny_council_gate_option1_missing_named_specialist',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes full feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_m1', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor — параллельные мнения + сравнительная таблица', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_m1', content: 'A1: (Recommended) Собрать совет: @dmitry, @elena, @viktor' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena' } },
+          { name: 'invoke_subagent', args: { TypeName: 'sergey' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "11111111-1111-1111-1111-111111111111"\n}\nCreated the following subagent:\n{\n  "conversationId": "22222222-2222-2222-2222-222222222222"\n}\nCreated the following subagent:\n{\n  "conversationId": "33333333-3333-3333-3333-333333333333"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=11111111-1111-1111-1111-111111111111 content=Dmitry review' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=22222222-2222-2222-2222-222222222222 content=Elena review' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=33333333-3333-3333-3333-333333333333 content=Sergey review' }
+    ],
+    payload: { lastUserInput: '/hermes full feature', toolCall: { name: 'write_file', args: { Path: 'src/feature.ts', Content: 'code' } } }
+  },
+  {
+    name: 'allow_council_gate_option1_all_named_specialists_present',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes full feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_m2', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor — параллельные мнения + сравнительная таблица', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_m2', content: 'A1: (Recommended) Собрать совет: @dmitry, @elena, @viktor' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena' } },
+          { name: 'invoke_subagent', args: { TypeName: 'viktor' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "11111111-1111-1111-1111-111111111111"\n}\nCreated the following subagent:\n{\n  "conversationId": "22222222-2222-2222-2222-222222222222"\n}\nCreated the following subagent:\n{\n  "conversationId": "33333333-3333-3333-3333-333333333333"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=11111111-1111-1111-1111-111111111111 content=Dmitry review' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=22222222-2222-2222-2222-222222222222 content=Elena review' },
+      { step_index: 8, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=33333333-3333-3333-3333-333333333333 content=Viktor review' }
+    ],
+    payload: { lastUserInput: '/hermes full feature', toolCall: { name: 'write_file', args: { Path: 'src/feature.ts', Content: 'code' } } }
+  },
+  {
+    name: 'deny_council_gate_option2_wrong_key_specialist',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes key feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_opt2_wrong', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_opt2_wrong', content: 'A1: Только ключевой специалист: @dmitry' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'sergey' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "44444444-4444-4444-4444-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=44444444-4444-4444-4444-444444444444 content=Sergey solo review' }
+    ],
+    payload: { lastUserInput: '/hermes key feature', toolCall: { name: 'write_file', args: { Path: 'src/key.ts', Content: 'code' } } }
+  },
+  {
+    name: 'allow_council_gate_option2_correct_key_specialist_with_invoke',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes key feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_opt2_corr', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_opt2_corr', content: 'A1: Только ключевой специалист: @dmitry' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'dmitry' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "55555555-5555-5555-5555-555555555555"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=55555555-5555-5555-5555-555555555555 content=Dmitry solo review' }
+    ],
+    payload: { lastUserInput: '/hermes key feature', toolCall: { name: 'write_file', args: { Path: 'src/key.ts', Content: 'code' } } }
   },
   {
     name: 'deny_council_gate_negated_solo_choice',
