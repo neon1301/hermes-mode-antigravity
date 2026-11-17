@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.5.0] - 2026-11-17
+
+### Council Token Economy, Progress Journal, Stall Circuit Breaker & Escalation (HERMES-COUNCIL-STALL-ESCALATE)
+- **Early Stop via 2FA & Dissent Dominance (REQ-1):**
+  - Added optional Early Stop `ask_question` dialog after Stage 2: «Стол сошёлся: завершить без стадии ранжирования (R3)?» with options `(1) Завершить сейчас (экономия)` and `(2) Провести R3 (полный протокол)`.
+  - Fail-closed mechanical conjunction in `clean-edits-guard.mjs`: early stop allowed strictly when user explicitly chooses Option 1, full R1/R2 deliveries are verified, and devil's advocate (`@kritik` / `@stanislav`) delivered authentic `[CONVERGED]` / `[NO DISSENT]` without any `[DISSENT]`.
+  - Dissent Dominance: `[DISSENT]` unconditionally overrides consensus and makes Stage 3 mandatory. State tracked as `earlyStop: true, requiredRounds: 2, roundsCompleted: 2, reason: "early_stop_converged"`.
+- **Agent Dropout / Pruning without Weakening Quorum (REQ-2):**
+  - Lead may prune ONLY extra members not named in user-selected option (`extra = dispatchedTypes \ expectedNames`).
+  - Pruning named specialists, devil's advocates (`kritik`/`stanislav`), or dropping below required quorum is blocked (`deny`).
+  - Pruned members recorded in `council-state.json` (`prunedUuids`); subsequent waves evaluate against active roster.
+- **Progress Journal, Stall Circuit Breaker & Escalation (REQ-3):**
+  - Protected artifact `.hermes/progress-journal.jsonl` added to `protectedVerdictPaths` and shell mutate patterns.
+  - Test/QA outcomes synced strictly from protected machine artifacts (`.hermes/test-summary.json`, `qa-verdict.json`, `security-verdict.json`). Fabricated prose assertions ignored (Rule 13).
+  - Circuit Breaker: $\ge 3$ consecutive FAIL records on the same `taskHash` without intervening PASS triggers `stalled`.
+  - Further write operations blocked (`deny`) until: (a) escalation roundtable via `ask_question`, (b) validated user override («продолжить сам»), or (c) mechanical PASS.
+  - Escalation recorded in `council-state.json` (`escalation: { taskHash, status, mode, timestamp }`) without corrupting base decision.
+- **Model Cascade & Honest Cost Telemetry (REQ-4):**
+  - Token usage recorded in `.hermes/council-cost.jsonl`. When usage is absent from host/payload, logged as `{ tokens: null, source: "unavailable" }` without fabricated numbers (Rule 13).
+  - Price tags in council window labeled «оценка (диапазон)» or «измерено» when $\ge 3$ empirical measurements exist.
+- **Structural Recognition of Option 2 (REQ-5):**
+  - In 3-option windows where Option 3 is solo, selection of Option 2 (including numeric `"2"`) is unconditionally recognized as `roundtable`.
+- **Deterministic Test Suite Expansion (REQ-6):**
+  - Added 15 new deterministic test locks in `clean-edits-guard.test.mjs` (174/174 PASS):
+    * `deny_write_file_progress_journal`, `numeric_option2_without_markers_is_roundtable_deny`, `early_stop_without_user_answer_deny`, `early_stop_forged_model_prose_deny`, `early_stop_user_approved_converged_allow`, `early_stop_opponent_dissent_requires_r3_deny`, `prune_extra_member_allow`, `prune_named_specialist_deny`, `prune_devil_advocate_deny`, `stall_three_failures_blocks_write_deny`, `stall_forged_prose_deny`, `stall_validated_user_override_allow`, `stall_escalation_roundtable_allow`, `stall_reset_on_real_pass_allow`, `cost_telemetry_no_fabricated_numbers`.
+
 ## [4.4.0] - 2026-11-17
 
 ### Canonical 3-Stage Roundtable (NGT / Delphi), Devil's Advocate & Dissent Preservation (HERMES-ROUNDTABLE-NGT)

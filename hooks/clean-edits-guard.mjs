@@ -253,6 +253,10 @@ const SHELL_MUTATE_PATTERNS = [
       'i'
     )
   },
+  {
+    name: 'shell redirect or write to protected hermes artifact',
+    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|\s["'])(?:set-content|out-file|add-content|tee(?:-object)?)\b[^\n|;&]*\.hermes[\\/](?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost)\.(?:json|jsonl)\b|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/][^"\n]*\.(?:json|jsonl)"|'[^'\n]*\.hermes[\\/][^'\n]*\.(?:json|jsonl)'|[^\s"'|;&>]*\.hermes[\\/][^\s"'|;&>]*\.(?:json|jsonl))(?=$|[\s"'|;&])/i
+  },
   { name: 'git apply', re: /(?:^|[;&|\n]\s*)git\s+apply\b/i }
 ];
 
@@ -479,6 +483,140 @@ function isMetaOrArtifactPath(filePath) {
          norm.includes('/brain/');
 }
 
+function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
+  const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+  const journalPath = path.join(hermesDir, 'progress-journal.jsonl');
+  let currentOutcome = null;
+  let currentDiffHash = null;
+  let artifactTimestamp = null;
+
+  // 1. Check test-summary.json
+  const summaryPath = path.join(hermesDir, 'test-summary.json');
+  if (fs.existsSync(summaryPath)) {
+    try {
+      const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+      const isFailed = (String(summary.status).toUpperCase() === 'COMPLETED' && (summary.failed > 0 || (summary.total - summary.passed) > 0)) ||
+                       (summary.status && String(summary.status).toUpperCase() === 'FAIL');
+      const isPassed = (String(summary.status).toUpperCase() === 'PASS') && (!summary.failed || summary.failed === 0);
+      if (isFailed) {
+        currentOutcome = 'FAIL';
+        artifactTimestamp = summary.timestamp || summary.ts || null;
+      } else if (isPassed) {
+        currentOutcome = 'PASS';
+        artifactTimestamp = summary.timestamp || summary.ts || null;
+      }
+    } catch {}
+  }
+
+  // 2. Check qa-verdict.json / security-verdict.json
+  const qaVerdictPath = path.join(hermesDir, 'qa-verdict.json');
+  if (fs.existsSync(qaVerdictPath)) {
+    try {
+      const qav = JSON.parse(fs.readFileSync(qaVerdictPath, 'utf-8'));
+      if (qav.diffHash) currentDiffHash = qav.diffHash;
+      if (String(qav.status).toUpperCase() === 'REJECT') {
+        currentOutcome = 'FAIL';
+        artifactTimestamp = qav.timestamp || qav.ts || artifactTimestamp;
+      } else if (String(qav.status).toUpperCase() === 'PASS' && currentOutcome !== 'FAIL') {
+        currentOutcome = 'PASS';
+        artifactTimestamp = qav.timestamp || qav.ts || artifactTimestamp;
+      }
+    } catch {}
+  }
+
+  const secVerdictPath = path.join(hermesDir, 'security-verdict.json');
+  if (fs.existsSync(secVerdictPath)) {
+    try {
+      const sv = JSON.parse(fs.readFileSync(secVerdictPath, 'utf-8'));
+      if (String(sv.status).toUpperCase() === 'REJECT') {
+        currentOutcome = 'FAIL';
+        artifactTimestamp = sv.timestamp || sv.ts || artifactTimestamp;
+      }
+    } catch {}
+  }
+
+  let lastEntry = null;
+  let consecutiveFails = 0;
+  if (fs.existsSync(journalPath)) {
+    try {
+      const lines = fs.readFileSync(journalPath, 'utf-8').split(/\r?\n/).filter(Boolean);
+      for (const line of lines) {
+        try {
+          const rec = JSON.parse(line);
+          if (rec.taskHash === taskHash) {
+            lastEntry = rec;
+            if (rec.outcome === 'FAIL') consecutiveFails++;
+            else if (rec.outcome === 'PASS') consecutiveFails = 0;
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  if (currentOutcome) {
+    const isNewTimestamp = artifactTimestamp && lastEntry?.ts
+      ? new Date(artifactTimestamp).getTime() > new Date(lastEntry.ts).getTime()
+      : (!lastEntry);
+    const isNew = isNewTimestamp && (!lastEntry ||
+      lastEntry.outcome !== currentOutcome ||
+      (currentDiffHash && lastEntry.diffHash !== currentDiffHash));
+
+    if (isNew) {
+      if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+      const record = {
+        taskHash,
+        outcome: currentOutcome,
+        diffHash: currentDiffHash || null,
+        ts: artifactTimestamp || new Date().toISOString()
+      };
+      try {
+        fs.appendFileSync(journalPath, JSON.stringify(record) + '\n', 'utf-8');
+        if (currentOutcome === 'FAIL') consecutiveFails++;
+        else if (currentOutcome === 'PASS') consecutiveFails = 0;
+      } catch {}
+    }
+  }
+
+  return { consecutiveFails, isStalled: consecutiveFails >= 3 };
+}
+
+function recordCouncilCost({ activeWorkspaceDir, taskHash, mode, combinedSteps, payload }) {
+  try {
+    const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+    if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+    const costFile = path.join(hermesDir, 'council-cost.jsonl');
+
+    let totalTokens = null;
+    let foundUsage = false;
+
+    for (const s of combinedSteps || []) {
+      if (s?.usage && (typeof s.usage.total_tokens === 'number' || typeof s.usage.input_tokens === 'number')) {
+        const inp = Number(s.usage.input_tokens || 0);
+        const out = Number(s.usage.output_tokens || 0);
+        const tot = typeof s.usage.total_tokens === 'number' ? s.usage.total_tokens : (inp + out);
+        totalTokens = (totalTokens || 0) + tot;
+        foundUsage = true;
+      }
+    }
+    if (payload?.usage && (typeof payload.usage.total_tokens === 'number' || typeof payload.usage.input_tokens === 'number')) {
+      const inp = Number(payload.usage.input_tokens || 0);
+      const out = Number(payload.usage.output_tokens || 0);
+      const tot = typeof payload.usage.total_tokens === 'number' ? payload.usage.total_tokens : (inp + out);
+      totalTokens = (totalTokens || 0) + tot;
+      foundUsage = true;
+    }
+
+    const costRecord = {
+      taskHash,
+      mode,
+      tokens: foundUsage ? totalTokens : null,
+      source: foundUsage ? 'transcript' : 'unavailable',
+      timestamp: new Date().toISOString()
+    };
+    fs.appendFileSync(costFile, JSON.stringify(costRecord) + '\n', 'utf-8');
+  } catch {}
+}
+
 function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const isFileWrite = FILE_WRITE_TOOLS.has(toolName);
   const writeTargetPath = isFileWrite ? String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '') : '';
@@ -584,6 +722,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const convId = String(payload?.conversationId || transcriptPath || '');
   const turnMarker = taskStartStep?.step_index ?? taskStartIdx;
 
+  // REQ-3 (v4.5.0): Progress Journal & Stall Circuit Breaker
+  const { consecutiveFails, isStalled } = syncProgressJournal({ activeWorkspaceDir, taskHash });
+
   // Check state on disk (.hermes/council-state.json)
   const councilStatePath = path.join(activeWorkspaceDir, '.hermes', 'council-state.json');
   let existingState = null;
@@ -593,7 +734,96 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     } catch {}
   }
 
-  if (existingState && existingState.status === 'APPROVED') {
+  let stallResolved = false;
+  let escalationAskIdx = -1;
+  let escalationAskToolCallId = '';
+
+  if (isStalled) {
+    const esc = existingState?.escalation;
+    if (esc && esc.taskHash === taskHash && (esc.status === 'OVERRIDE' || esc.status === 'APPROVED')) {
+      stallResolved = true;
+    }
+  }
+
+  // If stalled and not resolved, check transcript for escalation ask_question / user override
+  if (isStalled && !stallResolved) {
+    const ESCALATION_QUESTION_RE = /(?:застряли.*собрать\s+стол|собрать\s+стол\s+после\s+ошибок|застряли|эскалация|escalat)/i;
+    for (let i = taskStartIdx; i < combinedSteps.length; i++) {
+      const s = combinedSteps[i];
+      for (const tc of collectToolCalls(s)) {
+        if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+          const qText = JSON.stringify(tc?.args || '');
+          if (ESCALATION_QUESTION_RE.test(qText)) {
+            escalationAskIdx = i;
+            escalationAskToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+          }
+        }
+      }
+    }
+
+    let escalationAnswer = '';
+    if (escalationAskIdx >= 0) {
+      for (let i = escalationAskIdx + 1; i < combinedSteps.length; i++) {
+        const s = combinedSteps[i];
+        const isDirectNext = i === escalationAskIdx + 1;
+        const sContent = String(s?.content || '');
+        const stepType = String(s?.type || '').toUpperCase();
+        const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
+        const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
+        const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+        const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
+        const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+        const isBoundByToolId = Boolean(escalationAskToolCallId && stepToolCallId && stepToolCallId === escalationAskToolCallId);
+        const isSystemToolOutput = (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') && isBoundByToolId && isGenericOrTool && !s?.sender && !/<SYSTEM_MESSAGE/i.test(sContent);
+        const isBoundOrUnboundDirectNext = escalationAskToolCallId ? isBoundByToolId : (isDirectNext && !stepToolCallId);
+        const isAuthenticHarnessOutput = isDirectNext && isGenericOrTool && hasStatusDone && isBoundOrUnboundDirectNext && hasHarnessBanner;
+        if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
+          escalationAnswer = sContent;
+          break;
+        }
+      }
+    }
+
+    const trimmedEsc = escalationAnswer.trim();
+    const OVERRIDE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*(?:продолжить\s+сам|решать\s+самому|override|сам)?|(?:продолжить\s+сам|решать\s+самому|override|lead\s+сам|сам\b)/i;
+    const ESCALATION_ROUNDTABLE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?1[:.)]?\s*(?:собрать\s+стол|стол|roundtable)?|(?:собрать\s+стол|круглый\s+стол|roundtable)/i;
+
+    if (trimmedEsc && OVERRIDE_RE.test(trimmedEsc)) {
+      try {
+        const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+        if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+        const updatedState = existingState || {
+          conversationId: convId,
+          turnMarker,
+          taskHash,
+          task: cleanPrompt.slice(0, 100),
+          mode: 'solo',
+          decision: 'solo',
+          status: 'APPROVED',
+          timestamp: new Date().toISOString()
+        };
+        updatedState.escalation = {
+          taskHash,
+          status: 'OVERRIDE',
+          mode: 'solo',
+          timestamp: new Date().toISOString()
+        };
+        fs.writeFileSync(councilStatePath, JSON.stringify(updatedState, null, 2), 'utf-8');
+      } catch {}
+      stallResolved = true;
+      logGateDecision({ toolName, decision: 'allow', reason: 'Stall resolved: validated user override' });
+      return;
+    } else if (trimmedEsc && ESCALATION_ROUNDTABLE_RE.test(trimmedEsc)) {
+      // Escalation roundtable will proceed to council check below
+    } else {
+      deny(
+        `Hermes Gate (Stall Escalation): Зафиксировано ${consecutiveFails} последовательных провалов тестов/QA по текущей задаче (stalled). Дальнейшая запись кода заблокирована!\nЧтобы продолжить, выберите один из путей:\n1) Эскалация: проведите опрос пользователя через ask_question («Застряли: собрать стол?») и соберите круглый стол;\n2) Получите явный ответ пользователя с разрешением продолжить самостоятельно (override);\n3) Исправьте код так, чтобы механические тесты вернули PASS.\n[EN: Hermes Gate (Stall Escalation): Task stalled after ${consecutiveFails} consecutive test/QA failures. Further writes blocked until escalation roundtable, user override, or real PASS.]`
+      );
+      process.exit(0);
+    }
+  }
+
+  if (existingState && existingState.status === 'APPROVED' && (!isStalled || stallResolved)) {
     // REQ-5: loop-reuse bound strictly to same taskHash (not word "loop")
     const taskMatches = existingState.taskHash === taskHash;
     const convMatches = !convId || !existingState.conversationId || existingState.conversationId === convId;
@@ -622,6 +852,11 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
   }
 
+  if (isStalled && escalationAskIdx >= 0 && councilAskIdx < 0) {
+    councilAskIdx = escalationAskIdx;
+    councilAskToolCallId = escalationAskToolCallId;
+  }
+
   if (councilGateConfig !== 'auto' && councilAskIdx < 0) {
     deny(
       `Hermes Gate (Council Gate): Первая запись задачи (${toolName}) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»\n[EN: Hermes Gate (Council Gate): First write of task (${toolName}) is blocked until Council Gate is completed via ask_question.]`
@@ -634,6 +869,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   let option1Text = '';
   let option2Text = '';
   let option3Text = '';
+  let optionsCount = 0;
 
   if (councilAskIdx >= 0) {
     const askStep = combinedSteps[councilAskIdx];
@@ -644,6 +880,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
           option1Text = String(qList[0].options[0] || '');
           option2Text = String(qList[0].options[1] || '');
           option3Text = String(qList[0].options[2] || '');
+          optionsCount = qList[0].options.length;
         }
       }
     }
@@ -734,15 +971,21 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     return;
   }
 
-  // REQ-1 & REQ-2 (v4.3.0): Mode determination (Roundtable vs. Parallel)
-  const ROUNDTABLE_RE = /(?:за\s+столом|круглый\s+стол|собрание|живое\s+обсуждение|roundtable)/i;
+  // REQ-1 & REQ-2 (v4.3.0) & REQ-5 (v4.5.0): Mode determination (Roundtable vs. Parallel)
+  const ROUNDTABLE_RE = /(?:за\s+столом|круглый\s+стол|собрать\s+стол|собрание|живое\s+обсуждение|roundtable)/i;
   const OPTION_2_INDEX_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*$/i;
   const OPTION_KEY_SPECIALIST_RE = /(?:только\s+ключевой\s+специалист|ключевой\s+специалист|key\s+specialist)/i;
+
+  const isStructuralRoundtableOption2 =
+    OPTION_2_INDEX_RE.test(trimmedAnswer) &&
+    !OPTION_KEY_SPECIALIST_RE.test(option2Text) &&
+    (optionsCount === 3 && (POSITIVE_SOLO_RE.test(option3Text) || /(?:сам|экономия)/i.test(option3Text)));
 
   // auto mode is ALWAYS parallel (roundtable only on explicit option 2 / roundtable choice)
   const isRoundtable = councilGateConfig !== 'auto' && (
     ROUNDTABLE_RE.test(trimmedAnswer) ||
-    (OPTION_2_INDEX_RE.test(trimmedAnswer) && ROUNDTABLE_RE.test(option2Text))
+    (OPTION_2_INDEX_RE.test(trimmedAnswer) && ROUNDTABLE_RE.test(option2Text)) ||
+    isStructuralRoundtableOption2
   );
 
   const isLegacyKeySpecialist = !isRoundtable && (
@@ -791,6 +1034,8 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const dispatchedTypes = new Set();
   const agentToUuid = new Map();
   const uuidToAgent = new Map();
+  const opponentTypes = ['kritik', 'stanislav'];
+  const opponentR2Deliveries = [];
   const r1DeliveredUuids = new Set();
   const r2DispatchedUuids = new Set();
   const r2DeliveredUuids = new Set();
@@ -848,7 +1093,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
           const r2WaveReady = r1DeliveredUuids.size >= requiredCount &&
             [...dispatchedUuids].every((u) => r1DeliveredUuids.has(u));
           const r3WaveReady = r2WaveReady && r2DeliveredUuids.size >= requiredCount &&
-            [...dispatchedUuids].every((u) => r2DeliveredUuids.has(u));
+            [...r2DispatchedUuids].every((u) => r2DeliveredUuids.has(u));
 
           if (r3WaveReady && r2DeliveredUuids.has(recipient)) {
             r3DispatchedUuids.add(recipient);
@@ -874,6 +1119,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
             r3DeliveredUuids.add(senderUuid);
           } else if (r2DispatchedUuids.has(senderUuid)) {
             r2DeliveredUuids.add(senderUuid);
+            if (opponentTypes.includes(uuidToAgent.get(senderUuid))) {
+              opponentR2Deliveries.push(contentStr);
+            }
           } else {
             r1DeliveredUuids.add(senderUuid);
           }
@@ -922,26 +1170,58 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       process.exit(0);
     }
 
-    // REQ-1 (v4.4.0): Check Stage 2 send_message distribution
-    const pendingR2Dispatches = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
+    // REQ-2 (v4.5.0): Agent Dropout / Pruning before Stage 2
+    const prunedUuids = new Set();
+    const omittedFromR2 = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
+
+    if (omittedFromR2.length > 0) {
+      for (const u of omittedFromR2) {
+        const aName = uuidToAgent.get(u) || '';
+        if (expectedNames.includes(aName)) {
+          deny(
+            `Hermes Gate (Council Gate): Попытка исключить названного специалиста (@${aName}) из круглого стола запрещена! Исключать разрешено только дополнительных участников (не названных в выбранном варианте).\n[EN: Hermes Gate (Council Gate): Attempt to prune named specialist (@${aName}) from roundtable is forbidden.]`
+          );
+          process.exit(0);
+        }
+        if (opponentTypes.includes(aName)) {
+          deny(
+            `Hermes Gate (Council Gate): Попытка исключить назначенного адвоката дьявола (@${aName}) из круглого стола запрещена! Присутствие оппонента обязательно во всех стадиях.\n[EN: Hermes Gate (Council Gate): Attempt to prune devil's advocate (@${aName}) from roundtable is forbidden.]`
+          );
+          process.exit(0);
+        }
+      }
+      if ((dispatchedUuids.size - omittedFromR2.length) < requiredCount) {
+        deny(
+          `Hermes Gate (Council Gate): Исключение участников снижает активный ростер ниже обязательного кворума (${requiredCount}).\n[EN: Hermes Gate (Council Gate): Pruning members reduces active roster below required quorum (${requiredCount}).]`
+        );
+        process.exit(0);
+      }
+      for (const u of omittedFromR2) {
+        prunedUuids.add(u);
+      }
+    }
+
+    const activeR2Uuids = [...dispatchedUuids].filter((id) => !prunedUuids.has(id));
+
+    // Check Stage 2 send_message distribution
+    const pendingR2Dispatches = activeR2Uuids.filter((id) => !r2DispatchedUuids.has(id));
     if (pendingR2Dispatches.length > 0) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 1 завершена, но предложения ещё не разосланы участникам стола через send_message для Стадии 2 (разослано R2: ${r2DispatchedUuids.size} из ${dispatchedUuids.size}). Сведите предложения на доску council-roundtable.md и разошлите участникам.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 dispatch pending (${r2DispatchedUuids.size}/${dispatchedUuids.size}). Broadcast proposals to roster via send_message.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 1 завершена, но предложения ещё не разосланы участникам стола через send_message для Стадии 2 (разослано R2: ${r2DispatchedUuids.size} из ${activeR2Uuids.length}). Сведите предложения на доску council-roundtable.md и разошлите участникам.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 dispatch pending (${r2DispatchedUuids.size}/${activeR2Uuids.length}). Broadcast proposals to roster via send_message.]`
       );
       process.exit(0);
     }
 
-    // REQ-1 (v4.4.0): Check Stage 2 deliveries
-    const pendingR2Uuids = [...dispatchedUuids].filter((id) => !r2DeliveredUuids.has(id));
-    if (pendingR2Uuids.length > 0 || r2DeliveredUuids.size < requiredCount) {
+    // Check Stage 2 deliveries
+    const pendingR2Uuids = activeR2Uuids.filter((id) => !r2DeliveredUuids.has(id));
+    if (pendingR2Uuids.length > 0 || r2DeliveredUuids.size < Math.min(requiredCount, activeR2Uuids.length)) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются ответы участников во второй стадии (доставлено R2: ${r2DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь реакций всех участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 deliveries pending (${r2DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Stage 2 reactions before writing.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются ответы участников во второй стадии (доставлено R2: ${r2DeliveredUuids.size} из ${activeR2Uuids.length} требуемых). Дождитесь реакций всех участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 deliveries pending (${r2DeliveredUuids.size}/${activeR2Uuids.length}). Await Stage 2 reactions before writing.]`
       );
       process.exit(0);
     }
 
-    // REQ-1 (v4.4.0): Devil's advocate check in Stage 2 (@kritik or @stanislav from table roster)
-    const opponentTypes = ['kritik', 'stanislav'];
+    // Devil's advocate check in Stage 2 (@kritik or @stanislav from table roster)
     const opponentUuids = new Set();
     for (const [uuid, aName] of uuidToAgent.entries()) {
       if (opponentTypes.includes(aName)) opponentUuids.add(uuid);
@@ -957,20 +1237,143 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       process.exit(0);
     }
 
-    // REQ-1 (v4.4.0): Check Stage 3 (R3) blind ranking send_message distribution
-    const pendingR3Dispatches = [...dispatchedUuids].filter((id) => !r3DispatchedUuids.has(id));
-    if (pendingR3Dispatches.length > 0) {
+    // REQ-1 (v4.5.0): Check Early Stop conditions
+    // Dissent Dominance: [DISSENT] strictly overrides [CONVERGED]
+    const hasOpponentConverged = opponentR2Deliveries.some((text) => /(?<!not\s+|reject\s+|no\s+)\[(?:CONVERGED|NO\s+DISSENT)\]/i.test(text));
+    const hasOpponentDissent = opponentR2Deliveries.some((text) => /\[DISSENT\]/i.test(text));
+
+    let isEarlyStopUserApproved = false;
+    let earlyStopAskIdx = -1;
+    let earlyStopToolCallId = '';
+    const EARLY_STOP_QUESTION_RE = /(?:стол\s+сош[её]лся|ранжировани[яе].*r3|завершить\s+без\s+(?:стадии\s+)?ранжирования|early\s*stop)/i;
+
+    for (let i = scanStartIndex; i < combinedSteps.length; i++) {
+      const s = combinedSteps[i];
+      for (const tc of collectToolCalls(s)) {
+        if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+          const qText = JSON.stringify(tc?.args || '');
+          if (EARLY_STOP_QUESTION_RE.test(qText)) {
+            earlyStopAskIdx = i;
+            earlyStopToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+          }
+        }
+      }
+    }
+
+    if (earlyStopAskIdx >= 0) {
+      let earlyAnswer = '';
+      for (let i = earlyStopAskIdx + 1; i < combinedSteps.length; i++) {
+        const s = combinedSteps[i];
+        const isDirectNext = i === earlyStopAskIdx + 1;
+        const sContent = String(s?.content || '');
+        const stepType = String(s?.type || '').toUpperCase();
+        const isGenericOrTool = stepType === 'GENERIC' || stepType === 'TOOL_OUTPUT' || stepType === 'TOOL_RESULT';
+        const isUserSource = s?.source === 'USER_EXPLICIT' || s?.source === 'USER';
+        const stepToolCallId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+        const hasStatusDone = String(s?.status || '').toUpperCase() === 'DONE';
+        const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+        const isBoundByToolId = Boolean(earlyStopToolCallId && stepToolCallId && stepToolCallId === earlyStopToolCallId);
+        const isSystemToolOutput = (s?.source === 'SYSTEM' || s?.source === 'SYSTEM_SDK') && isBoundByToolId && isGenericOrTool && !s?.sender && !/<SYSTEM_MESSAGE/i.test(sContent);
+        const isBoundOrUnboundDirectNext = earlyStopToolCallId ? isBoundByToolId : (isDirectNext && !stepToolCallId);
+        const isAuthenticHarnessOutput = isDirectNext && isGenericOrTool && hasStatusDone && isBoundOrUnboundDirectNext && hasHarnessBanner;
+        if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
+          earlyAnswer = sContent;
+          break;
+        }
+      }
+      const trimmedEarly = earlyAnswer.trim();
+      const EARLY_STOP_APPROVE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?1[:.)]?\s*(?:завершить|сейчас|экономия)?|(?:завершить\s+сейчас|завершить\s+без\s+ранжирования|стоп|экономия|да|yes|stop)/i;
+      const EARLY_STOP_REJECT_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*|(?:провести\s+r3|полный\s+протокол|не\s+завершать|ранжирование|нет|no)/i;
+      if (EARLY_STOP_APPROVE_RE.test(trimmedEarly) && !EARLY_STOP_REJECT_RE.test(trimmedEarly)) {
+        isEarlyStopUserApproved = true;
+      }
+    }
+
+    const canEarlyStop = isEarlyStopUserApproved && hasOpponentConverged && !hasOpponentDissent;
+
+    if (canEarlyStop) {
+      try {
+        const hermesDir = path.join(activeWorkspaceDir, '.hermes');
+        if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+        const stateRecord = {
+          conversationId: convId,
+          turnMarker,
+          taskHash,
+          task: cleanPrompt.slice(0, 100),
+          mode: 'roundtable',
+          earlyStop: true,
+          decision: 'roundtable',
+          requiredRounds: 2,
+          roundsCompleted: 2,
+          membersCount: activeR2Uuids.length,
+          prunedUuids: [...prunedUuids],
+          reason: 'early_stop_converged',
+          isLoop,
+          status: 'APPROVED',
+          timestamp: new Date().toISOString()
+        };
+        if (existingState?.escalation) {
+          stateRecord.escalation = existingState.escalation;
+        }
+        fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
+        recordCouncilCost({ activeWorkspaceDir, taskHash, mode: 'roundtable', combinedSteps, payload });
+      } catch {}
+      logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: early stop authorized by user and converged opponent' });
+      return;
+    }
+
+    if (earlyStopAskIdx >= 0 && hasOpponentDissent) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 2 завершена, но тайное ранжирование ещё не разослано участникам стола через send_message для Стадии 3 (разослано R3: ${r3DispatchedUuids.size} из ${dispatchedUuids.size}). Разошлите слепой список вариантов на ранжирование.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 dispatch pending (${r3DispatchedUuids.size}/${dispatchedUuids.size}). Send blind ranking request to roster via send_message.]`
+        `Hermes Gate (Council Gate): Адвокат дьявола зафиксировал наличие несогласия ([DISSENT]). Досрочное завершение стола запрещено — Стадия 3 (тайное ранжирование) строго обязательна!\n[EN: Hermes Gate (Council Gate): Devil's advocate recorded dissent ([DISSENT]). Early stop forbidden; Stage 3 (blind ranking) is mandatory.]`
       );
       process.exit(0);
     }
 
-    // REQ-1 (v4.4.0): Check Stage 3 (R3) ranking deliveries
-    const pendingR3Uuids = [...dispatchedUuids].filter((id) => !r3DeliveredUuids.has(id));
-    if (pendingR3Uuids.length > 0 || r3DeliveredUuids.size < requiredCount) {
+    // Stage 3 Pruning check
+    const omittedFromR3 = activeR2Uuids.filter((id) => !r3DispatchedUuids.has(id));
+    if (omittedFromR3.length > 0) {
+      for (const u of omittedFromR3) {
+        const aName = uuidToAgent.get(u) || '';
+        if (expectedNames.includes(aName)) {
+          deny(
+            `Hermes Gate (Council Gate): Попытка исключить названного специалиста (@${aName}) из круглого стола запрещена! Исключать разрешено только дополнительных участников.\n[EN: Hermes Gate (Council Gate): Attempt to prune named specialist (@${aName}) from roundtable is forbidden.]`
+          );
+          process.exit(0);
+        }
+        if (opponentTypes.includes(aName)) {
+          deny(
+            `Hermes Gate (Council Gate): Попытка исключить назначенного адвоката дьявола (@${aName}) из круглого стола запрещена!\n[EN: Hermes Gate (Council Gate): Attempt to prune devil's advocate (@${aName}) from roundtable is forbidden.]`
+          );
+          process.exit(0);
+        }
+      }
+      if ((activeR2Uuids.length - omittedFromR3.length) < requiredCount) {
+        deny(
+          `Hermes Gate (Council Gate): Исключение участников снижает активный ростер ниже обязательного кворума (${requiredCount}).\n[EN: Hermes Gate (Council Gate): Pruning members reduces active roster below required quorum (${requiredCount}).]`
+        );
+        process.exit(0);
+      }
+      for (const u of omittedFromR3) {
+        prunedUuids.add(u);
+      }
+    }
+
+    const activeR3Uuids = activeR2Uuids.filter((id) => !prunedUuids.has(id));
+
+    // Check Stage 3 (R3) blind ranking send_message distribution
+    const pendingR3Dispatches = activeR3Uuids.filter((id) => !r3DispatchedUuids.has(id));
+    if (pendingR3Dispatches.length > 0) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются доставки тайного ранжирования от всех участников стола в Стадии 3 (доставлено R3: ${r3DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь голосов всех участников перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 ranking deliveries pending (${r3DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Stage 3 ranking deliveries from all members before writing.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 2 завершена, но тайное ранжирование ещё не разослано участникам стола через send_message для Стадии 3 (разослано R3: ${r3DispatchedUuids.size} из ${activeR3Uuids.length}). Разошлите слепой список вариантов на ранжирование.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 dispatch pending (${r3DispatchedUuids.size}/${activeR3Uuids.length}). Send blind ranking request to roster via send_message.]`
+      );
+      process.exit(0);
+    }
+
+    // Check Stage 3 (R3) ranking deliveries
+    const pendingR3Uuids = activeR3Uuids.filter((id) => !r3DeliveredUuids.has(id));
+    if (pendingR3Uuids.length > 0 || r3DeliveredUuids.size < Math.min(requiredCount, activeR3Uuids.length)) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются доставки тайного ранжирования от всех участников стола в Стадии 3 (доставлено R3: ${r3DeliveredUuids.size} из ${activeR3Uuids.length} требуемых). Дождитесь голосов всех участников перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 ranking deliveries pending (${r3DeliveredUuids.size}/${activeR3Uuids.length}). Await Stage 3 ranking deliveries from all members before writing.]`
       );
       process.exit(0);
     }
@@ -995,15 +1398,26 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       taskHash,
       task: cleanPrompt.slice(0, 100),
       mode,
+      earlyStop: false,
       decision: isRoundtable ? 'roundtable' : 'council',
       requiredRounds,
       roundsCompleted: requiredRounds,
-      membersCount: dispatchedUuids.size,
+      membersCount: isRoundtable ? (activeR3Uuids?.length ?? dispatchedUuids.size) : dispatchedUuids.size,
+      prunedUuids: isRoundtable ? [...prunedUuids] : [],
       isLoop,
       status: 'APPROVED',
       timestamp: new Date().toISOString()
     };
+    if (existingState?.escalation || (isStalled && escalationAskIdx >= 0)) {
+      stateRecord.escalation = existingState?.escalation || {
+        taskHash,
+        status: 'ESCALATED',
+        mode: 'roundtable',
+        timestamp: new Date().toISOString()
+      };
+    }
     fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
+    recordCouncilCost({ activeWorkspaceDir, taskHash, mode, combinedSteps, payload });
   } catch {}
   logGateDecision({ toolName, decision: 'allow', reason: `Council Gate approved: all ${mode} deliveries verified (${requiredRounds} rounds)` });
 }
@@ -1021,7 +1435,9 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     '.hermes/security-verdict.json',
     '.hermes/mutation-report.json',
     '.hermes/test-summary.json',
-    '.hermes/council-state.json'
+    '.hermes/council-state.json',
+    '.hermes/progress-journal.jsonl',
+    '.hermes/council-cost.jsonl'
   ];
   try {
     const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');

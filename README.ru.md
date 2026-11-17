@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Архитектурная топология мультиагентной сети](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.4.0)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.5.0)
 
 > Команда из 14 автономных ИИ-специалистов и 22 промышленных скиллов для Google Antigravity, которая не даёт агенту чинить 1 из 4 мест, самоподписываться и хардкодить.
 
-[![Version](https://img.shields.io/badge/version-4.4.0-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.5.0-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-433%2F433%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-448%2F448%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -127,7 +127,7 @@ flowchart LR
 
 ✍️ Контур B (Правка Lead Act/Write):
   - Применён Patch Blueprint через edit_file
-  - Выполнен Single Build Gate: 410/410 тестов прошли (3.4 с)
+  - Выполнен Single Build Gate: [Пример] 410/410 тестов прошли (3.4 с)
 
 🛡️ Гейт верификации (UUID-привязанные вердикты):
   - @viktor: 🟢 [QA PASS] — Парсер кадров проверен на всех 4 промышленных протоколах

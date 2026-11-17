@@ -63,7 +63,7 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-004] Narrow `hermes-hardcode-ignore` Scope to Trigger Line (±1 Line) & ADR 0001 Schema Shim
 * **Priority:** P1
-* **Target Version:** v4.3.0
+* **Target Version:** v4.6.0
 * **Scope & Context:**
   - `hermes-hardcode-ignore` currently acts on the entire write operation. Narrow scope to the line of violation (±1 line).
   - **Spec Law «Done when»:** Negative test «ignore on line 5 does not suppress hardcode on line 40» is proven red on current codebase, green after fix.
@@ -73,7 +73,7 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-005] Subagent UUID FIFO Assignment Verification & tool_call_id Binding
 * **Priority:** P2
-* **Target Version:** v4.3.0
+* **Target Version:** v4.6.0
 * **Status:** [ГИПОТЕЗА]
 * **Scope & Context:**
   - **Hypothesis:** FIFO distribution of UUIDs from `pendingSubagents` might misassign `viktor`/`kritik` if multiple subagents are invoked in a single step with out-of-order execution.
@@ -85,7 +85,7 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-006] Convoy Stall & Distributed Deadlock Detection Hook
 * **Priority:** P3
-* **Target Version:** Post-v4.3 Evaluation
+* **Target Version:** Post-v4.6.0 Evaluation
 * **Scope & Context:**
   Dynamic detection of circular dependency chains (`Worker A awaits Worker B awaits Worker A`) in multi-agent swarms using `.hermes/tasks.json` dependency graph.
 
