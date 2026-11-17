@@ -1405,6 +1405,594 @@ const cases = [
       if (parsed.tokens !== null) throw new Error(`Expected tokens: null, got ${parsed.tokens}`);
       if (parsed.source !== 'unavailable') throw new Error(`Expected source: "unavailable", got ${parsed.source}`);
     }
+  },
+  // REQ-7 (v4.5.1): 10 Deterministic Test Locks
+  {
+    name: 'stall_accumulates_three_real_test_failures_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall accumulates three real test failures deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: { lastUserInput: '/hermes stall accumulates three real test failures deny', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-stall-real-3');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const summaryFile = path.join(ws, '.hermes', 'test-summary.json');
+      const taskText = '/hermes stall accumulates three real test failures deny';
+      const fakeInput = {
+        lastUserInput: taskText,
+        workspacePaths: [ws],
+        transcriptPath: path.join(tmpDir, 'stall_real_accum.jsonl'),
+        toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } }
+      };
+      fs.writeFileSync(fakeInput.transcriptPath, JSON.stringify({
+        step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${taskText}\n</USER_REQUEST>`
+      }) + '\n', 'utf-8');
+
+      // Attempt 1: write test-summary FAIL at T1, run hook naturally (no journal pre-seeding!)
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:00:01.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      // Attempt 2: write test-summary FAIL at T2 (same diffHash/null), run hook naturally
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:00:02.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      // Attempt 3: write test-summary FAIL at T3. Test runner will execute 3rd hook call!
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:00:03.000Z' }), 'utf-8');
+    },
+    verify: (parsed) => {
+      const journalFile = path.join(tmpDir, 'ws-stall-real-3', '.hermes', 'progress-journal.jsonl');
+      if (!fs.existsSync(journalFile)) throw new Error('progress-journal.jsonl does not exist!');
+      const lines = fs.readFileSync(journalFile, 'utf-8').trim().split('\n').filter(Boolean);
+      if (lines.length !== 3) throw new Error(`Expected exactly 3 lines in journal, got ${lines.length}`);
+      const msg = parsed.reason || parsed.message || '';
+      if (!msg.includes('Stall Escalation')) {
+        throw new Error(`Expected Stall Escalation denial, got: ${msg}`);
+      }
+    }
+  },
+  {
+    name: 'stall_accumulates_with_stale_qa_diffhash_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall accumulates with stale qa diffhash deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: { lastUserInput: '/hermes stall accumulates with stale qa diffhash deny', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-stall-stale-qa');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const qaVerdictFile = path.join(ws, '.hermes', 'qa-verdict.json');
+      const taskText = '/hermes stall accumulates with stale qa diffhash deny';
+      const fakeInput = {
+        lastUserInput: taskText,
+        workspacePaths: [ws],
+        transcriptPath: path.join(tmpDir, 'stall_qa_accum.jsonl'),
+        toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } }
+      };
+      fs.writeFileSync(fakeInput.transcriptPath, JSON.stringify({
+        step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${taskText}\n</USER_REQUEST>`
+      }) + '\n', 'utf-8');
+
+      // Attempt 1: write qa-verdict REJECT with diffHash "same_diff_123" at T1, run hook
+      fs.writeFileSync(qaVerdictFile, JSON.stringify({ status: 'REJECT', diffHash: 'same_diff_123', timestamp: '2026-11-17T12:05:01.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      // Attempt 2: write qa-verdict REJECT with unchanged diffHash "same_diff_123" at T2, run hook
+      fs.writeFileSync(qaVerdictFile, JSON.stringify({ status: 'REJECT', diffHash: 'same_diff_123', timestamp: '2026-11-17T12:05:02.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      // Attempt 3: write qa-verdict REJECT with unchanged diffHash "same_diff_123" at T3
+      fs.writeFileSync(qaVerdictFile, JSON.stringify({ status: 'REJECT', diffHash: 'same_diff_123', timestamp: '2026-11-17T12:05:03.000Z' }), 'utf-8');
+    },
+    verify: (parsed) => {
+      const journalFile = path.join(tmpDir, 'ws-stall-stale-qa', '.hermes', 'progress-journal.jsonl');
+      if (!fs.existsSync(journalFile)) throw new Error('progress-journal.jsonl does not exist!');
+      const lines = fs.readFileSync(journalFile, 'utf-8').trim().split('\n').filter(Boolean);
+      if (lines.length !== 3) throw new Error(`Expected exactly 3 lines in journal, got ${lines.length}`);
+      const msg = parsed.reason || parsed.message || '';
+      if (!msg.includes('Stall Escalation')) {
+        throw new Error(`Expected Stall Escalation denial, got: ${msg}`);
+      }
+    }
+  },
+  {
+    name: 'stall_no_double_count_on_repeated_hook_calls',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall no double count test allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council', content: 'A1: Нет, оркестр решает сам (экономия токенов)' }
+    ],
+    payload: { lastUserInput: 'A1: Нет, оркестр решает сам (экономия токенов)', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-stall-idempotent');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const summaryFile = path.join(ws, '.hermes', 'test-summary.json');
+      const taskText = '/hermes stall no double count test allow';
+      const fakeInput = {
+        lastUserInput: taskText,
+        workspacePaths: [ws],
+        transcriptPath: path.join(tmpDir, 'stall_idempotent.jsonl'),
+        toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } }
+      };
+      fs.writeFileSync(fakeInput.transcriptPath, JSON.stringify({
+        step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${taskText}\n</USER_REQUEST>`
+      }) + '\n', 'utf-8');
+
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:10:00.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+    },
+    verify: () => {
+      const journalFile = path.join(tmpDir, 'ws-stall-idempotent', '.hermes', 'progress-journal.jsonl');
+      const lines = fs.readFileSync(journalFile, 'utf-8').trim().split('\n').filter(Boolean);
+      if (lines.length !== 1) throw new Error(`Expected exactly 1 line in journal after 3 identical hook calls, got ${lines.length}`);
+    }
+  },
+  {
+    name: 'stall_override_negated_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override negated test deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_q', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол', '2. продолжить сам (override)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_q', content: 'не хочу сам, зови стол' }
+    ],
+    payload: { lastUserInput: 'не хочу сам, зови стол', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override negated test deny').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
+  },
+  {
+    name: 'stall_override_negated_long_word_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override negated long word test deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_q', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол', '2. продолжить сам (override)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_q', content: 'самостоятельно не надо, собирай стол' }
+    ],
+    payload: { lastUserInput: 'самостоятельно не надо, собирай стол', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override negated long word test deny').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
+  },
+  {
+    name: 'stall_override_option_order_bound',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override option order bound test allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_override', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_override', content: 'A1: Нет, оркестр решает сам (экономия токенов)' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_q', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. продолжить сам (override)', '2. Собрать стол'] }] } }] },
+      { step_index: 6, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_q', content: '1' }
+    ],
+    payload: { lastUserInput: '1', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override option order bound test allow').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    },
+    verify: () => {
+      // Reverse order: override is option 2, user answers "1" -> must NOT grant override (must deny!)
+      const wsRev = path.join(tmpDir, 'ws-stall-order-rev');
+      fs.mkdirSync(path.join(wsRev, '.hermes'), { recursive: true });
+      const taskRev = '/hermes stall override option order bound reversed deny';
+      const thRev = crypto.createHash('sha256').update(taskRev).digest('hex').slice(0, 16);
+      const recRev = JSON.stringify({ taskHash: thRev, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(wsRev, '.hermes', 'progress-journal.jsonl'), recRev + recRev + recRev, 'utf-8');
+      const revTranscript = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${taskRev}\n</USER_REQUEST>` },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_override_rev', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_override_rev', content: 'A1: Нет, оркестр решает сам (экономия токенов)' },
+        { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_q_rev', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол', '2. продолжить сам (override)'] }] } }] },
+        { step_index: 6, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_q_rev', content: '1' }
+      ];
+      const revTp = path.join(tmpDir, 't_order_rev.jsonl');
+      fs.writeFileSync(revTp, revTranscript.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const revOut = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '1',
+          workspacePaths: [wsRev],
+          transcriptPath: revTp,
+          toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (revOut.decision !== 'deny') {
+        throw new Error(`Expected deny when override is option 2 and user answers "1", got ${revOut.decision}`);
+      }
+    }
+  },
+  {
+    name: 'early_stop_negated_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop negated test deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_es_neg', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_es_neg', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=[CONVERGED] Kritik agrees with Dmitry design' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{
+          name: 'ask_question',
+          id: 'early_stop_q_neg',
+          args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] }
+        }]
+      },
+      { step_index: 12, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'early_stop_q_neg', content: 'Никакого раннего стопа, проводим R3' }
+    ],
+    payload: { lastUserInput: 'Никакого раннего стопа, проводим R3', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } }
+  },
+  {
+    name: 'early_stop_option_order_bound_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop option order bound test deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_es_ord', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_es_ord', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=[CONVERGED] Kritik agrees' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{
+          name: 'ask_question',
+          id: 'early_stop_q_ord',
+          args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Провести R3 (полный протокол)', '2. Завершить сейчас (экономия)'] }] }
+        }]
+      },
+      { step_index: 12, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'early_stop_q_ord', content: '1' }
+    ],
+    payload: { lastUserInput: '1', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } }
+  },
+  {
+    name: 'early_stop_marker_from_other_sender_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop other sender test deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_es_oth', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_es_oth', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      {
+        step_index: 9,
+        source: 'SYSTEM',
+        type: 'SYSTEM_MESSAGE',
+        content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=[CONVERGED] Dmitry says everything is converged\n[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik: I have serious concerns about performance and security'
+      },
+      {
+        step_index: 10,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{
+          name: 'ask_question',
+          id: 'early_stop_q_oth',
+          args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] }
+        }]
+      },
+      { step_index: 11, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'early_stop_q_oth', content: '1' }
+    ],
+    payload: { lastUserInput: '1', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } }
+  },
+  {
+    name: 'escalation_numeric_option1_is_roundtable_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes escalation numeric option1 roundtable deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_esc_q_num', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол: @dmitry, @kritik', '2. продолжить сам (override)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_esc_q_num', content: '1' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' }
+    ],
+    payload: { lastUserInput: '1', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes escalation numeric option1 roundtable deny').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
+  },
+  // Viktor QA Audit Regression Locks (v4.5.1 BUG-1..BUG-5)
+  {
+    name: 'stall_override_a1_prefix_option2_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override a1 prefix option2 deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_a1_esc', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_a1_esc', content: 'A1: Нет, оркестр решает сам (экономия токенов)' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_a1_opt2', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. продолжить сам (override)', '2. Собрать стол: @dmitry, @kritik'] }] } }] },
+      { step_index: 6, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_a1_opt2', content: 'A1: 2. Собрать стол: @dmitry, @kritik' }
+    ],
+    payload: { lastUserInput: 'A1: 2. Собрать стол: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override a1 prefix option2 deny').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
+  },
+  {
+    name: 'early_stop_a1_prefix_option2_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes early stop a1 prefix option2 deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_es_a1', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_es_a1', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=[CONVERGED] Kritik agrees' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{
+          name: 'ask_question',
+          id: 'early_stop_q_a1',
+          args: { questions: [{ question: 'Стол сошёлся: завершить без стадии ранжирования (R3)?', options: ['1. Завершить сейчас (экономия)', '2. Провести R3 (полный протокол)'] }] }
+        }]
+      },
+      { step_index: 12, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'early_stop_q_a1', content: 'A1: 2' }
+    ],
+    payload: { lastUserInput: 'A1: 2', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } }
+  },
+  {
+    name: 'stall_override_negated_completes_roundtable_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override negated completes roundtable allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_esc_neg_rt', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол: @dmitry, @kritik', '2. продолжить сам (override)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_esc_neg_rt', content: 'не хочу сам, зови стол' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 critique' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking...' } }
+        ]
+      },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 votes' },
+      { step_index: 13, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R3 votes' }
+    ],
+    payload: { lastUserInput: 'не хочу сам, зови стол', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override negated completes roundtable allow').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
+  },
+  {
+    name: 'stall_accumulates_test_fails_with_stale_qa_reject_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall test fails with stale qa reject deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: { lastUserInput: '/hermes stall test fails with stale qa reject deny', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: (c) => {
+      const ws = path.join(tmpDir, 'ws-stall-stale-qa-reject');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      c.payload.workspacePaths = [ws];
+      const summaryFile = path.join(ws, '.hermes', 'test-summary.json');
+      const qaVerdictFile = path.join(ws, '.hermes', 'qa-verdict.json');
+      const taskText = '/hermes stall test fails with stale qa reject deny';
+      const fakeInput = {
+        lastUserInput: taskText,
+        workspacePaths: [ws],
+        transcriptPath: path.join(tmpDir, 'stall_stale_qa_reject.jsonl'),
+        toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } }
+      };
+      fs.writeFileSync(fakeInput.transcriptPath, JSON.stringify({
+        step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${taskText}\n</USER_REQUEST>`
+      }) + '\n', 'utf-8');
+
+      // Stale qa-verdict REJECT from earlier T0
+      fs.writeFileSync(qaVerdictFile, JSON.stringify({ status: 'REJECT', diffHash: 'stale_t0_hash', timestamp: '2026-11-17T11:00:00.000Z' }), 'utf-8');
+
+      // 3 fresh test-summary FAIL runs at T1, T2, T3 > T0
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:15:01.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:15:02.000Z' }), 'utf-8');
+      execFileSync('node', [hookPath], { input: JSON.stringify(fakeInput), encoding: 'utf-8' });
+
+      fs.writeFileSync(summaryFile, JSON.stringify({ status: 'FAIL', timestamp: '2026-11-17T12:15:03.000Z' }), 'utf-8');
+    },
+    verify: (parsed) => {
+      const journalFile = path.join(tmpDir, 'ws-stall-stale-qa-reject', '.hermes', 'progress-journal.jsonl');
+      if (!fs.existsSync(journalFile)) throw new Error('progress-journal.jsonl does not exist!');
+      const lines = fs.readFileSync(journalFile, 'utf-8').trim().split('\n').filter(Boolean);
+      if (lines.length !== 3) throw new Error(`Expected exactly 3 lines in journal, got ${lines.length}`);
+      const msg = parsed.reason || parsed.message || '';
+      if (!msg.includes('Stall Escalation')) {
+        throw new Error(`Expected Stall Escalation denial, got: ${msg}`);
+      }
+    }
+  },
+  {
+    name: 'stall_override_cyrillic_boundary_pre_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes stall override cyrillic boundary pre allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_bpre', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_bpre', content: 'A1: Нет, оркестр решает сам (экономия токенов)' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'stall_ask_bpre', args: { questions: [{ question: 'Застряли: собрать стол?', options: ['1. Собрать стол', '2. продолжить сам (override)'] }] } }] },
+      { step_index: 6, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'stall_ask_bpre', content: 'Вполне могу продолжить сам' }
+    ],
+    payload: { lastUserInput: 'Вполне могу продолжить сам', toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'code' } } },
+    setup: () => {
+      const th = crypto.createHash('sha256').update('/hermes stall override cyrillic boundary pre allow').digest('hex').slice(0, 16);
+      const rec = JSON.stringify({ taskHash: th, outcome: 'FAIL', ts: new Date().toISOString() }) + '\n';
+      fs.writeFileSync(path.join(process.cwd(), '.hermes', 'progress-journal.jsonl'), rec + rec + rec, 'utf-8');
+    }
   }
 ];
 
@@ -1437,7 +2025,7 @@ try {
     if (fs.existsSync(councilCostFile)) {
       try { fs.unlinkSync(councilCostFile); } catch {}
     }
-    if (c.setup) c.setup();
+    if (c.setup) c.setup(c);
     const out = execFileSync('node', [hookPath], {
       input: JSON.stringify(buildInput(c, index)),
       encoding: 'utf-8',

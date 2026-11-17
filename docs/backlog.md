@@ -122,3 +122,60 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Added Mutation Testing MVP (advisory-first, Rule 13 honest reporting, strict mode option).
   - Documented in `docs/adr/ADR-0005-mechanical-qa-rails-and-artifact-gate.md` and `docs/troubleshooting.md`.
   - Added 11 negative and anti-spoofing test vectors in `hooks/qa-gate.test.mjs` (82/82 PASS).
+
+---
+
+### [TASK-009] Specialist Council Gate, Hardening & Named Specialist Quorum (v4.2.0–v4.2.2)
+* **Priority:** P1
+* **Target Version:** v4.2.0–v4.2.2
+* **Status:** ✅ COMPLETED in v4.2.2 (`87341bd`, `633df67`)
+* **Resolution:**
+  - Enforced named specialist quorum (`expectedNames` filtered against `HERMES_AGENTS`) inside `verifyCouncilGate` (`hooks/clean-edits-guard.mjs`) so Lead cannot substitute wrong specialists to satisfy numeric counts.
+  - Hardened Council Gate negation-guard and task-bound loop reuse (`taskHash`).
+  - Enforced reporting hygiene across docs and hooks (422/422 PASS, guard 148).
+
+---
+
+### [TASK-010] Universal 3-Option Council Window, Proposal Contract, Board & Basic Roundtable
+* **Priority:** P1
+* **Target Version:** v4.3.0
+* **Status:** ✅ COMPLETED in v4.3.0 (`5843f2b`)
+* **Resolution:**
+  - Standardized Council Gate `ask_question` dialog to 3 universal options: parallel council (1 round, with single key specialist as special case), basic roundtable (2 rounds), and Lead solo.
+  - Introduced canonical 10-point Proposal Contract, `.hermes/council-roundtable.md` board, and Rule 13 range-based cost transparency.
+  - Preserved backward compatibility with legacy «ключевой специалист» wording (429/429 PASS, guard 155).
+
+---
+
+### [TASK-011] 3-Stage NGT/Delphi Roundtable, Devil's Advocate, Blind Ranking & Dissent Preservation
+* **Priority:** P1
+* **Target Version:** v4.4.0
+* **Status:** ✅ COMPLETED in v4.4.0 (`325763c`)
+* **Resolution:**
+  - Upgraded roundtable from 2 rounds to 3 fail-closed NGT/Delphi stages (R1 silent generation -> R2 board critique + Steelman + mandatory `@kritik`/`@stanislav` devil's advocate -> R3 blind anonymized ranking & median/Borda synthesis).
+  - Enforced dissent preservation in `.hermes/decisions.md` and criteria arbitration by `@stanislav`.
+  - Locked mechanics in `hooks/clean-edits-guard.mjs` (433/433 PASS, guard 159).
+
+---
+
+### [TASK-012] Roundtable Token Economy, Progress Journal, Stall Circuit Breaker & Escalation
+* **Priority:** P1
+* **Target Version:** v4.5.0
+* **Status:** ✅ COMPLETED in v4.5.0 (`30c4185`)
+* **Resolution:**
+  - Added 2FA Early Stop after Stage 2 with Dissent Dominance (`[DISSENT]` overrides `[CONVERGED]`).
+  - Added controlled Agent Dropout / Pruning (only extra members, never named specialists or devil's advocate).
+  - Implemented hook-written `.hermes/progress-journal.jsonl`, Stall Circuit Breaker (`>= 3` consecutive fails), escalation to roundtable, and Rule 13 honest cost telemetry `.hermes/council-cost.jsonl` (448/448 PASS, guard 174).
+
+---
+
+### [TASK-013] Stall Circuit Breaker Fix & Intent Binding for Escalation / Early-Stop Windows
+* **Priority:** P0 / P1
+* **Target Version:** v4.5.1
+* **Status:** ✅ COMPLETED in v4.5.1
+* **Resolution:**
+  - Fixed `syncProgressJournal` attempt identity to key by `(taskHash, outcome, diffHash||null, artifactTimestamp|contentHash)` so repeated real test failures accumulate to `stalled = true` without double-counting unchanged artifacts.
+  - Bound Escalation override and Early-Stop choices to selected option text + Cyrillic-aware word-boundary negation-guard (`(?<![а-яёa-z0-9_-])`).
+  - Attributed `[CONVERGED]`/`[NO DISSENT]` strictly to devil's advocate sender UUID message chunks (preventing cross-sender contamination within multi-message SYSTEM steps).
+  - Fixed numeric answer `"1"` on escalation window to enforce 3-stage roundtable instead of falling back to 1-round parallel council.
+  - Documented Model Cascade protocol recommendation (with honest platform constraints), marked README demo output as illustrative example, synced Roadmaps with backlog, and added 15 deterministic test locks (463/463 PASS, guard 189).

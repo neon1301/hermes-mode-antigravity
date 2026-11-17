@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.5.1] - 2026-11-17
+
+### Stall Circuit Breaker Fix & Intent Binding for Escalation / Early-Stop Windows (HERMES-STALL-INTENT-FIX, TASK-013)
+- **Progress Journal Attempt Identity & Idempotency (REQ-1, P0):**
+  - Fixed `syncProgressJournal` in `hooks/clean-edits-guard.mjs` so repeated real test/QA failures with unchanged or absent `diffHash` accumulate by artifact identity key `(taskHash, outcome, diffHash || null, artifactTimestamp || contentHash)` instead of requiring an outcome/diffHash flip.
+  - Added deterministic SHA-256 content-hash fallback when artifacts omit timestamps (zero timestamp fabrication).
+  - Preserved idempotency across repeated hook calls with unchanged artifacts, stale-artifact timestamp guard, `PASS` counter reset, and `stalled = consecutiveFails >= 3`.
+- **Escalation Override — Intent Binding & Cyrillic Negation-Guard (REQ-2, P1):**
+  - Bound stall override selection to the actual text of the chosen `ask_question` option (`options[0]`/`options[1]`) rather than assuming option number.
+  - Added Cyrillic-aware word-boundary negation-guard (`(?<![а-яёa-z0-9_-])` / `(?![а-яёa-z0-9_-])`) so negated replies like «не хочу сам, зови стол» or «самостоятельно не надо» never trigger override.
+- **Early Stop — Intent Binding & Cyrillic Negation-Guard (REQ-3, P1):**
+  - Bound early-stop selection to the text of the chosen option with Cyrillic negation-guard («Никакого раннего стопа, проводим R3») and fail-closed fallback to mandatory Stage 3. Preserved Dissent Dominance (`[DISSENT]` overrides consensus).
+- **Sender UUID Attribution for Convergence Markers (REQ-4, P2):**
+  - Split multi-message `SYSTEM` transcript steps into per-sender `[Message]` chunks so `[CONVERGED]` / `[NO DISSENT]` is checked exclusively inside the designated devil's advocate (`@kritik`/`@stanislav`) message chunk, preventing cross-sender leakage.
+- **Escalation Numeric Option 1 Enforces 3-Stage Roundtable (REQ-5, P2):**
+  - Updated escalation context handling so choosing `"1"` / `"A1"` on the stall escalation window (`1. Собрать стол`) unconditionally activates 3-stage `roundtable` (`requiredRounds = 3`) instead of falling back to 1-round parallel council.
+- **Documentation & Backlog Grounding (REQ-6, P2):**
+  - Documented recommended Model Cascade tiering (`flash` for R1 scouts, `pro`/`inherit` for devil's advocate and synthesis) in `skills/hermes/references/specialist-council-protocol.md` with honest Antigravity platform constraint note.
+  - Synchronized Engineering Roadmaps in `README.md` / `README.ru.md` with `docs/backlog.md` (`v4.6.0` for `TASK-004`/`TASK-005`) and registered `TASK-009`..`TASK-013` in `docs/backlog.md`.
+- **15 New Deterministic Test Locks (REQ-7 + QA Regression Locks):**
+  - Expanded `hooks/clean-edits-guard.test.mjs` to 189/189 PASS (463/463 total across 11 suites):
+    * `stall_accumulates_three_real_test_failures_deny` (hook-generated journal, no setup seeding), `stall_accumulates_with_stale_qa_diffhash_deny`, `stall_no_double_count_on_repeated_hook_calls`, `stall_override_negated_deny`, `stall_override_negated_long_word_deny`, `stall_override_option_order_bound`, `early_stop_negated_deny`, `early_stop_option_order_bound_deny`, `early_stop_marker_from_other_sender_deny`, `escalation_numeric_option1_is_roundtable_deny`, plus 5 QA audit regression locks (`stall_override_a1_prefix_option2_deny`, `early_stop_a1_prefix_option2_deny`, `stall_override_negated_completes_roundtable_allow`, `stall_accumulates_test_fails_with_stale_qa_reject_deny`, `stall_override_cyrillic_boundary_pre_allow`).
+
 ## [4.5.0] - 2026-11-17
 
 ### Council Token Economy, Progress Journal, Stall Circuit Breaker & Escalation (HERMES-COUNCIL-STALL-ESCALATE)

@@ -488,22 +488,36 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   const journalPath = path.join(hermesDir, 'progress-journal.jsonl');
   let currentOutcome = null;
   let currentDiffHash = null;
-  let artifactTimestamp = null;
+  let failTimestamp = null;
+  let passTimestamp = null;
+  let rawArtifactsContent = '';
+
+  const pickLatestTs = (a, b) => {
+    if (!a) return b || null;
+    if (!b) return a;
+    const ta = new Date(a).getTime();
+    const tb = new Date(b).getTime();
+    if (!isNaN(ta) && !isNaN(tb)) return tb >= ta ? b : a;
+    return b;
+  };
 
   // 1. Check test-summary.json
   const summaryPath = path.join(hermesDir, 'test-summary.json');
   if (fs.existsSync(summaryPath)) {
     try {
-      const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+      const raw = fs.readFileSync(summaryPath, 'utf-8');
+      rawArtifactsContent += raw;
+      const summary = JSON.parse(raw);
       const isFailed = (String(summary.status).toUpperCase() === 'COMPLETED' && (summary.failed > 0 || (summary.total - summary.passed) > 0)) ||
                        (summary.status && String(summary.status).toUpperCase() === 'FAIL');
       const isPassed = (String(summary.status).toUpperCase() === 'PASS') && (!summary.failed || summary.failed === 0);
+      const ts = summary.timestamp || summary.ts || null;
       if (isFailed) {
         currentOutcome = 'FAIL';
-        artifactTimestamp = summary.timestamp || summary.ts || null;
+        failTimestamp = pickLatestTs(failTimestamp, ts);
       } else if (isPassed) {
         currentOutcome = 'PASS';
-        artifactTimestamp = summary.timestamp || summary.ts || null;
+        passTimestamp = pickLatestTs(passTimestamp, ts);
       }
     } catch {}
   }
@@ -512,14 +526,17 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   const qaVerdictPath = path.join(hermesDir, 'qa-verdict.json');
   if (fs.existsSync(qaVerdictPath)) {
     try {
-      const qav = JSON.parse(fs.readFileSync(qaVerdictPath, 'utf-8'));
+      const raw = fs.readFileSync(qaVerdictPath, 'utf-8');
+      rawArtifactsContent += raw;
+      const qav = JSON.parse(raw);
       if (qav.diffHash) currentDiffHash = qav.diffHash;
+      const ts = qav.timestamp || qav.ts || null;
       if (String(qav.status).toUpperCase() === 'REJECT') {
         currentOutcome = 'FAIL';
-        artifactTimestamp = qav.timestamp || qav.ts || artifactTimestamp;
+        failTimestamp = pickLatestTs(failTimestamp, ts);
       } else if (String(qav.status).toUpperCase() === 'PASS' && currentOutcome !== 'FAIL') {
         currentOutcome = 'PASS';
-        artifactTimestamp = qav.timestamp || qav.ts || artifactTimestamp;
+        passTimestamp = pickLatestTs(passTimestamp, ts);
       }
     } catch {}
   }
@@ -527,14 +544,20 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   const secVerdictPath = path.join(hermesDir, 'security-verdict.json');
   if (fs.existsSync(secVerdictPath)) {
     try {
-      const sv = JSON.parse(fs.readFileSync(secVerdictPath, 'utf-8'));
+      const raw = fs.readFileSync(secVerdictPath, 'utf-8');
+      rawArtifactsContent += raw;
+      const sv = JSON.parse(raw);
+      const ts = sv.timestamp || sv.ts || null;
       if (String(sv.status).toUpperCase() === 'REJECT') {
         currentOutcome = 'FAIL';
-        artifactTimestamp = sv.timestamp || sv.ts || artifactTimestamp;
+        failTimestamp = pickLatestTs(failTimestamp, ts);
       }
     } catch {}
   }
 
+  const artifactTimestamp = currentOutcome === 'FAIL' ? failTimestamp : passTimestamp;
+
+  const existingAttemptKeys = new Set();
   let lastEntry = null;
   let consecutiveFails = 0;
   if (fs.existsSync(journalPath)) {
@@ -545,6 +568,8 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
           const rec = JSON.parse(line);
           if (rec.taskHash === taskHash) {
             lastEntry = rec;
+            const key = `${rec.taskHash}|${rec.outcome}|${rec.diffHash || 'null'}|${rec.ts}`;
+            existingAttemptKeys.add(key);
             if (rec.outcome === 'FAIL') consecutiveFails++;
             else if (rec.outcome === 'PASS') consecutiveFails = 0;
           }
@@ -554,26 +579,35 @@ function syncProgressJournal({ activeWorkspaceDir, taskHash }) {
   }
 
   if (currentOutcome) {
-    const isNewTimestamp = artifactTimestamp && lastEntry?.ts
-      ? new Date(artifactTimestamp).getTime() > new Date(lastEntry.ts).getTime()
-      : (!lastEntry);
-    const isNew = isNewTimestamp && (!lastEntry ||
-      lastEntry.outcome !== currentOutcome ||
-      (currentDiffHash && lastEntry.diffHash !== currentDiffHash));
-
-    if (isNew) {
-      if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
-      const record = {
-        taskHash,
-        outcome: currentOutcome,
-        diffHash: currentDiffHash || null,
-        ts: artifactTimestamp || new Date().toISOString()
-      };
-      try {
-        fs.appendFileSync(journalPath, JSON.stringify(record) + '\n', 'utf-8');
-        if (currentOutcome === 'FAIL') consecutiveFails++;
-        else if (currentOutcome === 'PASS') consecutiveFails = 0;
-      } catch {}
+    let attemptTs = artifactTimestamp;
+    if (!attemptTs && rawArtifactsContent) {
+      attemptTs = `hash:${crypto.createHash('sha256').update(rawArtifactsContent).digest('hex').slice(0, 16)}`;
+    }
+    if (attemptTs) {
+      const currentKey = `${taskHash}|${currentOutcome}|${currentDiffHash || 'null'}|${attemptTs}`;
+      let isStale = false;
+      if (artifactTimestamp && lastEntry?.ts) {
+        const artTime = new Date(artifactTimestamp).getTime();
+        const lastTime = new Date(lastEntry.ts).getTime();
+        if (!isNaN(artTime) && !isNaN(lastTime) && artTime < lastTime) {
+          isStale = true;
+        }
+      }
+      if (!isStale && !existingAttemptKeys.has(currentKey)) {
+        if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+        const record = {
+          taskHash,
+          outcome: currentOutcome,
+          diffHash: currentDiffHash || null,
+          ts: attemptTs
+        };
+        try {
+          fs.appendFileSync(journalPath, JSON.stringify(record) + '\n', 'utf-8');
+          existingAttemptKeys.add(currentKey);
+          if (currentOutcome === 'FAIL') consecutiveFails++;
+          else if (currentOutcome === 'PASS') consecutiveFails = 0;
+        } catch {}
+      }
     }
   }
 
@@ -737,6 +771,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   let stallResolved = false;
   let escalationAskIdx = -1;
   let escalationAskToolCallId = '';
+  const ESCALATION_ROUNDTABLE_RE = /(?:собрать\s+стол|круглый\s+стол|roundtable|стол)/i;
 
   if (isStalled) {
     const esc = existingState?.escalation;
@@ -756,6 +791,21 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
           if (ESCALATION_QUESTION_RE.test(qText)) {
             escalationAskIdx = i;
             escalationAskToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+          }
+        }
+      }
+    }
+
+    let escOption1Text = '';
+    let escOption2Text = '';
+    if (escalationAskIdx >= 0) {
+      const askStep = combinedSteps[escalationAskIdx];
+      for (const tc of collectToolCalls(askStep)) {
+        if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+          const qList = tc?.args?.questions;
+          if (Array.isArray(qList) && qList.length > 0 && Array.isArray(qList[0]?.options)) {
+            escOption1Text = String(qList[0].options[0] || '');
+            escOption2Text = String(qList[0].options[1] || '');
           }
         }
       }
@@ -785,10 +835,49 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
 
     const trimmedEsc = escalationAnswer.trim();
-    const OVERRIDE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*(?:продолжить\s+сам|решать\s+самому|override|сам)?|(?:продолжить\s+сам|решать\s+самому|override|lead\s+сам|сам\b)/i;
-    const ESCALATION_ROUNDTABLE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?1[:.)]?\s*(?:собрать\s+стол|стол|roundtable)?|(?:собрать\s+стол|круглый\s+стол|roundtable)/i;
 
-    if (trimmedEsc && OVERRIDE_RE.test(trimmedEsc)) {
+    // REQ-2 (v4.5.1): Intent binding & Cyrillic-aware negation-guard for escalation
+    const BOUNDARY_PRE = '(?<![а-яёa-z0-9_-])';
+    const BOUNDARY_POST = '(?![а-яёa-z0-9_-])';
+    const NEG_WORDS = '(?:не|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|отмена|без|don\'?t|do\\s+not|never|no)';
+    const OVERRIDE_WORDS = '(?:сам|самостоятельно|решать\\s+самому|override|продолжить\\s+сам|lead\\s+сам)';
+
+    const OVERRIDE_NEGATION_RE = new RegExp(
+      `(?:${BOUNDARY_PRE}${NEG_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,35}${BOUNDARY_PRE}${OVERRIDE_WORDS}${BOUNDARY_POST})|` +
+      `(?:${BOUNDARY_PRE}${OVERRIDE_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,35}${BOUNDARY_PRE}${NEG_WORDS}${BOUNDARY_POST})`,
+      'i'
+    );
+    const OVERRIDE_INTENT_RE = new RegExp(
+      `${BOUNDARY_PRE}(?:продолжить\\s+сам|самостоятельно|решать\\s+самому|override|lead\\s+сам|сам)${BOUNDARY_POST}`,
+      'i'
+    );
+
+    const strippedEsc = trimmedEsc.replace(/^A\d+[:.)]\s*/i, '').trim();
+    const isOpt1Index = /^(?:(?:option|вариант)\s*1\b|1(?:[:.)]|\s*$))/i.test(strippedEsc);
+    const isOpt2Index = /^(?:(?:option|вариант)\s*2\b|2(?:[:.)]|\s*$))/i.test(strippedEsc);
+
+    let selectedEscOptionText = '';
+    if (isOpt1Index && escOption1Text) {
+      selectedEscOptionText = escOption1Text;
+    } else if (isOpt2Index && escOption2Text) {
+      selectedEscOptionText = escOption2Text;
+    } else {
+      selectedEscOptionText = strippedEsc || trimmedEsc;
+    }
+
+    const hasOverrideNegation = OVERRIDE_NEGATION_RE.test(trimmedEsc);
+    const isOverrideChosen = !hasOverrideNegation && (
+      OVERRIDE_INTENT_RE.test(selectedEscOptionText) ||
+      OVERRIDE_INTENT_RE.test(trimmedEsc)
+    );
+
+    const isRoundtableChosen = !isOverrideChosen && (
+      ESCALATION_ROUNDTABLE_RE.test(selectedEscOptionText) ||
+      ESCALATION_ROUNDTABLE_RE.test(trimmedEsc) ||
+      (isOpt1Index && (!escOption1Text || ESCALATION_ROUNDTABLE_RE.test(escOption1Text)))
+    );
+
+    if (trimmedEsc && isOverrideChosen) {
       try {
         const hermesDir = path.join(activeWorkspaceDir, '.hermes');
         if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
@@ -813,7 +902,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       stallResolved = true;
       logGateDecision({ toolName, decision: 'allow', reason: 'Stall resolved: validated user override' });
       return;
-    } else if (trimmedEsc && ESCALATION_ROUNDTABLE_RE.test(trimmedEsc)) {
+    } else if (trimmedEsc && isRoundtableChosen) {
       // Escalation roundtable will proceed to council check below
     } else {
       deny(
@@ -852,7 +941,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
   }
 
-  if (isStalled && escalationAskIdx >= 0 && councilAskIdx < 0) {
+  if (isStalled && escalationAskIdx >= 0) {
     councilAskIdx = escalationAskIdx;
     councilAskToolCallId = escalationAskToolCallId;
   }
@@ -943,10 +1032,11 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const POSITIVE_SOLO_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\d+[:.)]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:нет[,\s]+(?:(?:lead|оркестр)\s+)?(?:решает\s+)?сам|(?:lead|оркестр)\s+решает\s+сам|только\s+(?:lead|оркестр)|решает\s+сам\s*\(экономия\s+токенов\)|(?:lead|оркестр)\s+сам\b|без\s+совета|solo\b)/i;
   const OPTION_3_INDEX_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?3[:.)]?\s*$/i;
 
+  const isEscalationContext = isStalled && escalationAskIdx >= 0 && councilAskIdx === escalationAskIdx;
   const hasSoloNegation = SOLO_NEGATION_RE.test(trimmedAnswer);
   const isSoloAnswer = POSITIVE_SOLO_RE.test(trimmedAnswer) ||
     (OPTION_3_INDEX_RE.test(trimmedAnswer) && (!option3Text || POSITIVE_SOLO_RE.test(option3Text)));
-  const isSolo = councilGateConfig !== 'auto' && isSoloAnswer && !hasSoloNegation;
+  const isSolo = !isEscalationContext && councilGateConfig !== 'auto' && isSoloAnswer && !hasSoloNegation;
 
   if (isSolo) {
     try {
@@ -981,8 +1071,20 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     !OPTION_KEY_SPECIALIST_RE.test(option2Text) &&
     (optionsCount === 3 && (POSITIVE_SOLO_RE.test(option3Text) || /(?:сам|экономия)/i.test(option3Text)));
 
+  const OPTION_1_INDEX_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?1[:.)]?\s*$/i;
+
+  // REQ-5 (v4.5.1): Numeric answer to escalation window unconditionally sets roundtable (3 rounds)
+  const isEscalationRoundtable = isEscalationContext && (
+    ROUNDTABLE_RE.test(trimmedAnswer) ||
+    ROUNDTABLE_RE.test(option1Text) ||
+    ROUNDTABLE_RE.test(option2Text) ||
+    (OPTION_1_INDEX_RE.test(trimmedAnswer) && (!option1Text || ROUNDTABLE_RE.test(option1Text))) ||
+    ESCALATION_ROUNDTABLE_RE.test(trimmedAnswer)
+  );
+
   // auto mode is ALWAYS parallel (roundtable only on explicit option 2 / roundtable choice)
   const isRoundtable = councilGateConfig !== 'auto' && (
+    isEscalationRoundtable ||
     ROUNDTABLE_RE.test(trimmedAnswer) ||
     (OPTION_2_INDEX_RE.test(trimmedAnswer) && ROUNDTABLE_RE.test(option2Text)) ||
     isStructuralRoundtableOption2
@@ -1105,22 +1207,34 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
 
     if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
-      const sendersInStep = new Set();
-      const sSender = String(s?.sender || '').toLowerCase();
-      if (/^[0-9a-f-]{36}$/.test(sSender)) {
-        sendersInStep.add(sSender);
+      const messagesInStep = [];
+      const messageBlockRegex = /\[Message\]\s+[^\r\n]*?sender=["']?([0-9a-f-]{36})["']?[\s\S]*?(?=\[Message\]\s+[^\r\n]*?sender=|$)/gi;
+      let mBlock;
+      let hasBlocks = false;
+      while ((mBlock = messageBlockRegex.exec(contentStr)) !== null) {
+        hasBlocks = true;
+        messagesInStep.push({ senderUuid: mBlock[1].toLowerCase(), text: mBlock[0] });
       }
-      for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) {
-        sendersInStep.add(m[1].toLowerCase());
+
+      if (!hasBlocks) {
+        const sSender = String(s?.sender || '').toLowerCase();
+        if (/^[0-9a-f-]{36}$/.test(sSender)) {
+          messagesInStep.push({ senderUuid: sSender, text: contentStr });
+        } else {
+          for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) {
+            messagesInStep.push({ senderUuid: m[1].toLowerCase(), text: contentStr });
+          }
+        }
       }
-      for (const senderUuid of sendersInStep) {
+
+      for (const { senderUuid, text } of messagesInStep) {
         if (dispatchedUuids.has(senderUuid)) {
           if (r3DispatchedUuids.has(senderUuid)) {
             r3DeliveredUuids.add(senderUuid);
           } else if (r2DispatchedUuids.has(senderUuid)) {
             r2DeliveredUuids.add(senderUuid);
             if (opponentTypes.includes(uuidToAgent.get(senderUuid))) {
-              opponentR2Deliveries.push(contentStr);
+              opponentR2Deliveries.push(text);
             }
           } else {
             r1DeliveredUuids.add(senderUuid);
@@ -1261,6 +1375,19 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
 
     if (earlyStopAskIdx >= 0) {
+      let esOption1Text = '';
+      let esOption2Text = '';
+      const askStep = combinedSteps[earlyStopAskIdx];
+      for (const tc of collectToolCalls(askStep)) {
+        if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+          const qList = tc?.args?.questions;
+          if (Array.isArray(qList) && qList.length > 0 && Array.isArray(qList[0]?.options)) {
+            esOption1Text = String(qList[0].options[0] || '');
+            esOption2Text = String(qList[0].options[1] || '');
+          }
+        }
+      }
+
       let earlyAnswer = '';
       for (let i = earlyStopAskIdx + 1; i < combinedSteps.length; i++) {
         const s = combinedSteps[i];
@@ -1282,9 +1409,45 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         }
       }
       const trimmedEarly = earlyAnswer.trim();
-      const EARLY_STOP_APPROVE_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?1[:.)]?\s*(?:завершить|сейчас|экономия)?|(?:завершить\s+сейчас|завершить\s+без\s+ранжирования|стоп|экономия|да|yes|stop)/i;
-      const EARLY_STOP_REJECT_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*|(?:провести\s+r3|полный\s+протокол|не\s+завершать|ранжирование|нет|no)/i;
-      if (EARLY_STOP_APPROVE_RE.test(trimmedEarly) && !EARLY_STOP_REJECT_RE.test(trimmedEarly)) {
+
+      const strippedEarly = trimmedEarly.replace(/^A\d+[:.)]\s*/i, '').trim();
+      const isOpt1 = /^(?:(?:option|вариант)\s*1\b|1(?:[:.)]|\s*$))/i.test(strippedEarly);
+      const isOpt2 = /^(?:(?:option|вариант)\s*2\b|2(?:[:.)]|\s*$))/i.test(strippedEarly);
+
+      let selectedEarlyOptionText = '';
+      if (isOpt1 && esOption1Text) {
+        selectedEarlyOptionText = esOption1Text;
+      } else if (isOpt2 && esOption2Text) {
+        selectedEarlyOptionText = esOption2Text;
+      } else {
+        selectedEarlyOptionText = strippedEarly || trimmedEarly;
+      }
+
+      const BOUNDARY_PRE = '(?<![а-яёa-z0-9_-])';
+      const BOUNDARY_POST = '(?![а-яёa-z0-9_-])';
+      const EARLY_STOP_NEG_PRE_WORDS = '(?:не|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|без|отмена|don\'?t|do\\s+not|never|no)';
+      const EARLY_STOP_NEG_POST_WORDS = '(?:не|не\\s+хочу|не\\s+надо|не\\s+нужно|не\\s+нужен|нельзя|никакого|отмена|don\'?t|do\\s+not|never|no)';
+      const EARLY_STOP_WORDS = '(?:ранн(?:ий|его)\\s+стоп(?:а)?|заверш(?:ить|ения)|ранний|stop|завершать)';
+
+      const EARLY_STOP_NEGATION_RE = new RegExp(
+        `(?:${BOUNDARY_PRE}${EARLY_STOP_NEG_PRE_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,35}${BOUNDARY_PRE}${EARLY_STOP_WORDS}${BOUNDARY_POST})|` +
+        `(?:${BOUNDARY_PRE}${EARLY_STOP_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,35}${BOUNDARY_PRE}${EARLY_STOP_NEG_POST_WORDS}${BOUNDARY_POST})`,
+        'i'
+      );
+      const EARLY_STOP_REJECT_INTENT_RE = new RegExp(
+        `${BOUNDARY_PRE}(?:провести\\s+r3|полный\\s+протокол|не\\s+завершать|(?<!без\\s+(?:стадии\\s+)?)ранжировани[ея]|r3|стадия\\s+3|stage\\s+3|проводим\\s+r3)${BOUNDARY_POST}`,
+        'i'
+      );
+      const EARLY_STOP_APPROVE_INTENT_RE = new RegExp(
+        `${BOUNDARY_PRE}(?:завершить\\s+сейчас|завершить\\s+без\\s+(?:стадии\\s+)?ранжирования|ранний\\s+стоп|завершить|экономия)${BOUNDARY_POST}`,
+        'i'
+      );
+
+      const hasEarlyStopNegation = EARLY_STOP_NEGATION_RE.test(trimmedEarly);
+      const hasEarlyStopReject = EARLY_STOP_REJECT_INTENT_RE.test(trimmedEarly) || EARLY_STOP_REJECT_INTENT_RE.test(selectedEarlyOptionText);
+      const hasEarlyStopApprove = EARLY_STOP_APPROVE_INTENT_RE.test(selectedEarlyOptionText) || EARLY_STOP_APPROVE_INTENT_RE.test(trimmedEarly);
+
+      if (!hasEarlyStopNegation && !hasEarlyStopReject && hasEarlyStopApprove) {
         isEarlyStopUserApproved = true;
       }
     }
