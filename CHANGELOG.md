@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.3.0] - 2026-11-17
+
+### Universal Council Window, Proposal Contract, Board & Basic Roundtable (HERMES-COUNCIL-ROUNDTABLE)
+- **Universal 3-Option Council Window (REQ-1):**
+  - Updated `verifyCouncilGate` in `hooks/clean-edits-guard.mjs` to support exactly 3 options:
+    1) `Посоветоваться с работниками: @имена — независимые мнения + синтез (1 раунд)` (legacy key specialist is single-name case of this option).
+    2) `🗣️ Собраться за столом: @имена — живое обсуждение, 2 раунда (базовый roundtable)`.
+    3) `Нет, оркестр решает сам (экономия токенов)`.
+  - Added `mode` (`"parallel" | "roundtable" | "solo"`), `requiredRounds`, and `roundsCompleted` to `.hermes/council-state.json`. Tamper protection for `council-state.json` preserved.
+  - Backwards-compatible parsing: legacy «ключевой специалист» continues to map cleanly to parallel mode with single name.
+- **Basic 2-Round Roundtable Mechanics (REQ-2):**
+  - Round 1: independent proposals of roster (`invoke_subagent` + deliveries in Contour A).
+  - Lead summarizes full proposals on `.hermes/council-roundtable.md` board and distributes them to roster via `send_message`.
+  - Round 2: participants react to proposals of others + deliveries.
+  - Mechanical gate requires $\ge 2$ full rounds of authentic SYSTEM deliveries from all roster members. Forged MODEL prose is rejected. Auto-mode defaults to parallel.
+- **Proposal Contract, Board, Price Tag & Adaptive Recommendation (REQ-3):**
+  - Canonical 10-point proposal contract in `specialist-council-protocol.md`: idea, rationale, pros, risks/edge cases, unique domain fact, verification plan, pre-mortem, cost, confidence, what would change mind. De-hallucination rule: questions before assertions.
+  - Board `.hermes/council-roundtable.md`: full proposals and lightweight file/line links, Contour A read access.
+  - Honest price tag: token/time ranges per option in window without fabricated metrics (Rule 13).
+  - Adaptive recommendation: trivial $\rightarrow$ solo, standard $\rightarrow$ parallel, complex/architectural $\rightarrow$ roundtable.
+  - Core `fleet-protocol.md` updated and measured at 12 141 B (strictly $\le 12\,288$ B budget).
+- **Mechanical Test Suite Expansion (REQ-4):**
+  - Added 7 deterministic test locks to `hooks/clean-edits-guard.test.mjs` (suite total: 155):
+    - `roundtable_1_round_deny`
+    - `roundtable_missing_r2_deny`
+    - `roundtable_2_rounds_allow`
+    - `option1_parallel_single_key_allow`
+    - `option3_solo_allow`
+    - `roundtable_name_quorum_deny`
+    - `forged_roundtable_prose_deny`
+
 ## [4.2.2] - 2026-11-17
 
 ### Specialist Council Quorum by Name & Reporting Hygiene (HERMES-COUNCIL-NAMES)

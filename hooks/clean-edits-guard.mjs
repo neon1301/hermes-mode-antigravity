@@ -604,7 +604,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   }
 
   // Find Council Gate ask_question in current turn (after taskStartIdx)
-  const COUNCIL_QUESTION_RE = /(?:посоветоваться\s+с\s+советом|совет\s+специалистов|собрать\s+совет|council\s+gate|специалист.*финальн)/i;
+  const COUNCIL_QUESTION_RE = /(?:посоветоваться\s+с\s+(?:советом|работниками)|совет\s+специалистов|собрать\s+совет|собраться\s+за\s+столом|круглый\s+стол|council\s+gate|roundtable|специалист.*финальн)/i;
   let councilAskIdx = -1;
   let councilAskToolCallId = '';
 
@@ -633,6 +633,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   let councilAnswer = '';
   let option1Text = '';
   let option2Text = '';
+  let option3Text = '';
 
   if (councilAskIdx >= 0) {
     const askStep = combinedSteps[councilAskIdx];
@@ -642,6 +643,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         if (Array.isArray(qList) && qList.length > 0 && Array.isArray(qList[0]?.options)) {
           option1Text = String(qList[0].options[0] || '');
           option2Text = String(qList[0].options[1] || '');
+          option3Text = String(qList[0].options[2] || '');
         }
       }
     }
@@ -697,11 +699,17 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     process.exit(0);
   }
 
-  // REQ-4: Cyrillic-aware negation guard & anchored solo matcher
-  const SOLO_NEGATION_RE = /(?:(?:не|не\s+надо|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:lead\s+решает\s+сам|решает\s+сам|сам\b|экономия\s+токенов|без\s+совета|solo\b))|(?:(?:lead\s+решает\s+сам|решает\s+сам|сам\b|экономия\s+токенов|без\s+совета|solo\b)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:не|не\s+надо|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё]))/i;
-  const POSITIVE_SOLO_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|[A-Za-z]?)\d+[:.)]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:нет[,\s]+(?:lead\s+решает\s+сам|lead\s+сам)|lead\s+решает\s+сам|только\s+lead|решает\s+сам\s*\(экономия\s+токенов\)|lead\s+сам\b|без\s+совета|solo\b)/i;
-  const hasSoloNegation = SOLO_NEGATION_RE.test(councilAnswer);
-  const isSolo = councilGateConfig !== 'auto' && POSITIVE_SOLO_RE.test(councilAnswer) && !hasSoloNegation;
+  const trimmedAnswer = councilAnswer.trim();
+
+  // REQ-1 (v4.3.0): Cyrillic-aware negation guard & anchored solo matcher
+  const SOLO_NEGATION_RE = /(?:(?:не|не\s+надо|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:(?:lead|оркестр)\s+решает\s+сам|решает\s+сам|(?:lead|оркестр)\s+сам\b|сам\b|экономия\s+токенов|без\s+совета|solo\b))|(?:(?:(?:lead|оркестр)\s+решает\s+сам|решает\s+сам|(?:lead|оркестр)\s+сам\b|сам\b|экономия\s+токенов|без\s+совета|solo\b)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:не|не\s+надо|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё]))/i;
+  const POSITIVE_SOLO_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\d+[:.)]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:нет[,\s]+(?:(?:lead|оркестр)\s+)?(?:решает\s+)?сам|(?:lead|оркестр)\s+решает\s+сам|только\s+(?:lead|оркестр)|решает\s+сам\s*\(экономия\s+токенов\)|(?:lead|оркестр)\s+сам\b|без\s+совета|solo\b)/i;
+  const OPTION_3_INDEX_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?3[:.)]?\s*$/i;
+
+  const hasSoloNegation = SOLO_NEGATION_RE.test(trimmedAnswer);
+  const isSoloAnswer = POSITIVE_SOLO_RE.test(trimmedAnswer) ||
+    (OPTION_3_INDEX_RE.test(trimmedAnswer) && (!option3Text || POSITIVE_SOLO_RE.test(option3Text)));
+  const isSolo = councilGateConfig !== 'auto' && isSoloAnswer && !hasSoloNegation;
 
   if (isSolo) {
     try {
@@ -712,7 +720,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         turnMarker,
         taskHash,
         task: cleanPrompt.slice(0, 100),
+        mode: 'solo',
         decision: 'solo',
+        requiredRounds: 0,
+        roundsCompleted: 0,
         isLoop,
         status: 'APPROVED',
         timestamp: new Date().toISOString()
@@ -723,9 +734,24 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     return;
   }
 
-  // Council was chosen or auto mode: verify authentic deliveries (REQ-3)
-  const OPTION_2_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|[A-Za-z]?)\d+[:.)]\s*|[-*]\s*)?(?:только\s+ключевой\s+специалист|ключевой\s+специалист|key\s+specialist)/i;
-  const isOption2 = OPTION_2_RE.test(councilAnswer);
+  // REQ-1 & REQ-2 (v4.3.0): Mode determination (Roundtable vs. Parallel)
+  const ROUNDTABLE_RE = /(?:за\s+столом|круглый\s+стол|собрание|живое\s+обсуждение|roundtable)/i;
+  const OPTION_2_INDEX_RE = /(?:^|\n)\s*(?:A\d+[:.)]\s*)?(?:(?:option\s+|вариант\s+|[A-Za-z]?)\s*)?2[:.)]?\s*$/i;
+  const OPTION_KEY_SPECIALIST_RE = /(?:только\s+ключевой\s+специалист|ключевой\s+специалист|key\s+specialist)/i;
+
+  // auto mode is ALWAYS parallel (roundtable only on explicit option 2 / roundtable choice)
+  const isRoundtable = councilGateConfig !== 'auto' && (
+    ROUNDTABLE_RE.test(trimmedAnswer) ||
+    (OPTION_2_INDEX_RE.test(trimmedAnswer) && ROUNDTABLE_RE.test(option2Text))
+  );
+
+  const isLegacyKeySpecialist = !isRoundtable && (
+    OPTION_KEY_SPECIALIST_RE.test(trimmedAnswer) ||
+    (OPTION_2_INDEX_RE.test(trimmedAnswer) && OPTION_KEY_SPECIALIST_RE.test(option2Text))
+  );
+
+  const mode = isRoundtable ? 'roundtable' : 'parallel';
+  const requiredRounds = isRoundtable ? 2 : 1;
 
   let requiredCount = 1;
   let expectedNames = [];
@@ -743,13 +769,18 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     return [...new Set(rawNames)];
   };
 
-  if (isOption2) {
+  if (isRoundtable) {
+    const answerAgents = extractValidAgents(councilAnswer);
+    const optionAgents = extractValidAgents(option2Text);
+    expectedNames = answerAgents.length > 0 ? answerAgents : (optionAgents.length > 0 ? optionAgents : extractValidAgents(option1Text));
+    requiredCount = expectedNames.length > 0 ? expectedNames.length : 1;
+  } else if (isLegacyKeySpecialist) {
     const answerAgents = extractValidAgents(councilAnswer);
     const optionAgents = extractValidAgents(option2Text);
     expectedNames = answerAgents.length > 0 ? answerAgents : optionAgents;
     requiredCount = expectedNames.length > 0 ? expectedNames.length : 1;
   } else {
-    // Option 1 (Full Council) or auto
+    // Option 1 (Parallel Council) or auto
     const answerAgents = extractValidAgents(councilAnswer);
     const optionAgents = extractValidAgents(option1Text);
     expectedNames = answerAgents.length > 0 ? answerAgents : optionAgents;
@@ -758,31 +789,80 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
 
   const dispatchedUuids = new Set();
   const dispatchedTypes = new Set();
-  const deliveredUuids = new Set();
+  const agentToUuid = new Map();
+  const r1DeliveredUuids = new Set();
+  const r2DispatchedUuids = new Set();
+  const r2DeliveredUuids = new Set();
   const scanStartIndex = councilAskIdx >= 0 ? councilAskIdx : taskStartIdx;
 
   for (let i = scanStartIndex; i < combinedSteps.length; i++) {
     const s = combinedSteps[i];
+    const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+
+    const stepUuids = [];
+    for (const m of contentStr.matchAll(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)) {
+      const u = m[1].toLowerCase();
+      dispatchedUuids.add(u);
+      stepUuids.push(u);
+    }
+
+    let uuidIndex = 0;
     for (const tc of collectToolCalls(s)) {
-      if (String(tc?.name || '').toLowerCase() === 'invoke_subagent') {
+      const tcName = String(tc?.name || '').toLowerCase();
+      if (tcName === 'invoke_subagent') {
         const specs = extractSubagentSpecs(tc?.args);
         for (const spec of specs) {
           const rawTName = String(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '')
             .replace(/^@/, '')
             .toLowerCase();
           const resolved = resolveAgentName(rawTName);
-          if (resolved) dispatchedTypes.add(resolved);
-          else if (rawTName) dispatchedTypes.add(rawTName);
+          if (resolved) {
+            dispatchedTypes.add(resolved);
+            if (uuidIndex < stepUuids.length) {
+              agentToUuid.set(resolved, stepUuids[uuidIndex]);
+            }
+          } else if (rawTName) {
+            dispatchedTypes.add(rawTName);
+            if (uuidIndex < stepUuids.length) {
+              agentToUuid.set(rawTName, stepUuids[uuidIndex]);
+            }
+          }
+          uuidIndex++;
+        }
+      }
+      if (tcName === 'send_message') {
+        let recipient = String(
+          tc?.args?.Recipient || tc?.args?.recipient ||
+          tc?.args?.ConversationId || tc?.args?.conversationId || ''
+        ).toLowerCase();
+        if (recipient.startsWith('@')) recipient = recipient.slice(1);
+        const resolvedAgent = resolveAgentName(recipient);
+        if (resolvedAgent && agentToUuid.has(resolvedAgent)) {
+          recipient = agentToUuid.get(resolvedAgent);
+        }
+        if (recipient && dispatchedUuids.has(recipient) && r1DeliveredUuids.has(recipient)) {
+          r2DispatchedUuids.add(recipient);
         }
       }
     }
-    const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
-    for (const m of contentStr.matchAll(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)) {
-      dispatchedUuids.add(m[1].toLowerCase());
-    }
+
     if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
+      const sendersInStep = new Set();
+      const sSender = String(s?.sender || '').toLowerCase();
+      if (/^[0-9a-f-]{36}$/.test(sSender)) {
+        sendersInStep.add(sSender);
+      }
       for (const m of contentStr.matchAll(/sender=["']?([0-9a-f-]{36})["']?/gi)) {
-        deliveredUuids.add(m[1].toLowerCase());
+        sendersInStep.add(m[1].toLowerCase());
+      }
+      for (const senderUuid of sendersInStep) {
+        if (dispatchedUuids.has(senderUuid)) {
+          if (r2DispatchedUuids.has(senderUuid)) {
+            r2DeliveredUuids.add(senderUuid);
+          } else {
+            r1DeliveredUuids.add(senderUuid);
+          }
+        }
       }
     }
   }
@@ -790,7 +870,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   if (dispatchedUuids.size === 0) {
     const msg = councilGateConfig === 'auto'
       ? `Hermes Gate (Council Gate): В режиме config.councilGate="auto" перед первой записью обязательны доставки от участников совета специалистов (ожидается запуск invoke_subagent в Контуре A).\n[EN: Hermes Gate (Council Gate): config.councilGate="auto" requires deliveries from council specialists before writing.]`
-      : `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников совета перед первой записью.\n[EN: Hermes Gate (Council Gate): Council was requested but no specialists were invoked. Invoke council members before writing.]`;
+      : (isRoundtable
+        ? `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда), но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable was requested but no specialists were invoked. Invoke roundtable members before writing.]`
+        : `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников совета перед первой записью.\n[EN: Hermes Gate (Council Gate): Council was requested but no specialists were invoked. Invoke council members before writing.]`);
     deny(msg);
     process.exit(0);
   }
@@ -802,24 +884,55 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     process.exit(0);
   }
 
-  // REQ-1 (v4.2.2): Check named specialist coverage if expectedNames is not empty
+  // REQ-1 (v4.2.2 & v4.3.0): Check named specialist coverage if expectedNames is not empty
   if (expectedNames.length > 0) {
     const missingNames = expectedNames.filter((name) => !dispatchedTypes.has(name));
     if (missingNames.length > 0) {
       const missingList = missingNames.map((n) => `@${n}`).join(', ');
-      deny(
-        `Hermes Gate (Council Gate): По выбранному варианту совета не запущены обязательные специалисты: ${missingList}. Запустите всех назначенных специалистов через invoke_subagent перед первой записью.\n[EN: Hermes Gate (Council Gate): Missing required council specialists: ${missingList}. Invoke all designated specialists via invoke_subagent before writing.]`
-      );
+      const msg = isRoundtable
+        ? `Hermes Gate (Council Gate): По выбранному варианту круглого стола не запущены обязательные специалисты: ${missingList}. Запустите всех назначенных специалистов через invoke_subagent перед первой записью.\n[EN: Hermes Gate (Council Gate): Missing required roundtable specialists: ${missingList}. Invoke all designated specialists via invoke_subagent before writing.]`
+        : `Hermes Gate (Council Gate): По выбранному варианту совета не запущены обязательные специалисты: ${missingList}. Запустите всех назначенных специалистов через invoke_subagent перед первой записью.\n[EN: Hermes Gate (Council Gate): Missing required council specialists: ${missingList}. Invoke all designated specialists via invoke_subagent before writing.]`;
+      deny(msg);
       process.exit(0);
     }
   }
 
-  const pendingUuids = [...dispatchedUuids].filter((id) => !deliveredUuids.has(id));
-  if (pendingUuids.length > 0 || deliveredUuids.size < requiredCount) {
-    deny(
-      `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ответы участников ещё не получены (доставлено ${deliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь ответов субагентов перед первой записью.\n[EN: Hermes Gate (Council Gate): Council deliveries pending (${deliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await subagent responses before writing.]`
-    );
-    process.exit(0);
+  if (isRoundtable) {
+    // REQ-2 (v4.3.0): Check Round 1 deliveries
+    const pendingR1Uuids = [...dispatchedUuids].filter((id) => !r1DeliveredUuids.has(id));
+    if (pendingR1Uuids.length > 0 || r1DeliveredUuids.size < requiredCount) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда), но ответы первого раунда ещё не получены (доставлено R1: ${r1DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь ответов участников Раунда 1 перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Round 1 deliveries pending (${r1DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Round 1 responses before writing.]`
+      );
+      process.exit(0);
+    }
+
+    // REQ-2 (v4.3.0): Check Round 2 send_message distribution
+    const pendingR2Dispatches = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
+    if (pendingR2Dispatches.length > 0) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда). Раунд 1 завершён, но предложения ещё не разосланы участникам стола через send_message для Раунда 2 (разослано: ${r2DispatchedUuids.size} из ${dispatchedUuids.size}). Сведите предложения на доску council-roundtable.md и разошлите участникам.\n[EN: Hermes Gate (Council Gate): Roundtable Round 2 dispatch pending (${r2DispatchedUuids.size}/${dispatchedUuids.size}). Broadcast proposals to roster via send_message.]`
+      );
+      process.exit(0);
+    }
+
+    // REQ-2 (v4.3.0): Check Round 2 deliveries
+    const pendingR2Uuids = [...dispatchedUuids].filter((id) => !r2DeliveredUuids.has(id));
+    if (pendingR2Uuids.length > 0 || r2DeliveredUuids.size < requiredCount) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда). Ожидаются ответы участников во втором раунде (доставлено R2: ${r2DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь реакций всех участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Round 2 deliveries pending (${r2DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Round 2 reactions before writing.]`
+      );
+      process.exit(0);
+    }
+  } else {
+    // Parallel Council
+    const pendingUuids = [...dispatchedUuids].filter((id) => !r1DeliveredUuids.has(id));
+    if (pendingUuids.length > 0 || r1DeliveredUuids.size < requiredCount) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ответы участников ещё не получены (доставлено ${r1DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь ответов субагентов перед первой записью.\n[EN: Hermes Gate (Council Gate): Council deliveries pending (${r1DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await subagent responses before writing.]`
+      );
+      process.exit(0);
+    }
   }
 
   // All delivered! Save state and allow
@@ -831,7 +944,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       turnMarker,
       taskHash,
       task: cleanPrompt.slice(0, 100),
-      decision: 'council',
+      mode,
+      decision: isRoundtable ? 'roundtable' : 'council',
+      requiredRounds,
+      roundsCompleted: requiredRounds,
       membersCount: dispatchedUuids.size,
       isLoop,
       status: 'APPROVED',
@@ -839,7 +955,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     };
     fs.writeFileSync(councilStatePath, JSON.stringify(stateRecord, null, 2), 'utf-8');
   } catch {}
-  logGateDecision({ toolName, decision: 'allow', reason: 'Council Gate approved: all council deliveries verified' });
+  logGateDecision({ toolName, decision: 'allow', reason: `Council Gate approved: all ${mode} deliveries verified (${requiredRounds} rounds)` });
 }
 
 if (!isSubagent) {
@@ -1113,7 +1229,7 @@ if (requiresStep0Handshake) {
             // Exclude Council Gate ask_question from fulfilling Step 0 Model Handshake (REQ-2)
             const tcArgs = tc?.args || {};
             const argsStr = typeof tcArgs === 'string' ? tcArgs : JSON.stringify(tcArgs);
-            const isCouncilAsk = /(?:посоветоваться\s+с\s+советом|собрать\s+совет|совет\s+специалистов|советом\s+экспертов|совет\s+экспертов|council\b)/i.test(argsStr) &&
+            const isCouncilAsk = /(?:посоветоваться\s+с\s+(?:советом|работниками)|собрать\s+совет|совет\s+специалистов|собраться\s+за\s+столом|круглый\s+стол|советом\s+экспертов|совет\s+экспертов|council\b|roundtable\b)/i.test(argsStr) &&
               !/(?:модел|model|уровен|tier|medium|high|low)/i.test(argsStr);
             return !isCouncilAsk;
           })

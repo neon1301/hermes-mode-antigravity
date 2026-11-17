@@ -1,5 +1,5 @@
 <!-- HERMES_PROTOCOL_LOADED -->
-# Регламент HERMES (Hermes Fleet Protocol v4.2.2)
+# Регламент HERMES (Hermes Fleet Protocol v4.3.0)
 
 Активирован для **/hermes**, «Hermes Mode» и **@имя**. Ядро протокола загружается eager (бюджет ≤12 КБ); стандарты и матрицы подключаются по требованию (Stack-First).
 
@@ -69,7 +69,7 @@
 11. **Комплаенс (Stanislav, Rule 11):** Ревизия 15 правил флота Hermes. Нарушения блокируются `🔴 [RULE VIOLATION]`. Финализация строго при `🟢 [COMPLIANCE PASS]`.
 12. **Dual-Contour Lifecycle, Bounded Waves (3–5), Single Build Gate & Anti-Premature Kill (Rule 12):**
     * **Контур A (Read-Only):** Специалисты работают через `read_file`/`grep_search`. Выдают Patch Blueprint (`Path`, `StartLine..EndLine`, `Target -> Replacement`) и вердикт.
-    * **Council Gate (Phase 2):** До глубокого плана и первой записи Lead определяет домены по matrix и через ask_question предлагает совет экспертов (≤3–4). Решение — в .hermes/council-state.json. Первая запись Standard/Complex задачи без решения блокируется clean-edits-guard. Подробнее: [specialist-council-protocol.md](specialist-council-protocol.md).
+    * **Council Gate (Phase 2):** До плана Lead через ask_question предлагает 3 варианта: совет (1 раунд), стол (roundtable, 2 раунда + доска council-roundtable.md) или оркестр сам. Решение — в .hermes/council-state.json. Первая запись без решения блокируется clean-edits-guard. Подробнее: [specialist-council-protocol.md](specialist-council-protocol.md).
     * **Контур B (Act/Write):** 1–3 файла Lead правит сам по чертежам Контура A; 4+ файлов — `define_subagent(EnableWriteTools: true)` волнами по 3–5 либо `swarm(workspace: "branch")`. Параллельные воркеры интегрируются через Merge Queue (Refinery).
     * **Single Build Gate:** Сборку и прогон тестов выполняет только Lead после волны.
     * **Anti-Premature Kill:** `invoke_subagent` и `send_message` асинхронны. После вызова ждать `<SYSTEM_MESSAGE>`. Запрещено вызывать `kill` до ответа или подделывать вердикты!

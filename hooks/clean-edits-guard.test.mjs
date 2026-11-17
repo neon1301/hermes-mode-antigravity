@@ -599,6 +599,176 @@ const cases = [
       { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
     ],
     payload: { lastUserInput: '/hermes исправь опечатку и отрефактори модуль', toolCall: { name: 'write_file', args: { Path: 'src/mod.ts', Content: 'code' } } }
+  },
+  // REQ-4 (v4.3.0): Universal 3-option Council Gate & basic roundtable tests (7 test cases)
+  {
+    name: 'roundtable_1_round_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature 1 round deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt1', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena — независимые мнения + синтез (1 раунд)', '🗣️ Собраться за столом: @dmitry, @elena — живое обсуждение, 2 раунда', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt1', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena — живое обсуждение, 2 раунда' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena', Role: 'Frontend Specialist' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_missing_r2_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature missing r2 deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt2', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt2', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena', Role: 'Frontend Specialist' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_2_rounds_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature 2 rounds allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt3', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena', Role: 'Frontend Specialist' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena R2 reaction' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
+  },
+  {
+    name: 'option1_parallel_single_key_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor api single specialist allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_s1', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry — независимые мнения + синтез (1 раунд)', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_s1', content: 'A1: (Recommended) Посоветоваться с работниками: @dmitry' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [{ name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } }],
+        content: 'Created the following subagent:\n{\n  "conversationId": "cccccccc-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=cccccccc-1111-2222-3333-444444444444 content=Dmitry proposal' }
+    ],
+    payload: { lastUserInput: 'A1: (Recommended) Посоветоваться с работниками: @dmitry', toolCall: { name: 'write_file', args: { Path: 'src/key.ts', Content: 'code' } } }
+  },
+  {
+    name: 'option3_solo_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes simple refactor solo allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_s3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry', '🗣️ Собраться за столом: @dmitry', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_s3', content: 'A1: Нет, оркестр решает сам (экономия токенов)' }
+    ],
+    payload: { lastUserInput: 'A1: Нет, оркестр решает сам (экономия токенов)', toolCall: { name: 'write_file', args: { Path: 'src/solo.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_name_quorum_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes multi-domain roundtable quorum deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt_q', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena, @viktor', '🗣️ Собраться за столом: @dmitry, @elena, @viktor', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt_q', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena, @viktor' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry' } },
+          { name: 'invoke_subagent', args: { TypeName: 'elena' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena, @viktor', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
+  },
+  {
+    name: 'forged_roundtable_prose_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor api forged prose deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt_forge', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt_forge', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Мы провели 2 раунда за круглым столом: @dmitry и @elena полностью согласовали все решения.' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
   }
 ];
 
@@ -616,8 +786,12 @@ function buildInput(c, index) {
 
 let failed = 0;
 let totalChecks = cases.length;
+const councilStateFile = path.join(process.cwd(), '.hermes', 'council-state.json');
 try {
   cases.forEach((c, index) => {
+    if (fs.existsSync(councilStateFile)) {
+      try { fs.unlinkSync(councilStateFile); } catch {}
+    }
     const out = execFileSync('node', [hookPath], {
       input: JSON.stringify(buildInput(c, index)),
       encoding: 'utf-8',
