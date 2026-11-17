@@ -63,11 +63,12 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-004] Narrow `hermes-hardcode-ignore` Scope to Trigger Line (±1 Line) & ADR 0001 Schema Shim
 * **Priority:** P1
-* **Target Version:** v4.7.0
-* **Scope & Context:**
-  - `hermes-hardcode-ignore` currently acts on the entire write operation. Narrow scope to the line of violation (±1 line).
-  - **Spec Law «Done when»:** Negative test «ignore on line 5 does not suppress hardcode on line 40» is proven red on current codebase, green after fix.
-  - Document schema divergence (schema requires `ackToken`, while gate accepts `ackToken || signature`) as a deprecated backward-compatibility shim in `docs/adr/0001-l2-diff-review-and-anti-self-signing.md`.
+* **Target Version:** v4.6.1
+* **Status:** ✅ COMPLETED in v4.6.1
+* **Resolution:**
+  - Narrowed `hermes-hardcode-ignore` in `hooks/clean-edits-guard.mjs` from whole-payload suppression to strictly line-scoped `±1` (`N-1..N+1`). Violations 2+ lines away are denied (`hardcode_ignore_far_violation_deny`).
+  - Rejected blanket file-wide markers (`hermes-hardcode-ignore-file`, `whole file`, `entire file`, `на весь файл`) and bare markers without a reason (`hardcode_ignore_file_blanket_deny`, `hardcode_ignore_legacy_marker_shim`).
+  - Formalized `hermes-hardcode-ignore` `v2` / `v1-legacy` compatibility shim and `ackToken || signature` shim in `docs/adr/0001-l2-diff-review-and-anti-self-signing.md` and `TROUBLESHOOTING.md`. Layer 1 security checks remain strictly unbypassable.
 
 ---
 
@@ -193,3 +194,16 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Implemented mechanical Criteria Freeze (`.hermes/council-criteria.json` SHA-256 hash at end of R2, verified before R3 acceptance -> `deny` on metric-shopping), documented protocol-level arbitrator role in `skills/hermes/references/council-learning-protocol.md`.
   - Partially closed `TASK-005` (`tool_call_id` exact binding + `bindingConfidence: "uncertain"` skipping reputation while preserving quorum) and closed v4.5.1 audit tails (`early_stop` skip-R3 phrasing + fallback per-sender `[CONVERGED]` segment isolation).
   - Added 21 deterministic test locks (16 REQ-7 + 5 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (210/210 PASS, 484/484 total across 11 suites).
+
+---
+
+### [TASK-015] v4.6.0 Audit Tails & TASK-004 Line-Scoped `hermes-hardcode-ignore`
+* **Priority:** P1 / P2
+* **Target Version:** v4.6.1
+* **Status:** ✅ COMPLETED in v4.6.1
+* **Resolution:**
+  - Restored `prunedUuids` and active `membersCount` / `roster` persistence in full 3-stage `roundtable` `.hermes/council-state.json` records (both `canEarlyStop` and full 3-stage paths).
+  - Implemented honest multi-domain detection (`detectDomains` + fixed `DOMAIN_PRIORITY` tie-break) recording `domains: [...]` while accruing reputation strictly on `primary` domain only (`+1` observation, zero inflation).
+  - Distinguished `authorshipSource: "lead_declared"` (weight `1.0`) vs `"team_fallback"` (`teamFallbackWeight = 0.5`, hard `±0.15` cap preserved) and documented Lead's `.hermes/decisions.md` authorship block obligation.
+  - Closed `TASK-004`: line-scoped `±1` `hermes-hardcode-ignore`, blanket/bare marker denial, and formalized ADR 0001 compatibility shims.
+  - Added 13 deterministic test locks (10 REQ-5 + 3 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (223/223 PASS, 497/497 total across 11 suites) with 0 bytes growth on `fleet-protocol.md`.

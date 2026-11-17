@@ -1,17 +1,18 @@
 # 📈 Протокол Обучения Совета на Исходах (Council Outcome Learning & Criteria Freeze Protocol)
 
-Данный документ описывает механическую подсистему обучения флота Hermes (v4.6.0) на реальных исходах тестов и аудитов, механическую репутацию специалистов по доменам, заморозку критериев (анти metric-shopping) и честность привязки `имя -> UUID`.
+Данный документ описывает механическую подсистему обучения флота Hermes (v4.6.1) на реальных исходах тестов и аудитов, механическую репутацию специалистов по доменам, заморозку критериев (анти metric-shopping) и честность привязки `имя -> UUID`.
 
 ---
 
 ## 1. Журнал исходов совета (`.hermes/council-outcomes.jsonl`)
 
-- **Защита от подделки (Tamper Protection):** файл защищён `clean-edits-guard` (`protectedVerdictPaths` + shell-паттерны `>`, `>>`, `Set-Content`, `Out-File`, `Remove-Item`, `rm`, `truncate`). Запись (append) выполняется **исключительно хуком**.
+- **Защита от подделки (Tamper Protection):** файл защищён `clean-edits-guard` (`protectedVerdictPaths` + shell-паттерны `>`, `>>`, `Set-Content`, `Out-File`, `Remove-Item`, `rm`, `truncate`, `mv`, `cp`, `Copy-Item`, `Move-Item`, `Rename-Item`, `ri`, `node -e`/`python -c` unlink/copy). Запись (append) выполняется **исключительно хуком**.
 - **Схема записи:**
   ```json
   {
     "taskHash": "a1b2c3d4e5f60718",
-    "domain": "backend",
+    "domain": "database",
+    "domains": ["database", "backend"],
     "mode": "roundtable",
     "earlyStop": false,
     "rounds": 3,
@@ -21,6 +22,7 @@
     "declaredAuthors": [
       { "name": "dmitry", "source": "lead_declared", "verifiedInRoster": true }
     ],
+    "authorshipSource": "lead_declared",
     "outcome": "PASS",
     "outcomeSource": "test-summary",
     "diffHash": "4b28361b5aedcffc",
@@ -28,7 +30,18 @@
   }
   ```
 - **Источники исхода (Rule 13 — Zero Fabrication):** исход берётся **строго из защищённых машинных артефактов** (`.hermes/test-summary.json`, `.hermes/qa-verdict.json`, `.hermes/security-verdict.json`). Проза модели (`[QA PASS]` в тексте ответа) источником быть **не может**.
-- **Авторство принятых идей (`declaredAuthors`):** извлекается из `.hermes/decisions.md` с обязательной пометкой `source: "lead_declared"`. Хук механически проверяет присутствие автора в реальном ростере транскрипта (`verifiedInRoster`). Если заявленный автор не вызывался в совете (или имеет `bindingConfidence: "uncertain"`), его запись **отклоняется** и на репутацию не влияет.
+- **Честная мультидоменность (`domains` + детерминированный `primary`):**
+  - Функция `detectDomains` подсчитывает совпадения по **всем** доменам и записывает полный список `domains: [...]` для наблюдаемости в `.hermes/council-outcomes.jsonl` и `.hermes/council-state.json`.
+  - Основной домен `domain` (`primary`) выбирается детерминированно: побеждает домен с большим числом совпадений; при равенстве (`tie-break`) побеждает более ранний домен в фиксированном массиве приоритетов `DOMAIN_PRIORITY`:
+    `security` ➔ `database` ➔ `sap` ➔ `protocol` ➔ `backend` ➔ `frontend` ➔ `ai` ➔ `3d` ➔ `architecture` ➔ `qa` ➔ `hardware` ➔ `simulation` ➔ `refactoring` ➔ `docs` ➔ `general`.
+  - При отсутствии совпадений в промпте используется дефолтный домен первого участника ростера, иначе `'general'`.
+  - **Анти-инфляция репутации:** начисление наблюдений и дельты идёт **строго на один `primary`-домен** (`+1` наблюдение на специалиста за задачу, никогда `+N` по числу доменов).
+- **Авторство принятых идей (`declaredAuthors` и `authorshipSource`):**
+  - Извлекается из блока `Принятые идеи` в `.hermes/decisions.md` (с изоляцией по `taskHash`, без утечки секций `Отклонённые варианты` и `Несогласие`). Хук механически проверяет присутствие автора в реальном ростере транскрипта (`verifiedInRoster`). Заявленный автор вне ростера (или с `bindingConfidence: "uncertain"`) **отклоняется**.
+  - **Обязательство Lead (протокольный уровень):** после каждого совета (`parallel`/`roundtable`) Lead обязан заполнить блок `Принятые идеи` с `@имя` в `.hermes/decisions.md`.
+  - **Различение весов авторства:**
+    - `authorshipSource: "lead_declared"` (есть верифицированные авторы в `decisions.md`) — вес дельты **`1.0`** (начисление заявленным авторам).
+    - `authorshipSource: "team_fallback"` (блок авторства не заполнен или пуст) — вес дельты **`0.5`** (`teamFallbackWeight: 0.5`, распределение на активный ростер; жёсткий cap `±0.15` сохранён).
 - **Режим `solo`:** при `mode: "solo"` репутация специалистов **не начисляется**.
 
 ---
@@ -41,7 +54,7 @@
   - **Нейтральный холодный старт (`priorScore`):** `0.5` (при отсутствии наблюдений рекомендации не меняются).
   - **Порог активации (`minObservations`):** `3`. Влияние на ранжирование рекомендаций включается **только при `observations >= 3`**.
   - **Границы оценки (`minScore..maxScore`):** строго `[0.0, 1.0]`.
-  - **Ограничение шага (`maxDeltaPerObservation` / cap):** `±0.15` на одно наблюдение (`rawDelta = (target - score) * 0.35`, где `target = 1.0` для `PASS` и `0.0` для `FAIL`, обрезается до `[-0.15, +0.15]`).
+  - **Ограничение шага (`maxDeltaPerObservation` / cap) и вес авторства (`teamFallbackWeight`):** `±0.15` на одно наблюдение (`rawDelta = (target - score) * 0.35`, где `target = 1.0` для `PASS` и `0.0` для `FAIL`, обрезается до `[-0.15, +0.15]`, затем умножается на вес авторства: `1.0` для `lead_declared`, `0.5` для `team_fallback`).
   - **Старение по времени (`halfLifeDays`):** экспоненциальный распад к нейтральному `0.5` с периодом полураспада **30 дней**:
     `decayed = 0.5 + (score - 0.5) * 0.5^(ageDays / 30)`.
 

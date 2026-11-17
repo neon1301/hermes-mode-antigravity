@@ -19,9 +19,9 @@ This guide explains the most common guard and gate notices, why they occur, and 
 * **Why it happens:** In active `/hermes` orchestrations for Standard/Complex tasks, Lead Orchestrator must not skip domain consultation or design solutions solo. The PreToolUse hook blocks the first write tool (`write_file`, `edit_file`, `define_subagent` with `EnableWriteTools: true`, `swarm`) until Council Gate is resolved.
 * **Resolution:**
   1. **Standard interactive flow:** Call `ask_question` with the 3 canonical choices:
-     - `(Recommended) Собрать совет: <специалисты> — параллельные мнения + сравнительная таблица`
-     - `Только ключевой специалист: <специалист>`
-     - `Нет, Lead решает сам (экономия токенов)`
+     - `(Recommended) Посоветоваться с работниками: @имена — независимые мнения + синтез (1 раунд)`
+     - `🗣️ Собраться за столом: @имена — живое обсуждение, 3 стадии (NGT/Дельфи)`
+     - `Нет, оркестр решает сам (экономия токенов)`
   2. If the user selects «Lead решает сам», writes are immediately unlocked and logged in `.hermes/gate-log.jsonl`.
   3. If the user selects «Собрать совет», launch the specialists in Contour A (read-only), await their authentic deliveries via `<SYSTEM_MESSAGE>`, present the comparative synthesis table in chat, and save state to `.hermes/decisions.md` and `.hermes/council-state.json`.
   4. **Exceptions & Configuration:**
@@ -53,7 +53,7 @@ This guide explains the most common guard and gate notices, why they occur, and 
 ### 4. `Hermes Rule 9 (Zero Hardcode & Dynamic Configuration)`
 * **Message:** `Обнаружен захардкоженный IP-адрес / порт / путь / секрет...`
 * **Why it happens:** Writing literal IP addresses (`192.168.x.x`), drive letters (`C:\...`), passwords, or API tokens directly into application source code.
-* **Resolution:** Move all environment-specific values to configuration providers (`appsettings.json`, `.env`, configuration classes, or environment variables). If a literal is truly unavoidable (e.g. local loopback in dev harness or fixed protocol constant), add an inline escape comment with a mandatory non-empty reason: `// hermes-hardcode-ignore: <причина>`. Note: empty reasons are strictly rejected, and this directive does not bypass Layer 1 security patterns (`innerHTML`, `eval`).
+* **Resolution:** Move all environment-specific values to configuration providers (`appsettings.json`, `.env`, configuration classes, or environment variables). If a literal is truly unavoidable (e.g. local loopback in dev harness or fixed protocol constant), add a **line-scoped** escape comment with a mandatory non-empty reason directly on the trigger line (`N`) or adjacent line (`N-1` / `N+1`): `// hermes-hardcode-ignore: <причина>` (legacy shim forms `hermes-hardcode-ignore(<причина>)` and `hermes-hardcode-ignore = <причина>` are also recognized strictly within `±1` line; see `docs/adr/0001-l2-diff-review-and-anti-self-signing.md`). Note: violations 2+ lines away, bare markers without a reason, and blanket file-wide markers (`hermes-hardcode-ignore-file`, `whole file`, `на весь файл`) are strictly rejected (`deny`), and this directive never bypasses Layer 1 security patterns (`innerHTML`, `eval`, `pickle`, `interlock`).
 
 ---
 

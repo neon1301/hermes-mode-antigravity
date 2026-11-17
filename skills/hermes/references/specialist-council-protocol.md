@@ -191,6 +191,9 @@ flowchart TD
      * @kritik выразил несогласие с отказом от внешнего брокера сообщений при росте нагрузки >50k msg/s. Принято компромиссное решение: заложить абстрактный интерфейс IMessageBus.
    ```
 
+   > [!NOTE]
+   > **Обязательный блок авторства (v4.6.1, протокольный уровень):** после каждого `parallel` или `roundtable` совета Lead обязан заполнить секцию `- Принятые идеи:` с указанием `@имя` авторов принятых решений в `.hermes/decisions.md`. Наличие верифицированного авторства даёт полный вес репутации `1.0` (`authorshipSource: "lead_declared"`), а его отсутствие переводит начисление в режим командного fallback с пониженным весом `0.5` (`authorshipSource: "team_fallback"`).
+
 2. **`.hermes/council-state.json` (Механическое состояние гейта):**
    ```json
    {
@@ -198,11 +201,15 @@ flowchart TD
      "turnMarker": 3,
      "taskHash": "a1b2c3d4e5f60718",
      "task": "Build resilient WebSocket telemetry client",
+     "domain": "protocol",
+     "domains": ["protocol", "backend"],
      "mode": "roundtable",
      "decision": "roundtable",
+     "earlyStop": false,
      "requiredRounds": 3,
      "roundsCompleted": 3,
      "membersCount": 3,
+     "prunedUuids": [],
      "status": "APPROVED",
      "timestamp": "2026-11-17T00:00:00.000Z"
    }

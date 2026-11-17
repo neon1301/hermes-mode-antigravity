@@ -14,7 +14,7 @@ import {
 import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import {
-  detectDomain,
+  detectDomains,
   extractCriteriaSnapshot,
   extractCriteriaSnapshotFromText,
   freezeOrVerifyCriteria,
@@ -195,17 +195,23 @@ function extractSubagentSpecs(args) {
   return [];
 }
 
-function collectWrittenText(args) {
+function collectWrittenChunks(args) {
   const parts = [];
   for (const key of ['Content', 'CodeContent', 'Replacement', 'ReplacementContent', 'content', 'replacement']) {
     if (typeof args[key] === 'string' && args[key].length > 0) parts.push(args[key]);
   }
   if (Array.isArray(args.ReplacementChunks)) {
     for (const chunk of args.ReplacementChunks) {
-      if (typeof chunk?.ReplacementContent === 'string') parts.push(chunk.ReplacementContent);
+      if (typeof chunk?.ReplacementContent === 'string' && chunk.ReplacementContent.length > 0) {
+        parts.push(chunk.ReplacementContent);
+      }
     }
   }
-  return parts.join('\n');
+  return parts;
+}
+
+function collectWrittenText(args) {
+  return collectWrittenChunks(args).join('\n\n');
 }
 
 const raw = readStdin().trim();
@@ -295,19 +301,21 @@ function hasHardcodedSecret(text) {
 
 // Env/config-overridable defaults: `process.env.HOST ?? "127.0.0.1"`, `os.getenv("HOST") or "..."`,
 // `os.getenv("HOST", "...")`, `config.GetValue("Host", "...")`. The literal is only a fallback, not a hardcode.
-const FALLBACK_LITERAL_RE = /(?:\?\?|\|\||\bor\b)\s*(["'`])[^"'`\n]*\1/g;
+// Preserves exact newlines so line indices stay 1:1 for multiline calls.
+const FALLBACK_LITERAL_RE = /((?:\?\?|\|\||\bor\b)\s*)(["'`])[^"'`\n]*\2/g;
 const DEFAULT_ARG_CALL_RE = /\b(?:os\.getenv|os\.environ\.get|getenv|Environment\.GetEnvironmentVariable|GetValue(?:OrDefault)?(?:<[^>\n]*>)?|config\.get|settings\.get)\s*\(\s*(["'`])[^"'`\n]*\1\s*,\s*(["'`])[^"'`\n]*\2/g;
 
 function stripEnvFallbacks(text) {
   return text
-    .replace(FALLBACK_LITERAL_RE, '?? ""')
-    .replace(DEFAULT_ARG_CALL_RE, (call) => call.replace(/,\s*(["'`])[^"'`\n]*\1$/, ', ""'));
+    .replace(FALLBACK_LITERAL_RE, '$1""')
+    .replace(DEFAULT_ARG_CALL_RE, (call) => call.replace(/(["'`])[^"'`\n]*\1$/, '""'));
 }
 
 const HARDCODE_RULES = [
   {
     name: 'Private/Loopback IPv4 literal',
-    test: (t) => /(?:["'`]|:\/\/|@)(?:127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})/.test(stripEnvFallbacks(t))
+    preprocess: stripEnvFallbacks,
+    test: (t) => /(?:["'`]|:\/\/|@)(?:127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})/.test(t)
   },
   {
     name: 'Absolute Windows/Unix filesystem path',
@@ -341,13 +349,45 @@ function hasSecurityIgnoreComment(text) {
   return /hermes-security-ignore\s*:/i.test(text);
 }
 
-function getHardcodeIgnoreReason(text) {
-  const m = String(text || '').match(/hermes-hardcode-ignore\s*:\s*([^\r\n*]+)/i);
-  if (m) {
-    const reason = m[1].trim();
-    if (reason.length > 0) return reason;
+// REQ-4 (v4.6.1 / TASK-004): Line-scoped (±1 line) hermes-hardcode-ignore parser + v1-legacy compatibility shim
+const BLANKET_HARDCODE_IGNORE_RE = /hermes-hardcode-ignore-(?:file|all|global|block)(?![а-яёa-z0-9_-])|hermes-hardcode-ignore\s*(?::|=|\()[^\r\n*]*(?<![а-яёa-z0-9_-])(?:(?:whole|entire|all)\s+file|all\s+lines|file[- ]?wide|global(?:ly)?|на\s+весь\s+файл|весь\s+файл|все\s+строки|глобально)(?![а-яёa-z0-9_-])/i;
+
+function parseHardcodeIgnoreLine(line) {
+  const s = String(line || '');
+  if (!/hermes-hardcode-ignore/i.test(s)) return null;
+
+  if (BLANKET_HARDCODE_IGNORE_RE.test(s)) {
+    return { valid: false, isBlanket: true, reason: null, schema: 'blanket' };
   }
-  return null;
+
+  // Canonical v2 inline format: hermes-hardcode-ignore: <non-empty reason>
+  const v2 = s.match(/hermes-hardcode-ignore\s*:\s*([^\r\n*]+)/i);
+  if (v2) {
+    const reason = v2[1].replace(/-->.*$/, '').trim();
+    if (reason.length > 0) {
+      return { valid: true, isBlanket: false, reason, schema: 'v2' };
+    }
+    return { valid: false, isBlanket: false, reason: null, schema: 'v2' };
+  }
+
+  // Legacy v1 compatibility shim: hermes-hardcode-ignore(<reason>) or hermes-hardcode-ignore = <reason>
+  const v1Paren = s.match(/hermes-hardcode-ignore\s*\(\s*([^)\r\n]+?)\s*\)/i);
+  if (v1Paren) {
+    const reason = v1Paren[1].trim();
+    if (reason.length > 0) {
+      return { valid: true, isBlanket: false, reason, schema: 'v1-legacy' };
+    }
+  }
+  const v1Eq = s.match(/hermes-hardcode-ignore\s*=\s*([^\r\n*]+)/i);
+  if (v1Eq) {
+    const reason = v1Eq[1].replace(/-->.*$/, '').trim();
+    if (reason.length > 0) {
+      return { valid: true, isBlanket: false, reason, schema: 'v1-legacy' };
+    }
+  }
+
+  // Bare marker without reason is always invalid (never silently allow-all)
+  return { valid: false, isBlanket: false, reason: null, schema: 'v1-legacy' };
 }
 
 const L1_BLOCK_PATTERNS = [
@@ -1269,11 +1309,13 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     try {
       const hermesDir = path.join(activeWorkspaceDir, '.hermes');
       if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
+      const detectedSolo = detectDomains(cleanPrompt, []);
       const stateRecord = {
         conversationId: convId,
         turnMarker,
         taskHash,
-        domain: detectDomain(cleanPrompt, []),
+        domain: detectedSolo.primary,
+        domains: detectedSolo.domains,
         task: cleanPrompt.slice(0, 100),
         mode: 'solo',
         decision: 'solo',
@@ -1545,9 +1587,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
   }
 
-  const buildRosterSnapshot = () => {
+  const buildRosterSnapshot = (filterUuids = null) => {
     const roster = [];
     for (const u of dispatchedUuids) {
+      if (filterUuids && !filterUuids.has(u)) continue;
       const name = uuidToAgent.get(u);
       if (name) {
         roster.push({
@@ -1590,6 +1633,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
   }
 
+  // REQ-1 (v4.6.1): Hoist prunedUuids & finalActiveUuids so both earlyStop and full 3-stage roundtable persist them
+  const prunedUuids = new Set();
+  let finalActiveUuids = null;
+
   if (isRoundtable) {
     // REQ-1 (v4.4.0): Check Stage 1 deliveries
     const pendingR1Uuids = [...dispatchedUuids].filter((id) => !r1DeliveredUuids.has(id));
@@ -1601,7 +1648,6 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
 
     // REQ-2 (v4.5.0): Agent Dropout / Pruning before Stage 2
-    const prunedUuids = new Set();
     const omittedFromR2 = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
 
     if (omittedFromR2.length > 0) {
@@ -1785,12 +1831,15 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       try {
         const hermesDir = path.join(activeWorkspaceDir, '.hermes');
         if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
-        const rosterSnapshot = buildRosterSnapshot();
+        const activeR2Set = new Set(activeR2Uuids);
+        const rosterSnapshot = buildRosterSnapshot(activeR2Set);
+        const detectedDomains = detectDomains(cleanPrompt, rosterSnapshot);
         const stateRecord = {
           conversationId: convId,
           turnMarker,
           taskHash,
-          domain: detectDomain(cleanPrompt, rosterSnapshot),
+          domain: detectedDomains.primary,
+          domains: detectedDomains.domains,
           task: cleanPrompt.slice(0, 100),
           mode: 'roundtable',
           earlyStop: true,
@@ -1859,6 +1908,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     }
 
     const activeR3Uuids = activeR2Uuids.filter((id) => !prunedUuids.has(id));
+    finalActiveUuids = activeR3Uuids;
 
     // Check Stage 3 (R3) blind ranking send_message distribution
     const pendingR3Dispatches = activeR3Uuids.filter((id) => !r3DispatchedUuids.has(id));
@@ -1892,20 +1942,26 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   try {
     const hermesDir = path.join(activeWorkspaceDir, '.hermes');
     if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
-    const rosterSnapshot = buildRosterSnapshot();
+    const activeSet = isRoundtable
+      ? new Set(finalActiveUuids || [...dispatchedUuids].filter((id) => !prunedUuids.has(id)))
+      : dispatchedUuids;
+    const rosterSnapshot = buildRosterSnapshot(activeSet);
+    const detectedDomains = detectDomains(cleanPrompt, rosterSnapshot);
     const stateRecord = {
       conversationId: convId,
       turnMarker,
       taskHash,
-      domain: detectDomain(cleanPrompt, rosterSnapshot),
+      domain: detectedDomains.primary,
+      domains: detectedDomains.domains,
       task: cleanPrompt.slice(0, 100),
       mode,
       earlyStop: false,
       decision: isRoundtable ? 'roundtable' : 'council',
       requiredRounds,
       roundsCompleted: requiredRounds,
-      membersCount: rosterSnapshot.length || dispatchedUuids.size,
+      membersCount: activeSet.size,
       roster: rosterSnapshot,
+      prunedUuids: [...prunedUuids],
       isLoop,
       status: 'APPROVED',
       timestamp: new Date().toISOString()
@@ -1986,27 +2042,64 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
   }
 
   if (SOURCE_CODE_EXT_RE.test(targetPath) && !HARDCODE_SKIP_PATH_RE.test(targetPath)) {
-    const written = collectWrittenText(args);
-    const hasHardcodeIgnoreDirective = /hermes-hardcode-ignore/i.test(written);
-    const hardcodeIgnoreReason = getHardcodeIgnoreReason(written);
-    if (hasHardcodeIgnoreDirective && !hardcodeIgnoreReason) {
-      deny(
-        'Hermes Rule 9 (Zero-Hardcode Policy): комментарий hermes-hardcode-ignore требует обязательного непустого обоснования (hermes-hardcode-ignore: <причина>).\n[EN: Hermes Rule 9: hermes-hardcode-ignore requires a mandatory non-empty reason (hermes-hardcode-ignore: <reason>).]'
-      );
-      process.exit(0);
-    }
+    const chunks = collectWrittenChunks(args);
+    const written = chunks.join('\n\n');
 
-    for (const rule of HARDCODE_RULES) {
-      if (rule.test(written)) {
-        if (hardcodeIgnoreReason) {
-          logGateDecision({
-            toolName,
-            decision: 'allow',
-            reason: `Rule 9 hardcode ignored: ${hardcodeIgnoreReason} (matched ${rule.name})`
-          });
-        } else {
+    // REQ-4 (v4.6.1 / TASK-004): Evaluate each written chunk independently so ±1 scope never leaks across multi_replace chunks
+    for (const chunk of chunks) {
+      const lines = chunk.split(/\r?\n/);
+      const ignoreReasonsByLine = new Map();
+
+      for (let idx = 0; idx < lines.length; idx++) {
+        const parsed = parseHardcodeIgnoreLine(lines[idx]);
+        if (!parsed) continue;
+        if (parsed.isBlanket) {
           deny(
-            `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или пути от рабочей директории.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath}. Extract value to config/environment variable or relative workspace path.]`
+            `Hermes Rule 9 (Zero-Hardcode Policy): глобальное игнорирование хардкода на весь файл запрещено (строка ${idx + 1}). Используйте точечный комментарий '// hermes-hardcode-ignore: <причина>' строго на строке срабатывания (±1 строка).\n[EN: Hermes Rule 9: file-wide blanket hermes-hardcode-ignore is forbidden (line ${idx + 1}). Use line-scoped '// hermes-hardcode-ignore: <reason>' within ±1 line of the violation.]`
+          );
+          process.exit(0);
+        }
+        if (!parsed.valid) {
+          deny(
+            `Hermes Rule 9 (Zero-Hardcode Policy): комментарий hermes-hardcode-ignore требует обязательного непустого обоснования (hermes-hardcode-ignore: <причина>, строка ${idx + 1}).\n[EN: Hermes Rule 9: hermes-hardcode-ignore requires a mandatory non-empty reason (hermes-hardcode-ignore: <reason>, line ${idx + 1}).]`
+          );
+          process.exit(0);
+        }
+        ignoreReasonsByLine.set(idx, parsed);
+      }
+
+      const findScopedIgnore = (lineIdx) =>
+        ignoreReasonsByLine.get(lineIdx) ||
+        ignoreReasonsByLine.get(lineIdx - 1) ||
+        ignoreReasonsByLine.get(lineIdx + 1) ||
+        null;
+
+      for (const rule of HARDCODE_RULES) {
+        const preparedChunk = rule.preprocess ? rule.preprocess(chunk) : chunk;
+        const ruleLines = preparedChunk.split(/\r?\n/);
+
+        for (let idx = 0; idx < ruleLines.length; idx++) {
+          if (!rule.test(ruleLines[idx])) continue;
+          const scoped = findScopedIgnore(idx);
+          if (scoped) {
+            logGateDecision({
+              toolName,
+              decision: 'allow',
+              reason: `Rule 9 hardcode ignored (line ${idx + 1}, ${scoped.schema}): ${scoped.reason} (matched ${rule.name})`
+            });
+          } else {
+            deny(
+              `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} (строка ${idx + 1}) обнаружен ${rule.name}. Вынесите значение в конфиг/переменную окружения или добавьте точечный комментарий '// hermes-hardcode-ignore: <причина>' в пределах ±1 строки.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (line ${idx + 1}). Extract value to config/environment variable or add line-scoped '// hermes-hardcode-ignore: <reason>' within ±1 line.]`
+            );
+            process.exit(0);
+          }
+        }
+
+        // Unconditional multiline check on uncovered lines (prevents scoped ignore from silencing unrelated multiline hardcodes)
+        const uncoveredText = ruleLines.map((line, idx) => (findScopedIgnore(idx) ? '' : line)).join('\n');
+        if (rule.test(uncoveredText)) {
+          deny(
+            `Hermes Rule 9 (Zero-Hardcode Policy): в ${targetPath} обнаружен ${rule.name} (многострочное совпадение). Вынесите значение в конфиг/переменную окружения.\n[EN: Hermes Rule 9: ${rule.name} detected in ${targetPath} (multiline match). Extract value to config/environment variable.]`
           );
           process.exit(0);
         }

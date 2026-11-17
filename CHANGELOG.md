@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.6.1] - 2026-11-17
+
+### v4.6.0 Audit Tails & TASK-004 Line-Scoped `hermes-hardcode-ignore` (TASK-015, TASK-004)
+- **Pruned Member Observability Restored (REQ-1, P2):**
+  - Persisted `prunedUuids` alongside active `membersCount` and active `roster` in BOTH `canEarlyStop` and full 3-stage `roundtable` `.hermes/council-state.json` records (without altering pruning enforcement).
+- **Honest Multi-Domain Detection Without Reputation Inflation (REQ-2, P2):**
+  - Added `detectDomains(promptText, roster)` and fixed `DOMAIN_PRIORITY` tie-breaker in `hooks/council-learning.mjs`.
+  - Records full `domains: [...]` in `.hermes/council-outcomes.jsonl` and `.hermes/council-state.json`, selects deterministic `primary` (`domain`: higher match count -> fixed `DOMAIN_PRIORITY` -> first roster member default -> `'general'`), and accrues reputation strictly on `primary` only (`+1` observation per specialist per record, never `+N`).
+- **Distinguished Authorship Weights (`lead_declared` vs `team_fallback`) (REQ-3, P2):**
+  - Added `authorshipSource: "lead_declared" | "team_fallback"` to `.hermes/council-outcomes.jsonl` and `teamFallbackWeight: 0.5` to `REPUTATION_POLICY` (`lead_declared` = `1.0`, `team_fallback` = `0.5`, hard `±0.15` cap preserved).
+  - Documented Lead's protocol obligation to populate accepted ideas authorship in `.hermes/decisions.md` in `council-learning-protocol.md` and `specialist-council-protocol.md`.
+- **Line-Scoped `hermes-hardcode-ignore` (±1 Line) & ADR 0001 Compatibility Shim (REQ-4, P1 / TASK-004):**
+  - Narrowed `hermes-hardcode-ignore` in `hooks/clean-edits-guard.mjs` from whole-payload suppression to strictly line-scoped `±1` (`N-1..N+1`). Violations 2+ lines away are denied.
+  - Blocked blanket file-wide markers (`hermes-hardcode-ignore-file`, `whole file`, `entire file`, `на весь файл`) and bare markers without a reason.
+  - Formalized `v2` (`: <reason>`), `v1-legacy` (`(<reason>)`, `= <reason>`), and `ackToken || signature` compatibility shims in `docs/adr/0001-l2-diff-review-and-anti-self-signing.md` and `TROUBLESHOOTING.md`. Layer 1 security checks remain strictly unbypassable.
+- **13 New Deterministic Test Locks (10 REQ-5 + 3 QA Audit Regression Locks):**
+  - Expanded `hooks/clean-edits-guard.test.mjs` to 223/223 PASS (497/497 total across 11 suites): `pruned_uuids_persisted_in_state_full_roundtable`, `domain_multimatch_recorded_primary_only`, `domain_priority_deterministic_tiebreak`, `reputation_no_inflation_from_multidomain`, `authorship_team_fallback_weight`, `authorship_lead_declared_full_weight`, `hardcode_ignore_line_scoped_allow`, `hardcode_ignore_far_violation_deny`, `hardcode_ignore_file_blanket_deny`, `hardcode_ignore_legacy_marker_shim`, plus QA regression locks `hardcode_ignore_multiline_bypass_after_scoped_ignore_deny`, `hardcode_ignore_multi_replace_cross_chunk_deny`, and `hardcode_multiline_env_fallback_allow`.
+
 ## [4.6.0] - 2026-11-17
 
 ### Outcome-Based Council Learning, Mechanical Domain Reputation & Criteria Freeze (TASK-014)

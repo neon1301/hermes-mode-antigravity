@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  detectDomains,
+  DOMAIN_PRIORITY,
   extractDeclaredAuthors,
   rankRecommendedSpecialists,
   recomputeReputationFromOutcomes,
@@ -2639,6 +2641,436 @@ const cases = [
       const r2 = syncCouncilOutcomeAndReputation({ activeWorkspaceDir: ws, taskHash: 'task_B', councilState: stB });
       if (!r1.appended || r2.appended || r2.outcomesCount !== 1) {
         throw new Error(`Stale artifact from task_A leaked to task_B: r1=${JSON.stringify(r1)}, r2=${JSON.stringify(r2)}`);
+      }
+    }
+  },
+  // === Hermes Fleet v4.6.1 Audit Tails + TASK-004 Locks ===
+  {
+    name: 'pruned_uuids_persisted_in_state_full_roundtable',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes full roundtable persist pruned uuids in state\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_prune_persist', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_prune_persist', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', id: 'inv_d', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', id: 'inv_k', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } },
+          { name: 'invoke_subagent', id: 'inv_e', args: { TypeName: 'elena', Role: 'UI Specialist' } }
+        ]
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'inv_d', content: '{"conversationId":"aaaaaaaa-1111-2222-3333-444444444444"}' },
+      { step_index: 7, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'inv_k', content: '{"conversationId":"bbbbbbbb-1111-2222-3333-444444444444"}' },
+      { step_index: 8, source: 'SYSTEM', type: 'TOOL_OUTPUT', tool_call_id: 'inv_e', content: '{"conversationId":"cccccccc-1111-2222-3333-444444444444"}' },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1 proposal' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1 proposal' },
+      { step_index: 11, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=cccccccc-1111-2222-3333-444444444444 content=Elena extra R1 proposal' },
+      {
+        step_index: 12,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 13, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 14, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 critique' },
+      {
+        step_index: 15,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking...' } }
+        ]
+      },
+      { step_index: 16, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 votes' },
+      { step_index: 17, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R3 votes' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/pruned_state.ts', Content: 'export const ok = true;\n' } } },
+    verify: () => {
+      const state = JSON.parse(fs.readFileSync(councilStateFile, 'utf-8'));
+      if (state.earlyStop !== false || state.roundsCompleted !== 3) {
+        throw new Error(`Expected full 3-stage roundtable state, got: ${JSON.stringify(state)}`);
+      }
+      if (!Array.isArray(state.prunedUuids) || !state.prunedUuids.includes('cccccccc-1111-2222-3333-444444444444')) {
+        throw new Error(`Expected prunedUuids to include pruned extra UUID, got: ${JSON.stringify(state.prunedUuids)}`);
+      }
+      if (state.membersCount !== 2) {
+        throw new Error(`Expected active membersCount=2 after pruning 1 extra, got: ${state.membersCount}`);
+      }
+      const activeNames = (state.roster || []).map((r) => r.name).sort();
+      if (JSON.stringify(activeNames) !== JSON.stringify(['dmitry', 'kritik'])) {
+        throw new Error(`Expected active roster [dmitry, kritik], got: ${JSON.stringify(activeNames)}`);
+      }
+    }
+  },
+  {
+    name: 'domain_multimatch_recorded_primary_only',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v461-multidomain');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      const detected = detectDomains('Optimize postgres sql migration and backend api endpoint', []);
+      if (detected.primary !== 'database') {
+        throw new Error(`Expected primary="database" (3 hits vs 2 backend), got: ${JSON.stringify(detected)}`);
+      }
+      if (!detected.domains.includes('database') || !detected.domains.includes('backend')) {
+        throw new Error(`Expected domains to contain both database and backend, got: ${JSON.stringify(detected.domains)}`);
+      }
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'test-summary.json'),
+        JSON.stringify({ status: 'PASS', passed: 5, total: 5, failed: 0, timestamp: '2026-11-17T14:00:00.000Z' }),
+        'utf-8'
+      );
+      syncCouncilOutcomeAndReputation({
+        activeWorkspaceDir: ws,
+        taskHash: 'md_task_1',
+        councilState: {
+          taskHash: 'md_task_1',
+          task: 'Optimize postgres sql migration and backend api endpoint',
+          mode: 'parallel',
+          roundsCompleted: 1,
+          roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }]
+        }
+      });
+      const lines = fs.readFileSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'), 'utf-8').trim().split('\n');
+      const rec = JSON.parse(lines[0]);
+      if (rec.domain !== 'database' || !Array.isArray(rec.domains) || !rec.domains.includes('database') || !rec.domains.includes('backend')) {
+        throw new Error(`Expected outcome record with primary="database" and domains=["database","backend"], got: ${JSON.stringify(rec)}`);
+      }
+    }
+  },
+  {
+    name: 'domain_priority_deterministic_tiebreak',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      if (!Array.isArray(DOMAIN_PRIORITY) || DOMAIN_PRIORITY.indexOf('database') >= DOMAIN_PRIORITY.indexOf('backend')) {
+        throw new Error(`Expected fixed DOMAIN_PRIORITY with database before backend, got: ${JSON.stringify(DOMAIN_PRIORITY)}`);
+      }
+      const d1 = detectDomains('БД + API', []);
+      const d2 = detectDomains('API + БД', []);
+      if (d1.primary !== 'database' || d2.primary !== 'database') {
+        throw new Error(`Tie-break must be order-independent! d1=${JSON.stringify(d1)}, d2=${JSON.stringify(d2)}`);
+      }
+      if (JSON.stringify(d1.domains) !== JSON.stringify(d2.domains) || d1.domains.length !== 2) {
+        throw new Error(`Expected identical sorted domains for reversed tie prompt: d1=${JSON.stringify(d1)}, d2=${JSON.stringify(d2)}`);
+      }
+    }
+  },
+  {
+    name: 'reputation_no_inflation_from_multidomain',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const rep = recomputeReputationFromOutcomes([
+        {
+          taskHash: 'no_infl_1',
+          domain: 'database',
+          domains: ['database', 'backend', 'security'],
+          mode: 'parallel',
+          roster: [{ name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' }],
+          declaredAuthors: [{ name: 'dmitry', source: 'lead_declared', verifiedInRoster: true }],
+          authorshipSource: 'lead_declared',
+          outcome: 'PASS',
+          ts: '2026-11-17T14:00:00.000Z'
+        }
+      ], '2026-11-17T14:00:00.000Z');
+      const dmitryDomains = Object.keys(rep.dmitry || {});
+      if (dmitryDomains.length !== 1 || dmitryDomains[0] !== 'database') {
+        throw new Error(`Multi-domain reputation inflation detected! Expected ONLY ["database"], got: ${JSON.stringify(rep.dmitry)}`);
+      }
+      if (rep.dmitry.database.observations !== 1) {
+        throw new Error(`Expected exactly 1 observation on primary domain, got: ${rep.dmitry.database.observations}`);
+      }
+    }
+  },
+  {
+    name: 'authorship_team_fallback_weight',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v461-team-fallback');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'test-summary.json'),
+        JSON.stringify({ status: 'PASS', passed: 10, total: 10, failed: 0, timestamp: '2026-11-17T14:10:00.000Z' }),
+        'utf-8'
+      );
+      syncCouncilOutcomeAndReputation({
+        activeWorkspaceDir: ws,
+        taskHash: 'tf_task_1',
+        promptText: 'backend api fix',
+        councilState: {
+          taskHash: 'tf_task_1',
+          domain: 'backend',
+          domains: ['backend'],
+          mode: 'parallel',
+          roundsCompleted: 1,
+          roster: [
+            { name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' },
+            { name: 'elena', uuid: 'bbbbbbbb-1111-2222-3333-444444444444', bindingConfidence: 'exact' }
+          ]
+        }
+      });
+      const rec = JSON.parse(fs.readFileSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'), 'utf-8').trim().split('\n')[0]);
+      if (rec.authorshipSource !== 'team_fallback') {
+        throw new Error(`Expected authorshipSource="team_fallback", got: ${rec.authorshipSource}`);
+      }
+      const rep = recomputeReputationFromOutcomes([rec], rec.ts);
+      const expectedScore = REPUTATION_POLICY.priorScore + REPUTATION_POLICY.maxDeltaPerObservation * REPUTATION_POLICY.teamFallbackWeight;
+      if (Math.abs(rep.dmitry.backend.score - expectedScore) > 0.0001) {
+        throw new Error(`Expected team_fallback weighted score ${expectedScore}, got: ${rep.dmitry.backend.score}`);
+      }
+      if (Math.abs(rep.dmitry.backend.score - REPUTATION_POLICY.priorScore) > REPUTATION_POLICY.maxDeltaPerObservation) {
+        throw new Error(`Cap ±0.15 violated: ${rep.dmitry.backend.score}`);
+      }
+    }
+  },
+  {
+    name: 'authorship_lead_declared_full_weight',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v461-lead-declared');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'decisions.md'),
+        '# Решение (taskHash: ld_task_1)\n- Принятые идеи:\n  * Архитектурный фикс (автор: @dmitry)\n',
+        'utf-8'
+      );
+      fs.writeFileSync(
+        path.join(ws, '.hermes', 'test-summary.json'),
+        JSON.stringify({ status: 'PASS', passed: 10, total: 10, failed: 0, timestamp: '2026-11-17T14:20:00.000Z' }),
+        'utf-8'
+      );
+      syncCouncilOutcomeAndReputation({
+        activeWorkspaceDir: ws,
+        taskHash: 'ld_task_1',
+        promptText: 'backend api fix',
+        councilState: {
+          taskHash: 'ld_task_1',
+          domain: 'backend',
+          domains: ['backend'],
+          mode: 'parallel',
+          roundsCompleted: 1,
+          roster: [
+            { name: 'dmitry', uuid: 'aaaaaaaa-1111-2222-3333-444444444444', bindingConfidence: 'exact' },
+            { name: 'elena', uuid: 'bbbbbbbb-1111-2222-3333-444444444444', bindingConfidence: 'exact' }
+          ]
+        }
+      });
+      const rec = JSON.parse(fs.readFileSync(path.join(ws, '.hermes', 'council-outcomes.jsonl'), 'utf-8').trim().split('\n')[0]);
+      if (rec.authorshipSource !== 'lead_declared') {
+        throw new Error(`Expected authorshipSource="lead_declared", got: ${rec.authorshipSource}`);
+      }
+      const repLead = recomputeReputationFromOutcomes([rec], rec.ts);
+      const repFallback = recomputeReputationFromOutcomes([{ ...rec, declaredAuthors: [], authorshipSource: 'team_fallback' }], rec.ts);
+      const expectedFull = REPUTATION_POLICY.priorScore + REPUTATION_POLICY.maxDeltaPerObservation;
+      if (Math.abs(repLead.dmitry.backend.score - expectedFull) > 0.0001) {
+        throw new Error(`Expected lead_declared full-weight score ${expectedFull}, got: ${repLead.dmitry.backend.score}`);
+      }
+      if (repLead.dmitry.backend.score <= repFallback.dmitry.backend.score) {
+        throw new Error(`Expected lead_declared (${repLead.dmitry.backend.score}) > team_fallback (${repFallback.dmitry.backend.score})`);
+      }
+      if (repLead.elena) {
+        throw new Error(`Non-declared roster member elena should not receive lead_declared credit: ${JSON.stringify(repLead.elena)}`);
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_line_scoped_allow',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/DevClient.cs',
+          Content: `// hermes-hardcode-ignore: local loopback dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      // Verify all three ±1 positions: same line (N), previous line (N-1, tested above), next line (N+1)
+      const sameLine = `var url = ${q('http://' + ip + ':8080/api')}; // hermes-hardcode-ignore: local dev binding\n`;
+      const nextLine = `var url = ${q('http://' + ip + ':8080/api')};\n// hermes-hardcode-ignore: local dev binding\n`;
+      for (const [label, content] of [['same-line', sameLine], ['next-line', nextLine]]) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/DevClient.cs', Content: content } } }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'allow') {
+          throw new Error(`Expected allow for ${label} ±1 line-scoped ignore, got: ${JSON.stringify(res)}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_far_violation_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Client.cs',
+          Content: `// hermes-hardcode-ignore: local dev binding\nvar a = 1;\nvar b = 2;\nvar c = 3;\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      // Also verify 2 lines away (outside ±1 window) is strictly denied
+      const twoLinesAway = `// hermes-hardcode-ignore: local dev binding\nvar a = 1;\nvar url = ${q('http://' + ip + ':8080/api')};\n`;
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: twoLinesAway } } }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny') {
+        throw new Error(`Expected deny when violation is 2 lines away (outside ±1), got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_file_blanket_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Client.cs',
+          Content: `// hermes-hardcode-ignore-file: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      const blanketPayloads = [
+        `// hermes-hardcode-ignore: whole file\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore: all file\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore: на весь файл\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore: ignore entire file\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+      ];
+      for (const content of blanketPayloads) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: content } } }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Blanket file-wide marker was unexpectedly allowed: ${content}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_legacy_marker_shim',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/LegacyClient.cs',
+          Content: `// hermes-hardcode-ignore(legacy dev socket)\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      // Legacy "= reason" syntax within ±1 line must allow
+      const legacyEq = `var url = ${q('http://' + ip + ':8080/api')}; // hermes-hardcode-ignore = legacy dev socket\n`;
+      const resEq = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/LegacyClient.cs', Content: legacyEq } } }),
+        encoding: 'utf-8'
+      }));
+      if (resEq.decision !== 'allow') {
+        throw new Error(`Expected legacy "= reason" shim within ±1 line to allow, got: ${JSON.stringify(resEq)}`);
+      }
+      // Legacy syntax MUST NOT apply 3+ lines away
+      const legacyFar = `// hermes-hardcode-ignore(legacy dev socket)\nvar a = 1;\nvar b = 2;\nvar c = 3;\nvar url = ${q('http://' + ip + ':8080/api')};\n`;
+      const resFar = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/LegacyClient.cs', Content: legacyFar } } }),
+        encoding: 'utf-8'
+      }));
+      if (resFar.decision !== 'deny') {
+        throw new Error(`Expected legacy shim far violation to deny, got: ${JSON.stringify(resFar)}`);
+      }
+      // Bare marker without reason MUST NEVER silently allow-all
+      const bareMarker = `// hermes-hardcode-ignore\nvar url = ${q('http://' + ip + ':8080/api')};\n`;
+      const resBare = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/LegacyClient.cs', Content: bareMarker } } }),
+        encoding: 'utf-8'
+      }));
+      if (resBare.decision !== 'deny') {
+        throw new Error(`Expected bare hermes-hardcode-ignore without reason to deny, got: ${JSON.stringify(resBare)}`);
+      }
+    }
+  },
+  // === QA Audit Regression Locks (v4.6.1) ===
+  {
+    name: 'hardcode_ignore_multiline_bypass_after_scoped_ignore_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Client.ts',
+          Content: `// hermes-hardcode-ignore: dev stub\nconst password = ${q('password123')};\nconst a = 1;\nconst b = 2;\nconst c = 3;\nconst apiKey =\n  ${q('prod_s3cr3t_998877!')};\n`
+        }
+      }
+    },
+    verify: () => {
+      // Also verify multiline magic sleep after a scoped sleep ignore is denied
+      const sleepBypass = `// hermes-hardcode-ignore: startup\n${sleepCall}\nvar x = 1;\nvar y = 2;\nThread.Sleep(\n  5000\n);\n`;
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/Worker.cs', Content: sleepBypass } } }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny') {
+        throw new Error(`Expected multiline sleep bypass after scoped ignore to deny, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_multi_replace_cross_chunk_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'multi_replace_file_content',
+        args: {
+          TargetFile: 'src/Client.cs',
+          ReplacementChunks: [
+            { StartLine: 5, EndLine: 5, TargetContent: '// stub', ReplacementContent: '// hermes-hardcode-ignore: line 5 dev stub' },
+            { StartLine: 40, EndLine: 40, TargetContent: 'var url = "";', ReplacementContent: `var url = ${q('http://' + loopIp + ':8080/api')};` }
+          ]
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_multiline_env_fallback_allow',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Config.py',
+          Content: `host = os.getenv(\n    "HOST",\n    ${q(loopIp)}\n)\n`
+        }
+      }
+    },
+    verify: () => {
+      const tsMultiline = `const host = process.env.HOST ??\n  ${q(loopIp)};\n`;
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/config.ts', Content: tsMultiline } } }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'allow') {
+        throw new Error(`Expected multiline JS/TS env fallback to allow, got: ${JSON.stringify(res)}`);
       }
     }
   }

@@ -7,10 +7,30 @@ export const REPUTATION_POLICY = Object.freeze({
   priorScore: 0.5,
   maxDeltaPerObservation: 0.15,
   stepGain: 0.35,
+  teamFallbackWeight: 0.5,
   halfLifeDays: 30,
   minScore: 0.0,
   maxScore: 1.0
 });
+
+// Documented deterministic tie-break priority when multiple domains have equal match counts (REQ-2 v4.6.1)
+export const DOMAIN_PRIORITY = Object.freeze([
+  'security',
+  'database',
+  'sap',
+  'protocol',
+  'backend',
+  'frontend',
+  'ai',
+  '3d',
+  'architecture',
+  'qa',
+  'hardware',
+  'simulation',
+  'refactoring',
+  'docs',
+  'general'
+]);
 
 const AGENT_DEFAULT_DOMAIN = Object.freeze({
   dmitry: 'backend',
@@ -30,28 +50,61 @@ const AGENT_DEFAULT_DOMAIN = Object.freeze({
 });
 
 const DOMAIN_KEYWORDS = [
-  { domain: 'database', re: /(?<![а-яёa-z0-9_-])(?:sql|sqlite|postgres|postgresql|mssql|mysql|redis|mongo|duckdb|wal|mvcc|index|migration|бд|баз[аы]\s+данн)/i },
-  { domain: 'security', re: /(?<![а-яёa-z0-9_-])(?:security|owasp|jwt|auth|xss|ssrf|cwe|crypto|secret|безопасност|уязвимост)/i },
-  { domain: 'frontend', re: /(?<![а-яёa-z0-9_-])(?:ui|ux|css|html|react|vue|svelte|winforms|wpf|avalonia|layout|theme|интерфейс|вёрстк)/i },
-  { domain: 'sap', re: /(?<![а-яёa-z0-9_-])(?:sap|bapi|rfc|idoc|odata|nco|abap)(?![а-яёa-z0-9_-])/i },
-  { domain: 'protocol', re: /(?<![а-яёa-z0-9_-])(?:socket|tcp|udp|modbus|opc-?ua|packet|frame|binary|reverse|сокет|протокол|пакет)/i },
-  { domain: 'ai', re: /(?<![а-яёa-z0-9_-])(?:rag|llm|vector|hnsw|embedding|lora|vllm|prompt|инференс|вектор)/i },
-  { domain: '3d', re: /(?<![а-яёa-z0-9_-])(?:three\.?js|webgl|3d|digital\s+twin|mesh|shader)(?![а-яёa-z0-9_-])/i },
-  { domain: 'architecture', re: /(?<![а-яёa-z0-9_-])(?:council|roundtable|gate|hook|orchestrat|adr|contract|архитектур|гейт|хук|совет|стол)/i },
-  { domain: 'backend', re: /(?<![а-яёa-z0-9_-])(?:api|rest|grpc|websocket|backend|server|service|dotnet|c#|node|python|go|сервер|бэкенд)/i },
-  { domain: 'qa', re: /(?<![а-яёa-z0-9_-])(?:qa|e2e|fuzz|mutation|coverage|тест|вериф|test)(?![а-яёa-z0-9_-])/i }
+  { domain: 'database', re: /(?<![а-яёa-z0-9_-])(?:sql|sqlite|postgres|postgresql|mssql|mysql|redis|mongo|duckdb|wal|mvcc|index|migration|бд|баз[аы]\s+данн)/gi },
+  { domain: 'security', re: /(?<![а-яёa-z0-9_-])(?:security|owasp|jwt|auth|xss|ssrf|cwe|crypto|secret|безопасност|уязвимост)/gi },
+  { domain: 'frontend', re: /(?<![а-яёa-z0-9_-])(?:ui|ux|css|html|react|vue|svelte|winforms|wpf|avalonia|layout|theme|интерфейс|вёрстк)/gi },
+  { domain: 'sap', re: /(?<![а-яёa-z0-9_-])(?:sap|bapi|rfc|idoc|odata|nco|abap)(?![а-яёa-z0-9_-])/gi },
+  { domain: 'protocol', re: /(?<![а-яёa-z0-9_-])(?:socket|tcp|udp|modbus|opc-?ua|packet|frame|binary|reverse|сокет|протокол|пакет)/gi },
+  { domain: 'ai', re: /(?<![а-яёa-z0-9_-])(?:rag|llm|vector|hnsw|embedding|lora|vllm|prompt|инференс|вектор)/gi },
+  { domain: '3d', re: /(?<![а-яёa-z0-9_-])(?:three\.?js|webgl|3d|digital\s+twin|mesh|shader)(?![а-яёa-z0-9_-])/gi },
+  { domain: 'architecture', re: /(?<![а-яёa-z0-9_-])(?:council|roundtable|gate|hook|orchestrat|adr|contract|архитектур|гейт|хук|совет|стол)/gi },
+  { domain: 'backend', re: /(?<![а-яёa-z0-9_-])(?:api|rest|grpc|websocket|backend|server|service|dotnet|c#|node|python|go|сервер|бэкенд)/gi },
+  { domain: 'qa', re: /(?<![а-яёa-z0-9_-])(?:qa|e2e|fuzz|mutation|coverage|тест|вериф|test)(?![а-яёa-z0-9_-])/gi }
 ];
 
-export function detectDomain(promptText = '', roster = []) {
+/**
+ * REQ-2 (v4.6.1): Detects ALL matching domains and selects deterministic primary:
+ * 1. Higher match count wins.
+ * 2. Tie-break by documented fixed DOMAIN_PRIORITY order (independent of regex list order).
+ * 3. No keyword matches -> first roster member's default domain, else 'general'.
+ */
+export function detectDomains(promptText = '', roster = []) {
   const text = String(promptText || '');
+  const matched = [];
   for (const { domain, re } of DOMAIN_KEYWORDS) {
-    if (re.test(text)) return domain;
+    re.lastIndex = 0;
+    const hits = [...text.matchAll(re)];
+    if (hits.length > 0) {
+      const pIdx = DOMAIN_PRIORITY.indexOf(domain);
+      matched.push({
+        domain,
+        count: hits.length,
+        priorityIdx: pIdx >= 0 ? pIdx : DOMAIN_PRIORITY.length
+      });
+    }
   }
+
+  if (matched.length > 0) {
+    matched.sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.priorityIdx - b.priorityIdx;
+    });
+    const domains = matched.map((m) => m.domain);
+    return { primary: domains[0], domains };
+  }
+
   if (Array.isArray(roster) && roster.length > 0) {
     const first = String(roster[0]?.name || roster[0] || '').toLowerCase();
-    if (AGENT_DEFAULT_DOMAIN[first]) return AGENT_DEFAULT_DOMAIN[first];
+    if (AGENT_DEFAULT_DOMAIN[first]) {
+      const d = AGENT_DEFAULT_DOMAIN[first];
+      return { primary: d, domains: [d] };
+    }
   }
-  return 'general';
+  return { primary: 'general', domains: ['general'] };
+}
+
+export function detectDomain(promptText = '', roster = []) {
+  return detectDomains(promptText, roster).primary;
 }
 
 export function pickLatestTimestamp(a, b) {
@@ -288,6 +341,7 @@ export function recomputeReputationFromOutcomes(records, nowIso = null, policy =
 
     let targetSpecialists = [];
     const declared = Array.isArray(rec.declaredAuthors) ? rec.declaredAuthors : [];
+    const authorshipSource = rec.authorshipSource || (declared.length > 0 ? 'lead_declared' : 'team_fallback');
     if (declared.length > 0) {
       const verified = new Set();
       for (const item of declared) {
@@ -299,14 +353,22 @@ export function recomputeReputationFromOutcomes(records, nowIso = null, policy =
       // If Lead declared authors, ONLY verified roster authors receive reputation.
       // Unverified authors (not in roster) are strictly rejected.
       targetSpecialists = [...verified];
+    } else if (authorshipSource === 'lead_declared') {
+      // Explicitly marked lead_declared but empty -> no target
+      targetSpecialists = [];
     } else {
       targetSpecialists = [...eligibleByName.keys()];
     }
 
     if (targetSpecialists.length === 0) continue;
 
+    // REQ-2 (v4.6.1): Accrue strictly on PRIMARY domain only (1 record = at most +1 observation per specialist, zero inflation)
     const domain = String(rec.domain || 'general').toLowerCase();
     const recTs = rec.ts || null;
+    // REQ-3 (v4.6.1): team_fallback gets teamFallbackWeight (0.5), lead_declared gets 1.0
+    const weight = authorshipSource === 'team_fallback'
+      ? (typeof policy.teamFallbackWeight === 'number' ? policy.teamFallbackWeight : 0.5)
+      : 1.0;
 
     for (const specialist of targetSpecialists) {
       if (!reputation[specialist]) reputation[specialist] = {};
@@ -326,12 +388,16 @@ export function recomputeReputationFromOutcomes(records, nowIso = null, policy =
         st.score = applyTimeDecay(st.score, st.lastTs, recTs, policy);
       }
 
-      // Bounded single-observation delta
+      // Bounded single-observation delta with authorship weight (hard cap ±maxDeltaPerObservation preserved)
       const target = rec.outcome === 'PASS' ? 1.0 : 0.0;
       const rawDelta = (target - st.score) * policy.stepGain;
-      const boundedDelta = Math.max(
+      const cappedBaseDelta = Math.max(
         -policy.maxDeltaPerObservation,
         Math.min(policy.maxDeltaPerObservation, rawDelta)
+      );
+      const boundedDelta = Math.max(
+        -policy.maxDeltaPerObservation,
+        Math.min(policy.maxDeltaPerObservation, cappedBaseDelta * weight)
       );
       st.score = Number(
         Math.max(policy.minScore, Math.min(policy.maxScore, st.score + boundedDelta)).toFixed(4)
@@ -460,15 +526,25 @@ export function syncCouncilOutcomeAndReputation({
           verifiedInRoster: rosterNames.has(a.name.toLowerCase())
         }));
 
-      const domain = activeState.domain || detectDomain(activeState.task || '', roster);
+      const detected = detectDomains(activeState.task || '', roster);
+      const domain = activeState.domain || detected.primary;
+      const filteredDetected = domain !== 'general'
+        ? detected.domains.filter((d) => d !== 'general')
+        : detected.domains;
+      const domains = Array.isArray(activeState.domains) && activeState.domains.length > 0
+        ? activeState.domains
+        : (filteredDetected.includes(domain) ? filteredDetected : [domain, ...filteredDetected]);
+      const authorshipSource = declaredAuthors.length > 0 ? 'lead_declared' : 'team_fallback';
       const record = {
         taskHash,
         domain,
+        domains,
         mode: activeState.mode || 'parallel',
         earlyStop: Boolean(activeState.earlyStop),
         rounds: Number(activeState.roundsCompleted ?? activeState.requiredRounds ?? 0),
         roster,
         declaredAuthors,
+        authorshipSource,
         outcome: mech.outcome,
         outcomeSource: mech.outcomeSource,
         diffHash: mech.diffHash || null,
@@ -503,6 +579,7 @@ export function syncCouncilOutcomeAndReputation({
         minObservations: REPUTATION_POLICY.minObservations,
         priorScore: REPUTATION_POLICY.priorScore,
         maxDeltaPerObservation: REPUTATION_POLICY.maxDeltaPerObservation,
+        teamFallbackWeight: REPUTATION_POLICY.teamFallbackWeight,
         halfLifeDays: REPUTATION_POLICY.halfLifeDays
       },
       instincts: preservedInstincts,
