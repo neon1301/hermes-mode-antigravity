@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.2.0)
+# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.2.1)
 
 > A fleet of 14 autonomous AI specialists and 22 industrial skills for Google Antigravity that prevents coding agents from fixing 1 of 4 places, self-signing PRs, and hardcoding IPs.
 
-[![Version](https://img.shields.io/badge/version-4.2.0-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.2.1-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-398%2F398%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-418%2F418%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -212,9 +212,9 @@ Hermes Fleet comprises **14 specialized agents** and **22 professional skills** 
 
 Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.json`:
 
-- **[TASK-004] (P1, v4.0.1):** Narrow `hermes-hardcode-ignore` scope to the exact violation line (±1 line) and formalize schema compatibility shim in [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
-- **[TASK-005] (P2, v4.0.1):** Verify subagent UUID FIFO assignment resilience in multi-invoke steps and bind via `tool_call_id`.
-- **[TASK-006] (P3, Post-v4.0.1):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
+- **[TASK-004] (P1, v4.3.0):** Narrow `hermes-hardcode-ignore` scope to the exact violation line (±1 line) and formalize schema compatibility shim in [ADR 0001](docs/adr/0001-l2-diff-review-and-anti-self-signing.md).
+- **[TASK-005] (P2, v4.3.0):** Verify subagent UUID FIFO assignment resilience in multi-invoke steps and bind via `tool_call_id`.
+- **[TASK-006] (P3, Post-v4.3):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
 
 ---
 
@@ -223,7 +223,7 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 Hermes Fleet includes a **Zero-Billing Local CI Gate**:
 
 ```bash
-# Run all 11 test suites locally (410 tests)
+# Run all 11 test suites locally (418 tests)
 npm test
 
 # Windows PowerShell Local CI

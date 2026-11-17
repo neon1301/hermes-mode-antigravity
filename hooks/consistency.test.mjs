@@ -319,7 +319,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
   const expectedBreakdown = {
     'consistency': 18,
     'context-injector': 18,
-    'clean-edits-guard': 136,
+    'clean-edits-guard': 144,
     'qa-gate': 103,
     'rule-engine': 20,
     'session-report': 6,
@@ -329,20 +329,41 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     'refinery': 9,
     'journal': 5
   };
+  const expectedTotalSum = Object.values(expectedBreakdown).reduce((a, b) => a + b, 0);
+
   for (const [suiteName, expTotal] of Object.entries(expectedBreakdown)) {
     const s = summary.suites.find(x => x.name === suiteName);
     if (!s) throw new Error(`Missing suite '${suiteName}' in test-summary.json`);
-    if (s.total !== expTotal || s.passed !== expTotal) {
-      throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal}, got ${s.passed}/${s.total}`);
+    if (suiteName === 'consistency' && summary.status === 'RUNNING') {
+      // During active run, consistency has not concluded yet — must be RUNNING or PENDING (Rule 13)
+      if (s.status !== 'RUNNING' && s.status !== 'PENDING') {
+        throw new Error(`Suite 'consistency' in active summary must be RUNNING or PENDING, got ${s.status}`);
+      }
+      if (s.passed !== null) {
+        throw new Error(`Suite 'consistency' in active summary must not have premature passed count`);
+      }
+    } else {
+      if (s.total !== expTotal || s.passed !== expTotal || s.status !== 'PASS') {
+        throw new Error(`Suite '${suiteName}' expected ${expTotal}/${expTotal} PASS, got ${s.passed}/${s.total} [${s.status}]`);
+      }
     }
   }
-  if (summary.total !== 410 || summary.passed !== 410) {
-    throw new Error(`test-summary.json expected total=410, passed=410, got total=${summary.total}, passed=${summary.passed}`);
-  }
-  const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
-  const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
-  if (sumTotal !== summary.total || sumPassed !== summary.passed) {
-    throw new Error('Sum of suite totals does not match summary total/passed');
+
+  if (summary.status === 'PASS') {
+    if (summary.total !== expectedTotalSum || summary.passed !== expectedTotalSum) {
+      throw new Error(`test-summary.json expected total=${expectedTotalSum}, passed=${expectedTotalSum}, got total=${summary.total}, passed=${summary.passed}`);
+    }
+    const sumTotal = summary.suites.reduce((acc, s) => acc + s.total, 0);
+    const sumPassed = summary.suites.reduce((acc, s) => acc + s.passed, 0);
+    if (sumTotal !== summary.total || sumPassed !== summary.passed) {
+      throw new Error('Sum of suite totals does not match summary total/passed');
+    }
+  } else if (summary.status === 'RUNNING') {
+    if (summary.passed !== null) {
+      throw new Error(`Rule 13 violation: In-progress test-summary.json cannot declare non-null passed count before completion (got ${summary.passed})`);
+    }
+  } else {
+    throw new Error(`test-summary.json unexpected status: '${summary.status}'`);
   }
 });
 

@@ -1,6 +1,6 @@
 // hooks/test-runner.mjs
 // Automated test runner for Hermes Fleet Enterprise.
-// Executes all 10 test suites, validates outputs, and writes .hermes/test-summary.json
+// Executes all 11 test suites, validates outputs, and writes .hermes/test-summary.json
 // strictly adhering to Rule 13 (Data Honesty) & Rule 14 (Report Freshness).
 
 import { spawnSync } from 'node:child_process';
@@ -27,47 +27,41 @@ const SUITES = [
 
 console.log('🏛️  [HERMES TEST RUNNER] Starting execution of all 11 test suites...\n');
 
-// Ensure .hermes/test-summary.json exists with baseline before suites execute
+// Ensure .hermes/test-summary.json tracks active execution (Rule 13: Zero premature PASS)
 const hermesDir = path.join(rootDir, '.hermes');
 if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
 const summaryPath = path.join(hermesDir, 'test-summary.json');
-if (!fs.existsSync(summaryPath)) {
-  fs.writeFileSync(summaryPath, JSON.stringify({
-    timestamp: new Date().toISOString(),
-    suites: [
-      { name: 'consistency', passed: 18, total: 18, status: 'PASS' },
-      { name: 'context-injector', passed: 18, total: 18, status: 'PASS' },
-      { name: 'clean-edits-guard', passed: 124, total: 124, status: 'PASS' },
-      { name: 'qa-gate', passed: 103, total: 103, status: 'PASS' },
-      { name: 'rule-engine', passed: 20, total: 20, status: 'PASS' },
-      { name: 'session-report', passed: 6, total: 6, status: 'PASS' },
-      { name: 'eval-harness', passed: 71, total: 71, status: 'PASS' },
-      { name: 'contract-validator', passed: 9, total: 9, status: 'PASS' },
-      { name: 'doc-lint', passed: 15, total: 15, status: 'PASS' },
-      { name: 'refinery', passed: 9, total: 9, status: 'PASS' },
-      { name: 'journal', passed: 5, total: 5, status: 'PASS' }
-    ],
-    passed: 398,
-    total: 398,
-    status: 'PASS'
-  }, null, 2) + '\n', 'utf-8');
-}
+
+// Write initial RUNNING state (bootstrap with PENDING suites, passed: null)
+const initialSummary = {
+  timestamp: new Date().toISOString(),
+  suites: SUITES.map((s) => ({
+    name: s.name,
+    passed: null,
+    total: null,
+    status: 'PENDING'
+  })),
+  passed: null,
+  total: null,
+  status: 'RUNNING'
+};
+fs.writeFileSync(summaryPath, JSON.stringify(initialSummary, null, 2) + '\n', 'utf-8');
 
 const suiteResults = [];
 let anyFailed = false;
 
 for (const suite of SUITES) {
-  // Right before consistency suite runs, write the up-to-date summary so consistency validates the actual runner metrics
+  // Right before consistency suite runs, write the up-to-date intermediate summary (Rule 13: Zero premature PASS)
   if (suite.name === 'consistency') {
     const preSummary = {
       timestamp: new Date().toISOString(),
       suites: [
-        ...suiteResults.map(s => ({ name: s.name, passed: s.passed, total: s.total, status: s.status })),
-        { name: 'consistency', passed: 18, total: 18, status: 'PASS' }
+        ...suiteResults.map((s) => ({ name: s.name, passed: s.passed, total: s.total, status: s.status })),
+        { name: 'consistency', passed: null, total: null, status: 'RUNNING' }
       ],
-      passed: suiteResults.reduce((acc, s) => acc + s.passed, 0) + 18,
-      total: suiteResults.reduce((acc, s) => acc + s.total, 0) + 18,
-      status: anyFailed ? 'FAIL' : 'PASS'
+      passed: null,
+      total: null,
+      status: 'RUNNING'
     };
     fs.writeFileSync(summaryPath, JSON.stringify(preSummary, null, 2) + '\n', 'utf-8');
   }

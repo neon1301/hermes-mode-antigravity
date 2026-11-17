@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.2.1] - 2026-11-17
+
+### Council Gate Hardening & Delayed Honesty (HERMES-COUNCIL-HARDENING)
+- **Tamper Protection for council-state.json (REQ-1):**
+  - Added `.hermes/council-state.json` to default `protectedVerdictPaths` in `hooks/clean-edits-guard.mjs`. Model tool calls (`write_file`, `edit_file`) targeting `council-state.json` are denied with Tamper Protection; mechanical gate execution via `fs.writeFileSync` remains fully functional.
+  - Added deterministic tests `deny_write_file_council_state` and `deny_edit_file_council_state`.
+- **Step 0 Handshake Isolation from Council Gate (REQ-2):**
+  - Updated Step 0 Model Handshake validator in `hooks/clean-edits-guard.mjs` to exclude Council Gate `ask_question` calls from fulfilling model handshake prerequisites.
+  - Added test `deny_step0_when_only_council_ask_present`.
+- **Council Composition & Quorum Verification (REQ-3):**
+  - Enhanced `verifyCouncilGate` to parse option selection (Option 1 full council vs. Option 2 key specialist).
+  - Enforced delivery count matches expected specialists count from option text (`dispatchedUuids.size >= requiredCount` and `deliveredUuids.size >= requiredCount`).
+  - Added tests `deny_council_gate_option1_with_fewer_deliveries_than_specialists` and `allow_council_gate_option2_key_specialist_with_one_delivery`.
+- **Solo Matcher Negation Guard & Direct-Next Anchoring (REQ-4):**
+  - Added Cyrillic-aware negation guard (`SOLO_NEGATION_RE`) to reject negative intents like "не надо экономия токенов" from activating solo mode.
+  - Restricted answer capture to direct-next step to prevent accumulation of unrelated later user steps.
+  - Added test `deny_council_gate_negated_solo_choice`.
+- **Loop & Fast-Path Boundary Hardening (REQ-5):**
+  - Restricted loop decision reuse strictly to identical `taskHash` (eliminating false reuse from substring "loop" on new tasks).
+  - Restricted Fast-Path bypass to explicit flags (`--fast-path`, `--quick`, `/hermes fast-path`) or standalone trivial typo tasks; complex composite prompts ("исправь опечатку и отрефактори модуль") enforce Council Gate.
+  - Added tests `deny_council_gate_new_task_mentioning_loop_does_not_reuse_old_loop_approval` and `deny_council_gate_compound_prompt_with_typo_and_refactor_not_fast_path`.
+- **Test Runner Delayed Honesty & Roadmap Alignment (REQ-6):**
+  - Replaced premature `status: "PASS"` in `hooks/test-runner.mjs` bootstrap and intermediate summaries with honest `status: "RUNNING"`, `passed: null`.
+  - Updated consistency test suite to enforce zero premature PASS during in-progress executions.
+  - Updated Engineering Roadmap in `README.md`, `README.ru.md`, and `docs/backlog.md` with current milestones (`v4.3.0` / `Post-v4.3`).
+  - Synchronized real test count to 418 passed tests across 11 suites (Rule 13).
+
+---
+
 ## [4.2.0] - 2026-11-17
 
 ### Specialist Council Gate Pre-Plan Enforcement (HERMES-COUNCIL-GATE)

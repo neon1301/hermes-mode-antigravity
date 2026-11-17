@@ -242,6 +242,16 @@ const cases = [
     payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/test-summary.json', Content: '{"status":"PASS"}' } } }
   },
   {
+    name: 'deny_write_file_council_state',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/council-state.json', Content: '{"status":"APPROVED"}' } } }
+  },
+  {
+    name: 'deny_edit_file_council_state',
+    expected: 'deny',
+    payload: { toolCall: { name: 'edit_file', args: { Path: '.hermes/council-state.json', Replacement: '{"status":"APPROVED"}', Target: 'old' } } }
+  },
+  {
     name: 'allow_run_command_qa_runner',
     expected: 'allow',
     payload: { toolCall: { name: 'run_command', args: { CommandLine: 'node hooks/qa-runner.mjs' } } }
@@ -397,6 +407,84 @@ const cases = [
     hermes: false,
     transcript: [{ step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n@dmitry поправь роут в контроллере\n</USER_REQUEST>' }],
     payload: { lastUserInput: '@dmitry поправь роут в контроллере', toolCall: { name: 'write_file', args: { Path: 'src/api.ts', Content: 'export const z = 3;' } } }
+  },
+  {
+    name: 'deny_step0_when_only_council_ask_present',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes investigate bug\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'council_only', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?' }] } }] }
+    ],
+    payload: { lastUserInput: '/hermes investigate bug', toolCall: { name: 'invoke_subagent', args: { TypeName: 'viktor', Model: 'inherit' } } }
+  },
+  {
+    name: 'deny_council_gate_option1_with_fewer_deliveries_than_specialists',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes complex feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_req3', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor — параллельные мнения + сравнительная таблица', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_req3', content: 'A1: (Recommended) Собрать совет: @dmitry, @elena, @viktor' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"\n}' },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee content=Dmitry review delivered' }
+    ],
+    payload: { lastUserInput: '/hermes complex feature', toolCall: { name: 'write_file', args: { Path: 'src/feature.ts', Content: 'code' } } }
+  },
+  {
+    name: 'allow_council_gate_option2_key_specialist_with_one_delivery',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes focused feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_opt2', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['(Recommended) Собрать совет: @dmitry, @elena, @viktor', 'Только ключевой специалист: @dmitry', 'Нет, Lead решает сам'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_opt2', content: 'A1: Только ключевой специалист: @dmitry' },
+      { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Created the following subagent:\n{\n  "conversationId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"\n}' },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-cccc-dddd-eeee-ffffffffffff content=Dmitry solo review' }
+    ],
+    payload: { lastUserInput: '/hermes focused feature', toolCall: { name: 'write_file', args: { Path: 'src/focused.ts', Content: 'code' } } }
+  },
+  {
+    name: 'deny_council_gate_negated_solo_choice',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes complex feature\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_neg', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?' }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_neg', content: 'A1: не надо экономия токенов, соберите совет' }
+    ],
+    payload: { lastUserInput: '/hermes complex feature', toolCall: { name: 'write_file', args: { Path: 'src/feature.ts', Content: 'code' } } }
+  },
+  {
+    name: 'deny_council_gate_new_task_mentioning_loop_does_not_reuse_old_loop_approval',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes loop task 1\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_loop_1', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?' }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_loop_1', content: 'A1: Lead решает сам' },
+      { step_index: 5, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes implement a loop in parser\n</USER_REQUEST>' }
+    ],
+    payload: { lastUserInput: '/hermes implement a loop in parser', toolCall: { name: 'write_file', args: { Path: 'src/parser.ts', Content: 'code' } } }
+  },
+  {
+    name: 'deny_council_gate_compound_prompt_with_typo_and_refactor_not_fast_path',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes исправь опечатку и отрефактори модуль\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: { lastUserInput: '/hermes исправь опечатку и отрефактори модуль', toolCall: { name: 'write_file', args: { Path: 'src/mod.ts', Content: 'code' } } }
   }
 ];
 
