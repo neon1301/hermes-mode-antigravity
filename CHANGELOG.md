@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.4.0] - 2026-11-17
+
+### Canonical 3-Stage Roundtable (NGT / Delphi), Devil's Advocate & Dissent Preservation (HERMES-ROUNDTABLE-NGT)
+- **3-Stage Roundtable Engine (REQ-1):**
+  - Upgraded `verifyCouncilGate` in `hooks/clean-edits-guard.mjs` to enforce 3 distinct stages for roundtable mode (`requiredRounds: 3`):
+    * Stage 1 (R1): «Silent» independent proposal generation (`invoke_subagent` + deliveries).
+    * Stage 2 (R2): Full proposal exchange on `.hermes/council-roundtable.md` board, round-robin critique, Steelman, and **MANDATORY devil's advocate** (`@kritik` or `@stanislav` from table roster) + deliveries.
+    * Stage 3 (R3): Blind ranking without author names via `send_message` + deliveries from all members.
+  - Fail-closed wave progression: wave $N+1$ dispatch/delivery only proceeds after wave $N$ is fully delivered by all roster participants.
+  - State tracking in `.hermes/council-state.json`: `requiredRounds: 3`, `roundsCompleted: 3`. Tamper-protection preserved.
+- **Council Protocol & Anti-Conformism Doctrine (REQ-2):**
+  - Updated `specialist-council-protocol.md`:
+    * Nominal Group Technique (NGT) & Delphi method to eliminate anchoring bias and authority bias.
+    * Hidden profile protection: every specialist is required to surface a unique domain fact.
+    * Steelman principle: formulating the strongest version of another's idea prior to critique.
+    * Blind ranking aggregated via objective mathematical methods (median / Borda count).
+    * Arbitrator criteria audit (`@stanislav`) to eliminate metric-shopping.
+    * Dissent preservation: lone dissenters protected; dissenting opinions and rejected alternatives logged in `.hermes/decisions.md` with full attribution.
+    * Diversity prediction theorem: prioritizing divergence of angles/domains over head count.
+    * Honest price tag updated: ~60k–150k tokens, ~5–9 min.
+  - Core `fleet-protocol.md` updated and physically measured at 12 191 B (CRLF) / 12 092 B (LF) $\le 12\,288$ B budget.
+- **Deterministic Test Locks (REQ-3):**
+  - Added 4 new deterministic test locks in `clean-edits-guard.test.mjs` (total 159/159):
+    * `roundtable_2_stages_deny`: 2 stages rejected under v4.4.0.
+    * `roundtable_missing_r3_deny`: missing stage 3 deliveries rejected.
+    * `roundtable_no_devil_advocate_deny`: stage 2 without devil's advocate (`@kritik` / `@stanislav`) rejected.
+    * `roundtable_3_stages_allow`: full 3-stage flow with devil's advocate and blind ranking approved.
+    * `forged_ranking_prose_deny`: prose claiming ranking completed without platform deliveries rejected.
+
 ## [4.3.0] - 2026-11-17
 
 ### Universal Council Window, Proposal Contract, Board & Basic Roundtable (HERMES-COUNCIL-ROUNDTABLE)

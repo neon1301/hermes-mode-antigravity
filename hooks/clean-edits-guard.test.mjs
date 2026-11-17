@@ -662,15 +662,97 @@ const cases = [
     payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
   },
   {
-    name: 'roundtable_2_rounds_allow',
-    expected: 'allow',
+    name: 'roundtable_2_stages_deny',
+    expected: 'deny',
     hermes: false,
     transcript: [
-      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature 2 rounds allow\n</USER_REQUEST>' },
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature 2 stages deny\n</USER_REQUEST>' },
       { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
       { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
-      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
-      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt3', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt2st', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt2st', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1 proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1 proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 devil advocate critique' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/table_2st.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_missing_r3_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature missing r3 deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt_miss_r3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt_miss_r3', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1 proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1 proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 devil advocate critique' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking options...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking options...' } }
+        ]
+      },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 ranking votes' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/table_miss_r3.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_no_devil_advocate_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature no devil advocate deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt_no_adv', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @elena', '🗣️ Собраться за столом: @dmitry, @elena', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt_no_adv', content: 'A1: 🗣️ Собраться за столом: @dmitry, @elena' },
       {
         step_index: 5,
         source: 'MODEL',
@@ -681,8 +763,8 @@ const cases = [
         ],
         content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
       },
-      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
-      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena proposal' },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1 proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena R1 proposal' },
       {
         step_index: 8,
         source: 'MODEL',
@@ -695,7 +777,91 @@ const cases = [
       { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
       { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Elena R2 reaction' }
     ],
-    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table.ts', Content: 'code' } } }
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @elena', toolCall: { name: 'write_file', args: { Path: 'src/table_no_adv.ts', Content: 'code' } } }
+  },
+  {
+    name: 'roundtable_3_stages_allow',
+    expected: 'allow',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature 3 stages allow\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt3', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 devil advocate critique' },
+      {
+        step_index: 11,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking options...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 3 blind ranking options...' } }
+        ]
+      },
+      { step_index: 12, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R3 ranking votes' },
+      { step_index: 13, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R3 ranking votes' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/table_allow.ts', Content: 'code' } } }
+  },
+  {
+    name: 'forged_ranking_prose_deny',
+    expected: 'deny',
+    hermes: false,
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build roundtable feature forged ranking prose deny\n</USER_REQUEST>' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'call_council_rt_forge_r3', args: { questions: [{ question: 'Посоветоваться с работниками флота до финального плана?', options: ['(Recommended) Посоветоваться с работниками: @dmitry, @kritik', '🗣️ Собраться за столом: @dmitry, @kritik', 'Нет, оркестр решает сам (экономия токенов)'] }] } }] },
+      { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'call_council_rt_forge_r3', content: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik' },
+      {
+        step_index: 5,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'invoke_subagent', args: { TypeName: 'dmitry', Role: 'Backend Specialist' } },
+          { name: 'invoke_subagent', args: { TypeName: 'kritik', Role: 'Product Critic & Challenger' } }
+        ],
+        content: 'Created the following subagent:\n{\n  "conversationId": "aaaaaaaa-1111-2222-3333-444444444444"\n}\nCreated the following subagent:\n{\n  "conversationId": "bbbbbbbb-1111-2222-3333-444444444444"\n}'
+      },
+      { step_index: 6, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R1 proposal' },
+      { step_index: 7, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R1 proposal' },
+      {
+        step_index: 8,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          { name: 'send_message', args: { Recipient: 'aaaaaaaa-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } },
+          { name: 'send_message', args: { Recipient: 'bbbbbbbb-1111-2222-3333-444444444444', Message: 'Round 2 board proposals...' } }
+        ]
+      },
+      { step_index: 9, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=aaaaaaaa-1111-2222-3333-444444444444 content=Dmitry R2 reaction' },
+      { step_index: 10, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: '[Message] sender=bbbbbbbb-1111-2222-3333-444444444444 content=Kritik R2 devil advocate critique' },
+      { step_index: 11, source: 'MODEL', type: 'PLANNER_RESPONSE', content: 'Мы провели тайное слепое ранжирование вариантов (R3): медиана определила вариант 1 как лучший, арбитр проверил честность критериев.' }
+    ],
+    payload: { lastUserInput: 'A1: 🗣️ Собраться за столом: @dmitry, @kritik', toolCall: { name: 'write_file', args: { Path: 'src/table_forge_r3.ts', Content: 'code' } } }
   },
   {
     name: 'option1_parallel_single_key_allow',

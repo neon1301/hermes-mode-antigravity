@@ -319,7 +319,7 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
   const expectedBreakdown = {
     'consistency': 18,
     'context-injector': 18,
-    'clean-edits-guard': 155,
+    'clean-edits-guard': 159,
     'qa-gate': 103,
     'rule-engine': 20,
     'session-report': 6,

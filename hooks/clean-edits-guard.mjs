@@ -751,7 +751,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   );
 
   const mode = isRoundtable ? 'roundtable' : 'parallel';
-  const requiredRounds = isRoundtable ? 2 : 1;
+  const requiredRounds = isRoundtable ? 3 : 1;
 
   let requiredCount = 1;
   let expectedNames = [];
@@ -790,9 +790,12 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const dispatchedUuids = new Set();
   const dispatchedTypes = new Set();
   const agentToUuid = new Map();
+  const uuidToAgent = new Map();
   const r1DeliveredUuids = new Set();
   const r2DispatchedUuids = new Set();
   const r2DeliveredUuids = new Set();
+  const r3DispatchedUuids = new Set();
+  const r3DeliveredUuids = new Set();
   const scanStartIndex = councilAskIdx >= 0 ? councilAskIdx : taskStartIdx;
 
   for (let i = scanStartIndex; i < combinedSteps.length; i++) {
@@ -816,15 +819,13 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
             .replace(/^@/, '')
             .toLowerCase();
           const resolved = resolveAgentName(rawTName);
-          if (resolved) {
-            dispatchedTypes.add(resolved);
+          const finalName = resolved || rawTName;
+          if (finalName) {
+            dispatchedTypes.add(finalName);
             if (uuidIndex < stepUuids.length) {
-              agentToUuid.set(resolved, stepUuids[uuidIndex]);
-            }
-          } else if (rawTName) {
-            dispatchedTypes.add(rawTName);
-            if (uuidIndex < stepUuids.length) {
-              agentToUuid.set(rawTName, stepUuids[uuidIndex]);
+              const u = stepUuids[uuidIndex];
+              agentToUuid.set(finalName, u);
+              uuidToAgent.set(u, finalName);
             }
           }
           uuidIndex++;
@@ -840,8 +841,20 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         if (resolvedAgent && agentToUuid.has(resolvedAgent)) {
           recipient = agentToUuid.get(resolvedAgent);
         }
-        if (recipient && dispatchedUuids.has(recipient) && r1DeliveredUuids.has(recipient)) {
-          r2DispatchedUuids.add(recipient);
+        if (recipient && dispatchedUuids.has(recipient)) {
+          // Fail-closed wave progression:
+          // Wave 2 requires all dispatched to have delivered R1.
+          // Wave 3 requires all dispatched to have delivered R2.
+          const r2WaveReady = r1DeliveredUuids.size >= requiredCount &&
+            [...dispatchedUuids].every((u) => r1DeliveredUuids.has(u));
+          const r3WaveReady = r2WaveReady && r2DeliveredUuids.size >= requiredCount &&
+            [...dispatchedUuids].every((u) => r2DeliveredUuids.has(u));
+
+          if (r3WaveReady && r2DeliveredUuids.has(recipient)) {
+            r3DispatchedUuids.add(recipient);
+          } else if (r2WaveReady && r1DeliveredUuids.has(recipient)) {
+            r2DispatchedUuids.add(recipient);
+          }
         }
       }
     }
@@ -857,7 +870,9 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       }
       for (const senderUuid of sendersInStep) {
         if (dispatchedUuids.has(senderUuid)) {
-          if (r2DispatchedUuids.has(senderUuid)) {
+          if (r3DispatchedUuids.has(senderUuid)) {
+            r3DeliveredUuids.add(senderUuid);
+          } else if (r2DispatchedUuids.has(senderUuid)) {
             r2DeliveredUuids.add(senderUuid);
           } else {
             r1DeliveredUuids.add(senderUuid);
@@ -871,7 +886,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     const msg = councilGateConfig === 'auto'
       ? `Hermes Gate (Council Gate): В режиме config.councilGate="auto" перед первой записью обязательны доставки от участников совета специалистов (ожидается запуск invoke_subagent в Контуре A).\n[EN: Hermes Gate (Council Gate): config.councilGate="auto" requires deliveries from council specialists before writing.]`
       : (isRoundtable
-        ? `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда), но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable was requested but no specialists were invoked. Invoke roundtable members before writing.]`
+        ? `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии), но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable was requested but no specialists were invoked. Invoke roundtable members before writing.]`
         : `Hermes Gate (Council Gate): Пользователь выбрал созыв совета специалистов, но ни один специалист ещё не был запущен (ожидается invoke_subagent в Контуре A). Запустите участников совета перед первой записью.\n[EN: Hermes Gate (Council Gate): Council was requested but no specialists were invoked. Invoke council members before writing.]`);
     deny(msg);
     process.exit(0);
@@ -898,29 +913,64 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   }
 
   if (isRoundtable) {
-    // REQ-2 (v4.3.0): Check Round 1 deliveries
+    // REQ-1 (v4.4.0): Check Stage 1 deliveries
     const pendingR1Uuids = [...dispatchedUuids].filter((id) => !r1DeliveredUuids.has(id));
     if (pendingR1Uuids.length > 0 || r1DeliveredUuids.size < requiredCount) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда), но ответы первого раунда ещё не получены (доставлено R1: ${r1DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь ответов участников Раунда 1 перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Round 1 deliveries pending (${r1DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Round 1 responses before writing.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии), но ответы первой стадии (R1) ещё не получены (доставлено R1: ${r1DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь ответов участников Стадии 1 перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 1 deliveries pending (${r1DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Stage 1 responses before writing.]`
       );
       process.exit(0);
     }
 
-    // REQ-2 (v4.3.0): Check Round 2 send_message distribution
+    // REQ-1 (v4.4.0): Check Stage 2 send_message distribution
     const pendingR2Dispatches = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
     if (pendingR2Dispatches.length > 0) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда). Раунд 1 завершён, но предложения ещё не разосланы участникам стола через send_message для Раунда 2 (разослано: ${r2DispatchedUuids.size} из ${dispatchedUuids.size}). Сведите предложения на доску council-roundtable.md и разошлите участникам.\n[EN: Hermes Gate (Council Gate): Roundtable Round 2 dispatch pending (${r2DispatchedUuids.size}/${dispatchedUuids.size}). Broadcast proposals to roster via send_message.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 1 завершена, но предложения ещё не разосланы участникам стола через send_message для Стадии 2 (разослано R2: ${r2DispatchedUuids.size} из ${dispatchedUuids.size}). Сведите предложения на доску council-roundtable.md и разошлите участникам.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 dispatch pending (${r2DispatchedUuids.size}/${dispatchedUuids.size}). Broadcast proposals to roster via send_message.]`
       );
       process.exit(0);
     }
 
-    // REQ-2 (v4.3.0): Check Round 2 deliveries
+    // REQ-1 (v4.4.0): Check Stage 2 deliveries
     const pendingR2Uuids = [...dispatchedUuids].filter((id) => !r2DeliveredUuids.has(id));
     if (pendingR2Uuids.length > 0 || r2DeliveredUuids.size < requiredCount) {
       deny(
-        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 2 раунда). Ожидаются ответы участников во втором раунде (доставлено R2: ${r2DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь реакций всех участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Round 2 deliveries pending (${r2DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Round 2 reactions before writing.]`
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются ответы участников во второй стадии (доставлено R2: ${r2DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь реакций всех участников стола перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 2 deliveries pending (${r2DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Stage 2 reactions before writing.]`
+      );
+      process.exit(0);
+    }
+
+    // REQ-1 (v4.4.0): Devil's advocate check in Stage 2 (@kritik or @stanislav from table roster)
+    const opponentTypes = ['kritik', 'stanislav'];
+    const opponentUuids = new Set();
+    for (const [uuid, aName] of uuidToAgent.entries()) {
+      if (opponentTypes.includes(aName)) opponentUuids.add(uuid);
+    }
+    for (const name of opponentTypes) {
+      if (agentToUuid.has(name)) opponentUuids.add(agentToUuid.get(name));
+    }
+    const hasOpponentR2Delivery = [...opponentUuids].some((u) => r2DeliveredUuids.has(u));
+    if (!hasOpponentR2Delivery) {
+      deny(
+        `Hermes Gate (Council Gate): В Стадии 2 круглого стола обязательна доставка от назначенного адвоката дьявола (@kritik или @stanislav из ростера стола). Доставка оппонента в R2 отсутствует.\n[EN: Hermes Gate (Council Gate): Stage 2 of roundtable requires delivery from designated devil's advocate (@kritik or @stanislav from table roster). R2 opponent delivery missing.]`
+      );
+      process.exit(0);
+    }
+
+    // REQ-1 (v4.4.0): Check Stage 3 (R3) blind ranking send_message distribution
+    const pendingR3Dispatches = [...dispatchedUuids].filter((id) => !r3DispatchedUuids.has(id));
+    if (pendingR3Dispatches.length > 0) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Стадия 2 завершена, но тайное ранжирование ещё не разослано участникам стола через send_message для Стадии 3 (разослано R3: ${r3DispatchedUuids.size} из ${dispatchedUuids.size}). Разошлите слепой список вариантов на ранжирование.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 dispatch pending (${r3DispatchedUuids.size}/${dispatchedUuids.size}). Send blind ranking request to roster via send_message.]`
+      );
+      process.exit(0);
+    }
+
+    // REQ-1 (v4.4.0): Check Stage 3 (R3) ranking deliveries
+    const pendingR3Uuids = [...dispatchedUuids].filter((id) => !r3DeliveredUuids.has(id));
+    if (pendingR3Uuids.length > 0 || r3DeliveredUuids.size < requiredCount) {
+      deny(
+        `Hermes Gate (Council Gate): Пользователь выбрал собрание за столом (roundtable, 3 стадии). Ожидаются доставки тайного ранжирования от всех участников стола в Стадии 3 (доставлено R3: ${r3DeliveredUuids.size} из ${Math.max(requiredCount, dispatchedUuids.size)} требуемых). Дождитесь голосов всех участников перед первой записью.\n[EN: Hermes Gate (Council Gate): Roundtable Stage 3 ranking deliveries pending (${r3DeliveredUuids.size}/${Math.max(requiredCount, dispatchedUuids.size)}). Await Stage 3 ranking deliveries from all members before writing.]`
       );
       process.exit(0);
     }
