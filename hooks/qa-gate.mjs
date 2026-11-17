@@ -310,7 +310,7 @@ let postEditAskAnswer = '';
 let postEditAskToolCallId = '';
 
 const hermesConfig = getHermesConfig(activeWorkspaceDir);
-const qaVerdictMode = process.env.HERMES_QA_VERDICT_MODE || hermesConfig.qaVerdictMode || 'artifact';
+const qaVerdictMode = hermesConfig.qaVerdictMode;
 
 const nonAuditorSubagentIds = new Set();
 const viktorSubagentUuids = new Set();

@@ -207,3 +207,16 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Distinguished `authorshipSource: "lead_declared"` (weight `1.0`) vs `"team_fallback"` (`teamFallbackWeight = 0.5`, hard `±0.15` cap preserved) and documented Lead's `.hermes/decisions.md` authorship block obligation.
   - Closed `TASK-004`: line-scoped `±1` `hermes-hardcode-ignore`, blanket/bare marker denial, and formalized ADR 0001 compatibility shims.
   - Added 13 deterministic test locks (10 REQ-5 + 3 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (223/223 PASS, 497/497 total across 11 suites) with 0 bytes growth on `fleet-protocol.md`.
+
+---
+
+### [TASK-016] Gate Config Tamper Protection, Reason-Safe `hermes-hardcode-ignore` & Fail-Closed Error Handling
+* **Priority:** P1 / P2
+* **Target Version:** v4.6.2
+* **Status:** ✅ COMPLETED in v4.6.2
+* **Resolution:**
+  - Protected `.hermes/config.json` from agent `write_file`/`edit_file`/shell mutations (immutable union with built-in protected paths, 11 total) and hardened `readCouncilGateConfig` / `getHermesConfig` to fail closed to strict mode on missing or invalid config while preserving legitimate user-authored `councilGate: "off"`.
+  - Logged explicit `source` in `.hermes/gate-log.jsonl` for every gate exception (`config`, `env`, direct `@specialist`, `fix-warnings`, `--fast-path`, micro trivial).
+  - Scoped `hermes-hardcode-ignore` blanket detection strictly to the marker zone (suffixes and pre-delimiter words), eliminating false denies on free-form reason text while keeping strict `±1` line scoping, Layer 1 immunity, v1-legacy shim, and multiline checks intact.
+  - Added fail-closed `deny` (RU + `[EN: ...]`) on internal hook errors and corrupt existing protected artifacts while keeping missing optional artifacts non-blocking for clean new repositories.
+  - Documented protocol vs mechanical limits in `docs/known-boundaries.md` and added 16 deterministic test locks (13 REQ-5 + 3 QA audit regression locks) in `hooks/clean-edits-guard.test.mjs` (239/239 PASS, 513/513 total across 11 suites) with 0 bytes growth on `fleet-protocol.md`.

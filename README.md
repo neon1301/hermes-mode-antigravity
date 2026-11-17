@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Multi-Agent Industrial Mesh Topology](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.6.1)
+# 🏛️ Hermes Fleet Enterprise for Google Antigravity (v4.6.2)
 
 > A fleet of 14 autonomous AI specialists and 22 industrial skills for Google Antigravity that prevents coding agents from fixing 1 of 4 places, self-signing PRs, and hardcoding IPs.
 
-[![Version](https://img.shields.io/badge/version-4.6.1-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.6.2-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-497%2F497%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-513%2F513%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -222,7 +222,7 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 Hermes Fleet includes a **Zero-Billing Local CI Gate**:
 
 ```bash
-# Run all 11 test suites locally (497 tests)
+# Run all 11 test suites locally (513 tests)
 npm test
 
 # Windows PowerShell Local CI
@@ -241,4 +241,5 @@ Pre-push hook is active via `.githooks/pre-push` (`git config core.hooksPath .gi
 - **License:** [MIT License](LICENSE)
 - **Attribution & Open Source Notices:** [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (Apache-2.0 donor mechanics)
 - **Troubleshooting Guide:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Known Boundaries (Protocol vs Mechanical):** [docs/known-boundaries.md](docs/known-boundaries.md)
 - **Release History:** [CHANGELOG.md](CHANGELOG.md)

@@ -30,7 +30,10 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
   let config = {};
   try {
     if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        config = parsed;
+      }
     }
   } catch {}
 
@@ -42,8 +45,11 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     ? (process.env.HERMES_REQUIRE_REQ_LEDGER !== '0' && process.env.HERMES_REQUIRE_REQ_LEDGER !== 'false')
     : null;
 
+  const rawQaMode = process.env.HERMES_QA_VERDICT_MODE || config.qaVerdictMode || 'artifact';
+  const qaVerdictMode = (rawQaMode === 'artifact' || rawQaMode === 'legacy') ? rawQaMode : 'artifact';
+
   return {
-    qaVerdictMode: process.env.HERMES_QA_VERDICT_MODE || config.qaVerdictMode || 'artifact',
+    qaVerdictMode,
     mutationMode: process.env.HERMES_MUTATION_MODE || config.mutationMode || 'advisory',
     mutationThreshold: Number(process.env.HERMES_MUTATION_THRESHOLD || config.mutationThreshold || 0.70),
     mutationBudget: Number(process.env.HERMES_MUTATION_BUDGET || config.mutationBudget || 20),
@@ -51,7 +57,7 @@ export function getHermesConfig(workspaceDir = process.cwd()) {
     qaVerdictTtlMs: Number(process.env.HERMES_QA_VERDICT_TTL_MS || config.qaVerdictTtlMs || 300000),
     baseRef: process.env.HERMES_BASE_REF || config.baseRef || null,
     excludePaths: envExclude || config.excludePaths || ['.hermes'],
-    requireReqLedger: envRequireReqLedger !== null ? envRequireReqLedger : (config.requireReqLedger ?? true)
+    requireReqLedger: envRequireReqLedger !== null ? envRequireReqLedger : (typeof config.requireReqLedger === 'boolean' ? config.requireReqLedger : true)
   };
 }
 

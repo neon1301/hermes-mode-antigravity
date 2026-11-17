@@ -8,6 +8,7 @@ import {
   detectDomains,
   DOMAIN_PRIORITY,
   extractDeclaredAuthors,
+  freezeOrVerifyCriteria,
   rankRecommendedSpecialists,
   recomputeReputationFromOutcomes,
   REPUTATION_POLICY,
@@ -2951,11 +2952,14 @@ const cases = [
       }
     },
     verify: () => {
+      // Updated in v4.6.2 (REQ-2): blanket keywords are detected strictly in the marker zone
+      // (suffixes -file/-all/-global/-block or words BEFORE ':'/'='/'('), never in free-form reason text.
       const blanketPayloads = [
-        `// hermes-hardcode-ignore: whole file\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
-        `// hermes-hardcode-ignore: all file\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
-        `// hermes-hardcode-ignore: на весь файл\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
-        `// hermes-hardcode-ignore: ignore entire file\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        `// hermes-hardcode-ignore-all: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore-global: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore-block: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore whole file: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`,
+        `// hermes-hardcode-ignore на весь файл: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`
       ];
       for (const content of blanketPayloads) {
         const res = JSON.parse(execFileSync('node', [hookPath], {
@@ -3071,6 +3075,496 @@ const cases = [
       }));
       if (res.decision !== 'allow') {
         throw new Error(`Expected multiline JS/TS env fallback to allow, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  // === Hermes Fleet v4.6.2 Hardening Locks (REQ-1..REQ-3, REQ-5) ===
+  {
+    name: 'gate_config_agent_write_off_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: '.hermes/config.json',
+          Content: '{"councilGate":"off","protectedVerdictPaths":[]}\n'
+        }
+      }
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-cfg-write-deny');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      // Even if a pre-existing config attempts to empty protectedVerdictPaths, built-in protection remains immutable
+      fs.writeFileSync(path.join(ws, '.hermes', 'config.json'), JSON.stringify({ protectedVerdictPaths: [] }), 'utf-8');
+      for (const target of ['.hermes/config.json', '.hermes/qa-verdict.json', '.hermes/council-state.json']) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({
+            lastUserInput: '/hermes test',
+            workspacePaths: [ws],
+            toolCall: { name: 'edit_file', args: { Path: target, Target: '{}', Replacement: '{"councilGate":"off"}' } }
+          }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Protected artifact/config ${target} was writable despite empty protectedVerdictPaths: ${JSON.stringify(res)}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'gate_config_shell_mutate_off_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'run_command',
+        args: { CommandLine: 'echo \'{"councilGate":"off"}\' > .hermes/config.json' }
+      }
+    },
+    verify: () => {
+      const cmds = [
+        'Set-Content -Path .hermes/config.json -Value \'{"councilGate":"off"}\'',
+        'Out-File .hermes/config.json -InputObject \'{"councilGate":"off"}\'',
+        'Copy-Item fake.json .hermes/config.json',
+        'mv fake.json .hermes/config.json',
+        'rm .hermes/config.json',
+        'node -e "require(\'fs\').writeFileSync(\'.hermes/config.json\', \'{\\"councilGate\\":\\"off\\"}\')"',
+        'python -c "open(\'.hermes/config.json\', \'w\').write(\'{\\"councilGate\\":\\"off\\"}\')"'
+      ];
+      for (const cmd of cmds) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'run_command', args: { CommandLine: cmd } } }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Shell mutation of .hermes/config.json was unexpectedly allowed: ${cmd}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'gate_config_absent_gates_stay_on',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-foreign-no-hermes');
+      fs.mkdirSync(ws, { recursive: true });
+      const tp = path.join(tmpDir, 't-v462-absent-cfg.jsonl');
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build billing module\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+      ];
+      fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes build billing module',
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: 'src/billing.ts', Content: 'export const x = 1;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny') {
+        throw new Error(`Expected Council Gate ON (deny) when .hermes/config.json is absent, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'gate_config_invalid_fail_closed',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const tp = path.join(tmpDir, 't-v462-invalid-cfg.jsonl');
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes refactor auth service\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+      ];
+      fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      for (const [tag, body] of [['corrupt-json', '{ "councilGate": "off", BROKEN'], ['invalid-enum', '{"councilGate":"bypass_all"}'], ['non-object', '["off"]']]) {
+        const ws = path.join(tmpDir, `ws-v462-inv-${tag}`);
+        fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+        fs.writeFileSync(path.join(ws, '.hermes', 'config.json'), body, 'utf-8');
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({
+            lastUserInput: '/hermes refactor auth service',
+            workspacePaths: [ws],
+            transcriptPath: tp,
+            toolCall: { name: 'write_file', args: { Path: 'src/auth.ts', Content: 'export const ok = true;\n' } }
+          }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Invalid config (${tag}) did not fail-closed to strict mode: ${JSON.stringify(res)}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'gate_off_user_setting_still_works',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-user-off');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      // Legitimate user-created config on disk (outside agent tools)
+      fs.writeFileSync(path.join(ws, '.hermes', 'config.json'), JSON.stringify({ councilGate: 'off' }), 'utf-8');
+      const tp = path.join(tmpDir, 't-v462-user-off.jsonl');
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes standard feature\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+      ];
+      fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes standard feature',
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: 'src/feature.ts', Content: 'export const ok = true;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'allow') {
+        throw new Error(`Legitimate user config councilGate="off" should still allow, got: ${JSON.stringify(res)}`);
+      }
+      const logLines = fs.readFileSync(path.join(ws, '.hermes', 'gate-log.jsonl'), 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+      const bypassEntry = logLines.find((e) => e.source === 'config:.hermes/config.json');
+      if (!bypassEntry) {
+        throw new Error(`Expected gate-log.jsonl to record source="config:.hermes/config.json", got: ${JSON.stringify(logLines)}`);
+      }
+    }
+  },
+  {
+    name: 'exception_source_logged_in_gate_log',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const checks = [
+        { label: 'env_off', prompt: '/hermes feature', env: { HERMES_COUNCIL_GATE: 'off' }, expectedSource: 'env:HERMES_COUNCIL_GATE' },
+        { label: 'direct_spec', prompt: '@dmitry поправь контроллер', env: {}, expectedSource: 'user_prompt:direct_specialist' },
+        { label: 'fix_warnings', prompt: '/hermes fix-warnings', env: {}, expectedSource: 'user_prompt:fix_warnings' },
+        { label: 'fast_path', prompt: '/hermes --fast-path tweak label', env: {}, expectedSource: 'user_prompt:explicit_fast_path' },
+        { label: 'micro', prompt: '/hermes fix typo', env: {}, expectedSource: 'user_prompt:micro_trivial' }
+      ];
+      for (const ch of checks) {
+        const ws = path.join(tmpDir, `ws-v462-exc-${ch.label}`);
+        fs.mkdirSync(ws, { recursive: true });
+        const tp = path.join(tmpDir, `t-v462-exc-${ch.label}.jsonl`);
+        const steps = [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${ch.prompt}\n</USER_REQUEST>` },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+          { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+        ];
+        fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({
+            lastUserInput: ch.prompt,
+            workspacePaths: [ws],
+            transcriptPath: tp,
+            toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'export const v = 1;\n' } }
+          }),
+          encoding: 'utf-8',
+          env: { ...process.env, ...ch.env }
+        }));
+        if (res.decision !== 'allow') {
+          throw new Error(`Exception ${ch.label} expected allow, got: ${JSON.stringify(res)}`);
+        }
+        const entries = fs.readFileSync(path.join(ws, '.hermes', 'gate-log.jsonl'), 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+        if (!entries.some((e) => e.source === ch.expectedSource)) {
+          throw new Error(`Exception ${ch.label} missing gate-log source=${ch.expectedSource}, got: ${JSON.stringify(entries)}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_reason_globally_word_allow',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Protocol.cs',
+          Content: `// hermes-hardcode-ignore: globally unique protocol constant\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      // Must still DENY if violation is 3+ lines away
+      const far = `// hermes-hardcode-ignore: globally unique protocol constant\nvar a = 1;\nvar b = 2;\nvar c = 3;\nvar url = ${q('http://' + ip + ':8080/api')};\n`;
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'write_file', args: { Path: 'src/Protocol.cs', Content: far } } }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny') {
+        throw new Error(`Expected far violation (3+ lines) to deny, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_reason_all_lines_allow',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/FixturePort.cs',
+          Content: `// hermes-hardcode-ignore: fixed port for all lines of the fixture\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_reason_ru_blanket_words_allow',
+    expected: 'allow',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Constants.cs',
+          Content: `// hermes-hardcode-ignore: константа на весь файл\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    }
+  },
+  {
+    name: 'hardcode_ignore_file_suffix_still_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: {
+          Path: 'src/Client.cs',
+          Content: `// hermes-hardcode-ignore-file: dev harness\nvar url = ${q('http://' + ip + ':8080/api')};\n`
+        }
+      }
+    },
+    verify: () => {
+      for (const line of [
+        '// hermes-hardcode-ignore-all: dev',
+        '// hermes-hardcode-ignore-global: dev',
+        '// hermes-hardcode-ignore-block: dev',
+        '// hermes-hardcode-ignore whole file: dev',
+        '// hermes-hardcode-ignore на весь файл: dev',
+        '// hermes-hardcode-ignore'
+      ]) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({
+            lastUserInput: '/hermes test',
+            toolCall: { name: 'write_file', args: { Path: 'src/Client.cs', Content: `${line}\nvar url = ${q('http://' + ip + ':8080/api')};\n` } }
+          }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Expected marker-zone blanket/bare directive to deny: ${line}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'hook_error_fail_closed_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      // Inject a real runtime I/O exception via ESM preload (zero test backdoors in production code)
+      const ws = path.join(tmpDir, 'ws-v462-internal-err');
+      fs.mkdirSync(ws, { recursive: true });
+      const preloadPath = path.join(tmpDir, 'fault-preload.mjs');
+      fs.writeFileSync(
+        preloadPath,
+        `import fs from 'node:fs';\nconst origExists = fs.existsSync;\nfs.existsSync = (p) => {\n  if (String(p).includes('council-state.json')) throw new Error('simulated internal I/O failure');\n  return origExists(p);\n};\n`,
+        'utf-8'
+      );
+      const out = execFileSync('node', ['--import', `file:///${preloadPath.replace(/\\/g, '/')}`, hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes build feature',
+          workspacePaths: [ws],
+          toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'export const x = 1;\n' } }
+        }),
+        encoding: 'utf-8'
+      });
+      const res = JSON.parse(out);
+      if (res.decision !== 'deny' || !/Internal Error/i.test(res.reason || '') || !/\[EN:/i.test(res.reason || '')) {
+        throw new Error(`Expected fail-closed deny with RU+[EN:] reason on internal hook error, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'corrupt_protected_artifact_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-corrupt-state');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(path.join(ws, '.hermes', 'council-state.json'), '{ "taskHash": BROKEN_JSON', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes build feature',
+          workspacePaths: [ws],
+          toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'export const x = 1;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/council-state\.json/i.test(res.reason || '') || !/\[EN:/i.test(res.reason || '')) {
+        throw new Error(`Expected fail-closed deny on corrupt council-state.json with RU+[EN:] reason, got: ${JSON.stringify(res)}`);
+      }
+
+      // Also verify corrupt progress-journal.jsonl fails closed
+      const ws2 = path.join(tmpDir, 'ws-v462-corrupt-journal');
+      fs.mkdirSync(path.join(ws2, '.hermes'), { recursive: true });
+      fs.writeFileSync(path.join(ws2, '.hermes', 'progress-journal.jsonl'), '{"taskHash":"ok"}\nNOT_VALID_JSON\n', 'utf-8');
+      const tp = path.join(tmpDir, 't-v462-corrupt-j.jsonl');
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes build feature\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'cg', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['1. @dmitry', '2. стол', '3. Нет, оркестр решает сам'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'cg', content: 'A1: Нет, оркестр решает сам' }
+      ];
+      fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res2 = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: 'A1: Нет, оркестр решает сам',
+          workspacePaths: [ws2],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'export const x = 1;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res2.decision !== 'deny' || !/progress-journal\.jsonl/i.test(res2.reason || '')) {
+        throw new Error(`Expected fail-closed deny on corrupt progress-journal.jsonl, got: ${JSON.stringify(res2)}`);
+      }
+    }
+  },
+  {
+    name: 'missing_optional_artifacts_no_false_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      // Brand new clean project with ZERO .hermes/ artifacts (no council-outcomes, no qa-verdict, no test-summary, no council-state, no config.json)
+      const ws = path.join(tmpDir, 'ws-v462-clean-new-project');
+      fs.mkdirSync(ws, { recursive: true });
+      const tp = path.join(tmpDir, 't-v462-clean-new.jsonl');
+      const steps = [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '<USER_REQUEST>\n/hermes initialize clean project service\n</USER_REQUEST>' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'cg', args: { questions: [{ question: 'Посоветоваться с советом специалистов до финального плана?', options: ['1. @dmitry', '2. стол', '3. Нет, оркестр решает сам'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', tool_call_id: 'cg', content: 'A1: Нет, оркестр решает сам' }
+      ];
+      fs.writeFileSync(tp, steps.map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: 'A1: Нет, оркестр решает сам',
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: 'src/index.ts', Content: 'export const ready = true;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'allow') {
+        throw new Error(`Clean new project without optional artifacts suffered false deny: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  // === QA Audit Regression Locks (v4.6.2) ===
+  {
+    name: 'gate_config_case_trailing_dot_junction_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'write_file',
+        args: { Path: '.hermes/Config.json', Content: '{"councilGate":"off"}\n' }
+      }
+    },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-case-junction');
+      const hermesDir = path.join(ws, '.hermes');
+      fs.mkdirSync(hermesDir, { recursive: true });
+      const variants = [
+        { name: 'write_file', args: { Path: '.HERMES/CONFIG.JSON', Content: '{"councilGate":"off"}' } },
+        { name: 'write_file', args: { Path: '.hermes/config.json.', Content: '{"councilGate":"off"}' } },
+        { name: 'write_to_file', args: { AbsolutePath: path.join(ws, '.hermes', 'Config.json'), CodeContent: '{"councilGate":"off"}' } },
+        { name: 'multi_replace_file_content', args: { TargetFile: '.hermes/Config.json', ReplacementChunks: [{ StartLine: 1, EndLine: 1, TargetContent: '{}', ReplacementContent: '{"councilGate":"off"}' }] } }
+      ];
+      // Also test NTFS junction / directory symlink hlink -> .hermes
+      const junctionDir = path.join(ws, 'hlink');
+      try {
+        fs.symlinkSync(hermesDir, junctionDir, process.platform === 'win32' ? 'junction' : 'dir');
+        variants.push({ name: 'write_file', args: { Path: 'hlink/config.json', Content: '{"councilGate":"off"}' } });
+      } catch {}
+      for (const tc of variants) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', workspacePaths: [ws], toolCall: tc }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Case/trailing-dot/junction bypass allowed for ${JSON.stringify(tc)}: ${JSON.stringify(res)}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'gate_config_shell_bypass_aliases_and_flags_deny',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'run_command',
+        args: { CommandLine: 'ni .hermes/config.json -Force -Value \'{"councilGate":"off"}\'' }
+      }
+    },
+    verify: () => {
+      const cmds = [
+        'New-Item -Path .hermes/config.json -ItemType File -Force -Value \'{"councilGate":"off"}\'',
+        'rni .hermes/config.json .hermes/config.bak',
+        '[System.IO.File]::WriteAllText(".hermes/config.json", "{\\"councilGate\\":\\"off\\"}")',
+        'cmd /c del .hermes\\config.json',
+        'node --input-type=module -e "import fs from \'fs\'; fs.writeFileSync(\'.hermes/config.json\', \'{\\"councilGate\\":\\"off\\"}\')"',
+        'python -u -c "open(\'.hermes/config.json\', \'w\').write(\'{\\"councilGate\\":\\"off\\"}\')"',
+        'Set-Content -Value "a;b" -Path .hermes/config.json'
+      ];
+      for (const cmd of cmds) {
+        const res = JSON.parse(execFileSync('node', [hookPath], {
+          input: JSON.stringify({ lastUserInput: '/hermes test', toolCall: { name: 'run_command', args: { CommandLine: cmd } } }),
+          encoding: 'utf-8'
+        }));
+        if (res.decision !== 'deny') {
+          throw new Error(`Shell bypass allowed for command: ${cmd}`);
+        }
+      }
+    }
+  },
+  {
+    name: 'corrupt_council_criteria_fail_closed_no_overwrite_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v462-corrupt-criteria');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      const criteriaPath = path.join(ws, '.hermes', 'council-criteria.json');
+      const corruptBody = '{ CORRUPT_CRITERIA_JSON';
+      fs.writeFileSync(criteriaPath, corruptBody, 'utf-8');
+      fs.writeFileSync(path.join(ws, '.hermes', 'council-roundtable.md'), '## Критерии оценки\n- Скорость\n', 'utf-8');
+
+      // 1. Hook write attempt must deny fail-closed without overwriting
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes test',
+          workspacePaths: [ws],
+          toolCall: { name: 'write_file', args: { Path: 'src/app.ts', Content: 'export const ok = true;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/council-criteria\.json/i.test(res.reason || '')) {
+        throw new Error(`Expected fail-closed deny on corrupt council-criteria.json, got: ${JSON.stringify(res)}`);
+      }
+      // 2. Direct freezeOrVerifyCriteria must return ok:false, corrupt:true and MUST NOT overwrite corrupt file
+      const direct = freezeOrVerifyCriteria({ activeWorkspaceDir: ws, taskHash: 'task_corrupt' });
+      if (direct.ok !== false || direct.corrupt !== true) {
+        throw new Error(`Expected freezeOrVerifyCriteria to fail-closed on corrupt file, got: ${JSON.stringify(direct)}`);
+      }
+      if (fs.readFileSync(criteriaPath, 'utf-8') !== corruptBody) {
+        throw new Error('freezeOrVerifyCriteria silently overwrote corrupt council-criteria.json!');
       }
     }
   }

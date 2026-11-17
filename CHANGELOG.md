@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.6.2] - 2026-11-18
+
+### Gate Config Tamper Protection, Reason-Safe `hermes-hardcode-ignore` & Fail-Closed Error Handling (TASK-016)
+- **Gate Config Tamper Protection & Exception Source Logging (REQ-1, P1):**
+  - Added `.hermes/config.json` to immutable built-in `DEFAULT_PROTECTED_VERDICT_PATHS` (11 protected paths total) and `SHELL_MUTATE_PATTERNS` in `hooks/clean-edits-guard.mjs`, blocking agents from disabling Council Gate (`councilGate: "off"`), wiping `protectedVerdictPaths`, or downgrading `qaVerdictMode` via `write_file`/`edit_file`/shell commands.
+  - Changed `protectedVerdictPaths` config/env loading from overwrite to additive Set union so built-in protected paths can never be removed.
+  - Hardened `readCouncilGateConfig` and `getHermesConfig` to fail closed to strict mode (`councilGate: "ask"`, `qaVerdictMode: "artifact"`) when `.hermes/config.json` is absent, unreadable, invalid JSON, or contains invalid values; legitimate human-authored `"councilGate": "off"` continues to work.
+  - Logged explicit `source` field in `.hermes/gate-log.jsonl` for every bypass/exception (`config:.hermes/config.json`, `env:HERMES_COUNCIL_GATE`, `user_prompt:direct_specialist`, `user_prompt:fix_warnings`, `user_prompt:explicit_fast_path`, `user_prompt:micro_trivial`).
+- **Reason-Safe `hermes-hardcode-ignore` Blanket Detection (REQ-2, P1):**
+  - Scoped blanket file-wide detection strictly to the **marker zone** (`-file`/`-all`/`-global`/`-block` suffixes and words BEFORE `:`/`=`/`(`) so free-form reason text (`globally unique protocol constant`, `fixed port for all lines of the fixture`, `константа на весь файл`) no longer causes false denies while preserving strict `±1` line scoping, Layer 1 immunity, v1-legacy shim, per-chunk evaluation, and multiline checks.
+- **Fail-Closed Internal Error & Corrupt Protected Artifact Guard (REQ-3, P2):**
+  - Added strict fail-closed handling for internal guard errors (`try/catch` + `uncaughtException` emitting valid JSON `deny` with RU + `[EN: ...]` reason) and corrupt existing protected artifacts (`.hermes/council-state.json`, `.hermes/council-criteria.json`, `.hermes/progress-journal.jsonl`, `.hermes/test-summary.json`, `.hermes/qa-verdict.json`, `.hermes/security-verdict.json`), while keeping missing optional artifacts strictly non-blocking for clean new repositories.
+- **Documentation & Known Boundaries (REQ-4, P2):**
+  - Added `docs/known-boundaries.md`, updated `TROUBLESHOOTING.md`, `docs/troubleshooting.md`, `docs/adr/0001-l2-diff-review-and-anti-self-signing.md`, and registered `TASK-016` in `docs/backlog.md`.
+- **16 New Deterministic Test Locks (13 REQ-5 + 3 QA Audit Regression Locks):**
+  - Expanded `hooks/clean-edits-guard.test.mjs` to 239/239 PASS (513/513 total across 11 suites): `gate_config_agent_write_off_deny`, `gate_config_shell_mutate_off_deny`, `gate_config_absent_gates_stay_on`, `gate_config_invalid_fail_closed`, `gate_off_user_setting_still_works`, `exception_source_logged_in_gate_log`, `hardcode_ignore_reason_globally_word_allow`, `hardcode_ignore_reason_all_lines_allow`, `hardcode_ignore_reason_ru_blanket_words_allow`, `hardcode_ignore_file_suffix_still_deny`, `hook_error_fail_closed_deny`, `corrupt_protected_artifact_deny`, `missing_optional_artifacts_no_false_deny`, plus QA regression locks `gate_config_case_trailing_dot_junction_deny`, `gate_config_shell_bypass_aliases_and_flags_deny`, and `corrupt_council_criteria_fail_closed_no_overwrite_deny`.
+
 ## [4.6.1] - 2026-11-17
 
 ### v4.6.0 Audit Tails & TASK-004 Line-Scoped `hermes-hardcode-ignore` (TASK-015, TASK-004)

@@ -92,12 +92,12 @@ Hermes Gate (Council Gate): Первая запись задачи (<tool>) за
 In active `/hermes` orchestrations for Standard/Complex tasks, Lead must not cut corners solo in Phase 2. Writing source code or spawning write subagents without a verified Council Gate decision is blocked.
 
 ### Resolution
-1. **Interactive Flow (ask_question):** Call `ask_question` with 3 options:
-   - `(Recommended) Собрать совет: <специалисты> — параллельные мнения + сравнительная таблица`
-   - `Только ключевой специалист: <специалист>`
-   - `Нет, Lead решает сам (экономия токенов)`
-2. If **«Lead сам»** is selected by the user, writes are unlocked immediately.
-3. If **«Собрать совет»** is chosen, summon the recommended specialists in Contour A (read-only), wait for their deliveries, present the comparative table and synthesis, and write `.hermes/decisions.md` and `.hermes/council-state.json`.
+1. **Interactive Flow (ask_question):** Call `ask_question` with 3 canonical options:
+   - `(Recommended) Посоветоваться с работниками: @имена — независимые мнения + синтез (1 раунд)`
+   - `🗣️ Собраться за столом: @имена — живое обсуждение, 3 стадии (NGT/Дельфи)`
+   - `Нет, оркестр решает сам (экономия токенов)`
+2. If **«Нет, оркестр решает сам»** is selected by the user, writes are unlocked immediately.
+3. If **«Посоветоваться с работниками»** or **«Собраться за столом»** is chosen, summon the recommended specialists in Contour A (read-only), wait for their authentic deliveries, present the comparative table and synthesis, and write `.hermes/decisions.md` (`.hermes/council-state.json` is written exclusively by the hook).
 4. **Exceptions & Configuration:**
-   - Trivial Micro/Fast-Path edits and `/hermes fix-warnings` bypass the gate automatically.
-   - Configure in `.hermes/config.json`: `"councilGate": "off"` (bypass) or `"councilGate": "auto"` (auto-convene without dialog, deliveries still mandatory).
+   - Trivial Micro/Fast-Path edits, direct `@specialist` calls, and `/hermes fix-warnings` bypass the gate automatically (every bypass logs its explicit `source` in `.hermes/gate-log.jsonl`).
+   - A **human user** (outside agent tools) may configure `.hermes/config.json` with `"councilGate": "off"` (bypass) or `"councilGate": "auto"` (auto-convene without dialog, deliveries still mandatory). Agents are strictly blocked from creating or editing `.hermes/config.json` via `write_file`/`edit_file`/shell commands; missing or invalid config fails closed to `"ask"`.

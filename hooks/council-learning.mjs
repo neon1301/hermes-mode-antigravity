@@ -656,10 +656,25 @@ export function freezeOrVerifyCriteria({ activeWorkspaceDir, taskHash, projected
   if (fs.existsSync(criteriaFile)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(criteriaFile, 'utf-8'));
-      if (parsed && parsed.taskHash === taskHash && parsed.criteriaHash) {
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {
+          ok: false,
+          corrupt: true,
+          frozenHash: 'CORRUPT',
+          currentHash: diskSnapshot ? diskSnapshot.criteriaHash : 'MISSING'
+        };
+      }
+      if (parsed.taskHash === taskHash && parsed.criteriaHash) {
         frozen = parsed;
       }
-    } catch {}
+    } catch {
+      return {
+        ok: false,
+        corrupt: true,
+        frozenHash: 'CORRUPT',
+        currentHash: diskSnapshot ? diskSnapshot.criteriaHash : 'MISSING'
+      };
+    }
   }
 
   if (!frozen && diskSnapshot) {
