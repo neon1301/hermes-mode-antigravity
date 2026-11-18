@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0",
+  "taskHash": "9fe7459b736b9959",
+  "planHash": "a47c5c1ec8d915d8a605cea33d30416a6b5a4fa9e474fc8c06ee9a309ddcbf45",
+  "rubricHash": "e97851a6dab4e673f9f6445a5b0d4c4398276ba2427c3938c17d8f9c3f999705",
+  "version": 2,
+  "generatedAt": "2026-11-18T10:57:09.055Z",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "condition": "запускается сканер `scripts/xray-scan.mjs` (pure stdlib, без сети)",
+      "behavior": "детерминированно искать `dead`, `stub` и `fragile` адаптерами JS/ES5, HTML/CSS и generic в бюджете ≤2000 файлов, ≤2 МБ на файл и 10 с (с честным `truncated: true`), формировать находки `{ id, rule, class, category, path, line, symbol, evidence, impact, refs }` с `class: fact|hypothesis`, ранжировать по таблице `impact` и валидировать `evidence` через `validateEvidenceRef`",
+      "verification": "тесты `xray_dead_symbol_zero_refs_detected`, `xray_element_never_assigned_detected`, `xray_empty_catch_and_always_true_detected`, `xray_unstopped_timer_detected`, `xray_duplicate_literal_detected`, `xray_scan_budget_truncated_honest`, `xray_no_fabricated_quality_scores`."
+    },
+    {
+      "reqId": "REQ-2",
+      "condition": "сканер проверяет ссылки или агент пытается удалить код из находок",
+      "behavior": "считать `refs` по всему репо (импорты, строковые имена `getElementById`/dispatch/сервисов, CSS, конфиги/JSON, упаковка/IPK/manifest, доки, тесты), защищать точки входа/публичный API/упакованные файлы и блокировать удаление без доказательства `refs=0`",
+      "verification": "тесты `xray_dynamic_string_call_not_dead`, `xray_packaged_file_not_deleted`, `xray_delete_without_zero_ref_proof_deny`."
+    },
+    {
+      "reqId": "REQ-3",
+      "condition": "сохраняются результаты сканирования и статусы долга",
+      "behavior": "защищать `.hermes/xray-report.json` и `.hermes/debt-ledger.jsonl` от записи агента (21 встроенный защищённый путь), вычислять стабильный `id = hash(rule + normalizedPath + symbol)` без дублей и механически переводить исчезнувшие находки в `fixed` при рескане (с защитой при `truncated: true`)",
+      "verification": "тесты `xray_report_protected_from_agent_write_deny`, `xray_debt_ledger_protected_and_hook_only`, `xray_finding_id_stable_no_duplicates`, `xray_fixed_detected_on_rescan`."
+    },
+    {
+      "reqId": "REQ-4",
+      "condition": "пользователю показывается advisory-окно Рентгена и обрабатывается его выбор",
+      "behavior": "ограничивать окно ≤5 пунктами в 3 корзинах простым русским без внутренних кодов и процентов/оценок, валидировать выбор `[Почини сейчас]` / `[Запиши в долг]` / `[Не трогай]` через `consent-validator.mjs` с negation-guard, требовать штатную ревизию плана `v(N+1)` при `[Почини сейчас]` и прекращать напоминания при `accepted`",
+      "verification": "тесты `xray_window_plain_ru_no_internal_codes`, `xray_window_max_five_items`, `xray_consent_negated_deny`, `xray_fix_now_requires_plan_revision_deny`, `xray_accepted_risk_stops_nagging`."
+    },
+    {
+      "reqId": "REQ-5",
+      "condition": "стартует новая сессия Hermes в `hooks/context-injector.mjs`",
+      "behavior": "подгружать ≤3 релевантных записей долга `open`/`debt` в бюджете ≤1024 B отдельно от `.hermes/lessons.jsonl`, скрывая `accepted` и `fixed`",
+      "verification": "тест `xray_debt_injected_within_budget`."
+    },
+    {
+      "reqId": "REQ-6",
+      "condition": "Рентген работает на Stop в `hooks/qa-gate.mjs` или сталкивается с ошибкой/таймаутом/битым артефактом",
+      "behavior": "всегда оставаться fail-open advisory (`xray = advisory|off`, без `enforce`), записывать `xray_error` в `gate-log.jsonl` и никогда не блокировать Stop или обычные записи",
+      "verification": "тест `xray_never_denies_and_scanner_error_fail_open`."
+    },
+    {
+      "reqId": "REQ-7",
+      "condition": "экспортируются логи или запускаются скрипты плагина в чужом репозитории",
+      "behavior": "писать `manifest.gateModes` с `source`, отказывать в перезаписи существующего run-каталога `logs/`, резолвить `scripts/` от корня установленного плагина через `resolvePluginRoot`/`resolvePluginScript`, читать версию из `plugin.json` плагина и включать `scripts/xray-scan.mjs` в install-пейлоад (исключая `logs/`)",
+      "verification": "тесты `export_manifest_contains_gate_modes_and_source`, `logs_run_dir_immutable_no_overwrite`, `plugin_scripts_resolve_from_installed_root_in_foreign_repo`."
+    },
+    {
+      "reqId": "REQ-8",
+      "condition": "формируется dogfood-отчёт и поведенческая карточка `docs/evals/eval-006.json`",
+      "behavior": "прогнать `scripts/xray-scan.mjs` на этом репозитории с реальными `path:line` и счётчиками, а карточка `eval-006.json` должна пройти схемную валидацию без `answer_key` в испытуемом workspace",
+      "verification": "тест `eval_006_schema_valid` и артефакт `.hermes/xray-report.json` в `logs/`."
+    },
+    {
+      "reqId": "REQ-9",
+      "condition": "прогоняются все 11 тест-сьютов через `npm test` и `verify.ps1`",
+      "behavior": "пройти все 592 базовых теста и все ≥25 новых замков в изолированных `mkdtemp`-каталогах без мутации живого `.hermes/`",
+      "verification": "`.hermes/test-summary.json` со статусом `PASS` по 11 сьютам и `test_run_does_not_mutate_live_hermes_dir`."
+    },
+    {
+      "reqId": "REQ-10",
+      "condition": "обновляется документация и выполняется релиз `4.7.2`",
+      "behavior": "добавить `skills/hermes/references/xray-protocol.md` (+0 B на `fleet-protocol.md` кроме `4.7.1 → 4.7.2`), обновить `known-boundaries.md`, `TROUBLESHOOTING.md`, `docs/troubleshooting.md`, `docs/backlog.md`, оба `README`, верх `CHANGELOG.md` и все 7 целей версии без изменения `.github/workflows/ci.yml` и без A2A в Roadmap",
+      "verification": "`hooks/consistency.test.mjs`, замер LF/CRLF `fleet-protocol.md`, живой smoke, релизный коммит+тег `v4.7.2` и отдельный `logs`-коммит с `grade-report.json` и `grade-ledger.jsonl`."
+    },
+    {
+      "reqId": "REQ-4.2",
+      "condition": "открывается окно Рентгена `ask_question` до Step 0 или после правок кода",
+      "behavior": "исключать `isXrayWindowAskArgs` в `clean-edits-guard.mjs` (Step 0 и Post-Edit Token Economy) и в `qa-gate.mjs` (Post-Edit Token Economy), чтобы окно Рентгена никогда не угоняло эти гейты",
+      "verification": "регрессионный тест в `hooks/clean-edits-guard.test.mjs` и `hooks/qa-gate.test.mjs`."
+    },
+    {
+      "reqId": "REQ-7.2",
+      "condition": "делается `git add logs/` для выгрузки чёрного ящика",
+      "behavior": "учитывать правило `!logs//*.log` в `.gitignore`, чтобы `npm-test.log`, `verify.log` и `install.log` добавлялись без ручного `-f`",
+      "verification": "проверка `.gitignore` и реальный экспорт в `logs/4.7.2/`."
+    }
+  ]
+}

@@ -1,0 +1,6518 @@
+{
+  "taskHash": "9fe7459b736b9959",
+  "scanVersion": "4.7.2",
+  "adapters": [
+    "js-es5",
+    "html-css",
+    "generic"
+  ],
+  "unsupportedStacks": [
+    "csharp-xaml"
+  ],
+  "findings": [
+    {
+      "id": "5d2968a24b4e4854",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 133,
+      "symbol": "catch@133",
+      "evidence": "hooks/clean-edits-guard.mjs:133",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "81723cf03dfb935f",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 137,
+      "symbol": "catch@137",
+      "evidence": "hooks/clean-edits-guard.mjs:137",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "76310cb0cd8f9fdb",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 154,
+      "symbol": "catch@154",
+      "evidence": "hooks/clean-edits-guard.mjs:154",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "318de915c9d039b0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 225,
+      "symbol": "catch@225",
+      "evidence": "hooks/clean-edits-guard.mjs:225",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4c901f2cd31a8f1d",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 238,
+      "symbol": "catch@238",
+      "evidence": "hooks/clean-edits-guard.mjs:238",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4606212a6882f2c5",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 247,
+      "symbol": "catch@247",
+      "evidence": "hooks/clean-edits-guard.mjs:247",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9a9943451db1e5fc",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 801,
+      "symbol": "catch@801",
+      "evidence": "hooks/clean-edits-guard.mjs:801",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3c16d6363a762a4a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 843,
+      "symbol": "catch@843",
+      "evidence": "hooks/clean-edits-guard.mjs:843",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "04cf103efc3195fa",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1007,
+      "symbol": "catch@1007",
+      "evidence": "hooks/clean-edits-guard.mjs:1007",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "609caa6371720afd",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1068,
+      "symbol": "catch@1068",
+      "evidence": "hooks/clean-edits-guard.mjs:1068",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ab091a2ccf115ce0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1079,
+      "symbol": "catch@1079",
+      "evidence": "hooks/clean-edits-guard.mjs:1079",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d32a5062bf3ed5d9",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1342,
+      "symbol": "catch@1342",
+      "evidence": "hooks/clean-edits-guard.mjs:1342",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a959e8a27a9e7f28",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1476,
+      "symbol": "catch@1476",
+      "evidence": "hooks/clean-edits-guard.mjs:1476",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "5606ceb8585144c7",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2052,
+      "symbol": "catch@2052",
+      "evidence": "hooks/clean-edits-guard.mjs:2052",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bfa10276b6eb06b9",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2171,
+      "symbol": "catch@2171",
+      "evidence": "hooks/clean-edits-guard.mjs:2171",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "306a457ccfaa4359",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2325,
+      "symbol": "catch@2325",
+      "evidence": "hooks/clean-edits-guard.mjs:2325",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "409e64ea4ca78190",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2358,
+      "symbol": "catch@2358",
+      "evidence": "hooks/clean-edits-guard.mjs:2358",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "181fdf31c1e3618a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2454,
+      "symbol": "catch@2454",
+      "evidence": "hooks/clean-edits-guard.mjs:2454",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "adc32d938582c535",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2469,
+      "symbol": "catch@2469",
+      "evidence": "hooks/clean-edits-guard.mjs:2469",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "da4f6a9caa03e6e5",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2606,
+      "symbol": "catch@2606",
+      "evidence": "hooks/clean-edits-guard.mjs:2606",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f3cb965f4035cb2a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2647,
+      "symbol": "catch@2647",
+      "evidence": "hooks/clean-edits-guard.mjs:2647",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e8f2df69b8ad675e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2692,
+      "symbol": "catch@2692",
+      "evidence": "hooks/clean-edits-guard.mjs:2692",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "49c9c801580b5bc6",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2855,
+      "symbol": "catch@2855",
+      "evidence": "hooks/clean-edits-guard.mjs:2855",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "103311fe762a8228",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2922,
+      "symbol": "catch@2922",
+      "evidence": "hooks/clean-edits-guard.mjs:2922",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "cee0e6b40da74950",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/consent-validator.mjs",
+      "line": 76,
+      "symbol": "catch@76",
+      "evidence": "hooks/consent-validator.mjs:76",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "82c3db74b644bf59",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/consent-validator.mjs",
+      "line": 77,
+      "symbol": "catch@77",
+      "evidence": "hooks/consent-validator.mjs:77",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "322f4451ea1dd465",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 95,
+      "symbol": "catch@95",
+      "evidence": "hooks/context-injector.mjs:95",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "500cecfee4482a70",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 107,
+      "symbol": "catch@107",
+      "evidence": "hooks/context-injector.mjs:107",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1494831db95c244e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 151,
+      "symbol": "catch@151",
+      "evidence": "hooks/context-injector.mjs:151",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "91f79180a771e598",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 182,
+      "symbol": "catch@182",
+      "evidence": "hooks/context-injector.mjs:182",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "24a23c3f63d2d6b0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 236,
+      "symbol": "catch@236",
+      "evidence": "hooks/context-injector.mjs:236",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "dd343bc5cb7b451b",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/context-injector.mjs",
+      "line": 267,
+      "symbol": "catch@267",
+      "evidence": "hooks/context-injector.mjs:267",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "88f681ba2dd2e5b0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 170,
+      "symbol": "catch@170",
+      "evidence": "hooks/council-learning.mjs:170",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "0ca458f4f64f47d0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 194,
+      "symbol": "catch@194",
+      "evidence": "hooks/council-learning.mjs:194",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6e459fde5f7e3bce",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 218,
+      "symbol": "catch@218",
+      "evidence": "hooks/council-learning.mjs:218",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ac509ac460bf1ef7",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 498,
+      "symbol": "catch@498",
+      "evidence": "hooks/council-learning.mjs:498",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a962401c494bd142",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 500,
+      "symbol": "catch@500",
+      "evidence": "hooks/council-learning.mjs:500",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "af4edfdb981d1cb3",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 560,
+      "symbol": "catch@560",
+      "evidence": "hooks/council-learning.mjs:560",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f92301e60c01f577",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 573,
+      "symbol": "catch@573",
+      "evidence": "hooks/council-learning.mjs:573",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "57607eeb6afc8ae1",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 591,
+      "symbol": "catch@591",
+      "evidence": "hooks/council-learning.mjs:591",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bbcf04ae6276407a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 640,
+      "symbol": "catch@640",
+      "evidence": "hooks/council-learning.mjs:640",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "7677ed951b8a974f",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/council-learning.mjs",
+      "line": 691,
+      "symbol": "catch@691",
+      "evidence": "hooks/council-learning.mjs:691",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1f4c62965fa0fd40",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/grade-gate.mjs",
+      "line": 89,
+      "symbol": "catch@89",
+      "evidence": "hooks/grade-gate.mjs:89",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b0dcf48ed323deca",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/hermes-trigger.mjs",
+      "line": 88,
+      "symbol": "catch@88",
+      "evidence": "hooks/hermes-trigger.mjs:88",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c0f1e105cf436ee4",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/lessons-ledger.mjs",
+      "line": 121,
+      "symbol": "catch@121",
+      "evidence": "hooks/lessons-ledger.mjs:121",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "7da93420a9518973",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/lessons-ledger.mjs",
+      "line": 123,
+      "symbol": "catch@123",
+      "evidence": "hooks/lessons-ledger.mjs:123",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "696b27a10354666c",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/lessons-ledger.mjs",
+      "line": 159,
+      "symbol": "catch@159",
+      "evidence": "hooks/lessons-ledger.mjs:159",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c66b42c68496f6f5",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/lessons-ledger.mjs",
+      "line": 165,
+      "symbol": "catch@165",
+      "evidence": "hooks/lessons-ledger.mjs:165",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "00c6d2fe50338156",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/plan-gate.mjs",
+      "line": 452,
+      "symbol": "catch@452",
+      "evidence": "hooks/plan-gate.mjs:452",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "17f90d3e73abe22f",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 126,
+      "symbol": "catch@126",
+      "evidence": "hooks/qa-gate.mjs:126",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c891287f0e772970",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 130,
+      "symbol": "catch@130",
+      "evidence": "hooks/qa-gate.mjs:130",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6305dfa8ceb4b808",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 142,
+      "symbol": "catch@142",
+      "evidence": "hooks/qa-gate.mjs:142",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8603a80f8e4fb574",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 210,
+      "symbol": "catch@210",
+      "evidence": "hooks/qa-gate.mjs:210",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c454414e4fe21df0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 234,
+      "symbol": "catch@234",
+      "evidence": "hooks/qa-gate.mjs:234",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bfc4549c7eb5a84b",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 539,
+      "symbol": "catch@539",
+      "evidence": "hooks/qa-gate.mjs:539",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "260c9941e197f167",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 729,
+      "symbol": "catch@729",
+      "evidence": "hooks/qa-gate.mjs:729",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "959a70315e373791",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 733,
+      "symbol": "catch@733",
+      "evidence": "hooks/qa-gate.mjs:733",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "7f8ca17b6a4deef7",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 743,
+      "symbol": "catch@743",
+      "evidence": "hooks/qa-gate.mjs:743",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "334d0854a70d60e5",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 1035,
+      "symbol": "catch@1035",
+      "evidence": "hooks/qa-gate.mjs:1035",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1f6c23d9f9a8a503",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 1075,
+      "symbol": "catch@1075",
+      "evidence": "hooks/qa-gate.mjs:1075",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "184ff82622b92e77",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 1079,
+      "symbol": "catch@1079",
+      "evidence": "hooks/qa-gate.mjs:1079",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6c2bc47b367efc39",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-gate.mjs",
+      "line": 1086,
+      "symbol": "catch@1086",
+      "evidence": "hooks/qa-gate.mjs:1086",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "5533d15cfc8ab66c",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 38,
+      "symbol": "catch@38",
+      "evidence": "hooks/qa-runner.mjs:38",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d670bdfabaded84a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 111,
+      "symbol": "catch@111",
+      "evidence": "hooks/qa-runner.mjs:111",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "22616cfb6860074e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 121,
+      "symbol": "catch@121",
+      "evidence": "hooks/qa-runner.mjs:121",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8dd401daa470784e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 141,
+      "symbol": "catch@141",
+      "evidence": "hooks/qa-runner.mjs:141",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "0e7623c68fce295e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 204,
+      "symbol": "catch@204",
+      "evidence": "hooks/qa-runner.mjs:204",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f0804c2e328a5f93",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 241,
+      "symbol": "catch@241",
+      "evidence": "hooks/qa-runner.mjs:241",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c950aa7d99a5611a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 252,
+      "symbol": "catch@252",
+      "evidence": "hooks/qa-runner.mjs:252",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "85ac1adfc268642e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 293,
+      "symbol": "catch@293",
+      "evidence": "hooks/qa-runner.mjs:293",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ce76b67df007fa4a",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 309,
+      "symbol": "catch@309",
+      "evidence": "hooks/qa-runner.mjs:309",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "5a2c00434d3e2c25",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 382,
+      "symbol": "catch@382",
+      "evidence": "hooks/qa-runner.mjs:382",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "978ade8d395cb3c7",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 470,
+      "symbol": "catch@470",
+      "evidence": "hooks/qa-runner.mjs:470",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "140b6e1f6ce05177",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/qa-runner.mjs",
+      "line": 663,
+      "symbol": "catch@663",
+      "evidence": "hooks/qa-runner.mjs:663",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d95646f042b67f70",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/rule-engine.mjs",
+      "line": 102,
+      "symbol": "catch@102",
+      "evidence": "hooks/rule-engine.mjs:102",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9c9e3bfd34d967a0",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/rule-engine.mjs",
+      "line": 106,
+      "symbol": "catch@106",
+      "evidence": "hooks/rule-engine.mjs:106",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "20f1c13120c8f5c7",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 41,
+      "symbol": "catch@41",
+      "evidence": "hooks/session-report.mjs:41",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "48337ce268648a6b",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 43,
+      "symbol": "catch@43",
+      "evidence": "hooks/session-report.mjs:43",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "710bbc8e8955f855",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 57,
+      "symbol": "catch@57",
+      "evidence": "hooks/session-report.mjs:57",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "22d3809f1e9223b6",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 59,
+      "symbol": "catch@59",
+      "evidence": "hooks/session-report.mjs:59",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a7878068c67e89de",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 70,
+      "symbol": "catch@70",
+      "evidence": "hooks/session-report.mjs:70",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "2767657ac664e4e4",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 81,
+      "symbol": "catch@81",
+      "evidence": "hooks/session-report.mjs:81",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "131a4d21c0032837",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 90,
+      "symbol": "catch@90",
+      "evidence": "hooks/session-report.mjs:90",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "97569a0fd25f896e",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 107,
+      "symbol": "catch@107",
+      "evidence": "hooks/session-report.mjs:107",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c3920a062e48e90d",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 120,
+      "symbol": "catch@120",
+      "evidence": "hooks/session-report.mjs:120",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6ae9d8963a028f5c",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 152,
+      "symbol": "catch@152",
+      "evidence": "hooks/session-report.mjs:152",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fbb248f6d4b887a1",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/session-report.mjs",
+      "line": 154,
+      "symbol": "catch@154",
+      "evidence": "hooks/session-report.mjs:154",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9d2e82f9533e20d9",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "hooks/team-stop.mjs",
+      "line": 76,
+      "symbol": "catch@76",
+      "evidence": "hooks/team-stop.mjs:76",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "12cde917b2d96fcf",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "scripts/xray-scan.mjs",
+      "line": 235,
+      "symbol": "catch@235",
+      "evidence": "scripts/xray-scan.mjs:235",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "7ed37ce32180a796",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "scripts/xray-scan.mjs",
+      "line": 813,
+      "symbol": "catch@813",
+      "evidence": "scripts/xray-scan.mjs:813",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "92a2728060ab3f86",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "skills/hermes/scripts/journal.mjs",
+      "line": 30,
+      "symbol": "catch@30",
+      "evidence": "skills/hermes/scripts/journal.mjs:30",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f7dbe6d82b4a7af3",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "skills/hermes/scripts/journal.mjs",
+      "line": 101,
+      "symbol": "catch@101",
+      "evidence": "skills/hermes/scripts/journal.mjs:101",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "589496cdc93afe4c",
+      "rule": "stub.empty_catch",
+      "class": "fact",
+      "category": "stub",
+      "path": "skills/hermes/scripts/monitor.mjs",
+      "line": 192,
+      "symbol": "catch@192",
+      "evidence": "skills/hermes/scripts/monitor.mjs:192",
+      "impact": "brick_risk",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "00496bcb4ac4ea25",
+      "rule": "fragile.unstopped_timer",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/hermes/scripts/monitor.mjs",
+      "line": 194,
+      "symbol": "setInterval@194",
+      "evidence": "skills/hermes/scripts/monitor.mjs:194",
+      "impact": "resource_waste",
+      "refs": {
+        "count": 0,
+        "checkedScopes": [
+          "code"
+        ],
+        "sample": [],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f2cc2e53160e7c4f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 127,
+      "symbol": "gate-log.jsonl",
+      "evidence": "hooks/clean-edits-guard.mjs:127",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:127",
+          "hooks/qa-gate.mjs:120",
+          "hooks/session-report.mjs:24",
+          "scripts/export-logs.mjs:83",
+          "scripts/export-logs.mjs:83"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e696435cea37f5e8",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 140,
+      "symbol": "clean-edits-guard",
+      "evidence": "hooks/clean-edits-guard.mjs:140",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:140",
+          "hooks/test-runner.mjs:16",
+          "scripts/xray-scan.mjs:776"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "af0997c7e717c85e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 148,
+      "symbol": "gen_ai.operation.name",
+      "evidence": "hooks/clean-edits-guard.mjs:148",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:148",
+          "skills/hermes/scripts/journal.mjs:45",
+          "skills/hermes/scripts/journal.mjs:45"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8e5f69ad65234bdb",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 149,
+      "symbol": "gen_ai.tool.name",
+      "evidence": "hooks/clean-edits-guard.mjs:149",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:149",
+          "skills/hermes/scripts/journal.mjs:46",
+          "skills/hermes/scripts/journal.mjs:46"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8e29ed5da1fdda19",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 150,
+      "symbol": "gen_ai.usage.input_tokens",
+      "evidence": "hooks/clean-edits-guard.mjs:150",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:150",
+          "hooks/session-report.mjs:144",
+          "skills/hermes/scripts/journal.mjs:47",
+          "skills/hermes/scripts/journal.mjs:47"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a87365c56c93b749",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 151,
+      "symbol": "gen_ai.usage.output_tokens",
+      "evidence": "hooks/clean-edits-guard.mjs:151",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:151",
+          "hooks/session-report.mjs:145",
+          "skills/hermes/scripts/journal.mjs:48",
+          "skills/hermes/scripts/journal.mjs:48"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "463ad8ca983d83c7",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 163,
+      "symbol": "councilGate",
+      "evidence": "hooks/clean-edits-guard.mjs:163",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:163",
+          "hooks/clean-edits-guard.mjs:1200",
+          "hooks/clean-edits-guard.mjs:1203",
+          "scripts/export-logs.mjs:49"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "88cac1d4cb66a3b2",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 184,
+      "symbol": "plan-state.json",
+      "evidence": "hooks/clean-edits-guard.mjs:184",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:184",
+          "hooks/clean-edits-guard.mjs:2257",
+          "hooks/clean-edits-guard.mjs:2277",
+          "hooks/clean-edits-guard.mjs:2461",
+          "hooks/clean-edits-guard.mjs:2638"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6bab51a594ac69dd",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 188,
+      "symbol": "council-state.json",
+      "evidence": "hooks/clean-edits-guard.mjs:188",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:188",
+          "hooks/clean-edits-guard.mjs:1057",
+          "hooks/clean-edits-guard.mjs:1228",
+          "hooks/grade-gate.mjs:271",
+          "scripts/export-logs.mjs:84"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d34b1414aca5c57b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 262,
+      "symbol": "ask_question",
+      "evidence": "hooks/clean-edits-guard.mjs:262",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:262",
+          "hooks/clean-edits-guard.mjs:268",
+          "hooks/clean-edits-guard.mjs:274",
+          "hooks/clean-edits-guard.mjs:1381",
+          "hooks/clean-edits-guard.mjs:2836"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3cbe4eee8c62d444",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 350,
+      "symbol": "write_file",
+      "evidence": "hooks/clean-edits-guard.mjs:350",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:350",
+          "hooks/clean-edits-guard.mjs:1010",
+          "hooks/clean-edits-guard.mjs:2444",
+          "hooks/qa-gate.mjs:50"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "93282b1566545f61",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 351,
+      "symbol": "write_to_file",
+      "evidence": "hooks/clean-edits-guard.mjs:351",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:351",
+          "hooks/clean-edits-guard.mjs:1010",
+          "hooks/clean-edits-guard.mjs:2444",
+          "hooks/clean-edits-guard.mjs:2444",
+          "hooks/qa-gate.mjs:51"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "751aed780310a3e2",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 352,
+      "symbol": "edit_file",
+      "evidence": "hooks/clean-edits-guard.mjs:352",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:352",
+          "hooks/clean-edits-guard.mjs:1013",
+          "hooks/clean-edits-guard.mjs:2425",
+          "hooks/qa-gate.mjs:52"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fba602dc6b17d9b4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 353,
+      "symbol": "replace_file_content",
+      "evidence": "hooks/clean-edits-guard.mjs:353",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:353",
+          "hooks/clean-edits-guard.mjs:1015",
+          "hooks/clean-edits-guard.mjs:2429",
+          "hooks/qa-gate.mjs:53"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "da72d5f6000a6073",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 354,
+      "symbol": "multi_replace_file_content",
+      "evidence": "hooks/clean-edits-guard.mjs:354",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:354",
+          "hooks/clean-edits-guard.mjs:1017",
+          "hooks/clean-edits-guard.mjs:2433",
+          "hooks/qa-gate.mjs:54"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1d0f5678eb845c52",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 378,
+      "symbol": "tamper_protected",
+      "evidence": "hooks/clean-edits-guard.mjs:378",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:378",
+          "hooks/clean-edits-guard.mjs:2387",
+          "hooks/clean-edits-guard.mjs:2667",
+          "hooks/team-stop.mjs:15"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1b7fd60abba00d29",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 450,
+      "symbol": ").replace(/\\\\/g,",
+      "evidence": "hooks/clean-edits-guard.mjs:450",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:450",
+          "hooks/clean-edits-guard.mjs:996",
+          "hooks/grade-gate.mjs:70"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "98ea32df69558d1a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 492,
+      "symbol": "v1-legacy",
+      "evidence": "hooks/clean-edits-guard.mjs:492",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:492",
+          "hooks/clean-edits-guard.mjs:499",
+          "hooks/clean-edits-guard.mjs:504"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "30427a4eadb39ed8",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 586,
+      "symbol": "run_command",
+      "evidence": "hooks/clean-edits-guard.mjs:586",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:586",
+          "hooks/clean-edits-guard.mjs:611",
+          "hooks/clean-edits-guard.mjs:615",
+          "hooks/clean-edits-guard.mjs:620",
+          "hooks/clean-edits-guard.mjs:2610"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e313e1a7ab83bbf9",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 649,
+      "symbol": "progress-journal.jsonl",
+      "evidence": "hooks/clean-edits-guard.mjs:649",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:649",
+          "scripts/export-logs.mjs:87",
+          "scripts/export-logs.mjs:87"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f1d4493c9ede9cd7",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 687,
+      "symbol": "test-summary.json",
+      "evidence": "hooks/clean-edits-guard.mjs:687",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:687",
+          "hooks/council-learning.mjs:148",
+          "hooks/session-report.mjs:86",
+          "hooks/test-runner.mjs:33",
+          "scripts/export-logs.mjs:82"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bf6092ba472c2c94",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 692,
+      "symbol": "COMPLETED",
+      "evidence": "hooks/clean-edits-guard.mjs:692",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:692",
+          "hooks/council-learning.mjs:155",
+          "skills/hermes/scripts/journal.mjs:93"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3733abd5a4108b5c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 706,
+      "symbol": "qa-verdict.json",
+      "evidence": "hooks/clean-edits-guard.mjs:706",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:706",
+          "hooks/council-learning.mjs:174",
+          "hooks/qa-gate.mjs:751",
+          "hooks/qa-runner.mjs:699",
+          "hooks/session-report.mjs:95"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d3a9e4ba90908ad1",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 723,
+      "symbol": "security-verdict.json",
+      "evidence": "hooks/clean-edits-guard.mjs:723",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:723",
+          "hooks/council-learning.mjs:198",
+          "hooks/qa-gate.mjs:951",
+          "scripts/export-logs.mjs:90",
+          "scripts/export-logs.mjs:90"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1e3722e4cbef2f6c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 748,
+      "symbol": "pre-implementation",
+      "evidence": "hooks/clean-edits-guard.mjs:748",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:748",
+          "hooks/clean-edits-guard.mjs:752",
+          "hooks/clean-edits-guard.mjs:785",
+          "hooks/clean-edits-guard.mjs:797"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fcdbc59ce3394f2b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 813,
+      "symbol": "council-cost.jsonl",
+      "evidence": "hooks/clean-edits-guard.mjs:813",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:813",
+          "scripts/export-logs.mjs:86",
+          "scripts/export-logs.mjs:86"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "0591fa8d8c2e4b49",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 839,
+      "symbol": "unavailable",
+      "evidence": "hooks/clean-edits-guard.mjs:839",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:839",
+          "hooks/qa-runner.mjs:490",
+          "hooks/qa-runner.mjs:520",
+          "hooks/qa-runner.mjs:539",
+          "hooks/qa-runner.mjs:592"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "304142c3c4c4c871",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 890,
+      "symbol": "conversationId",
+      "evidence": "hooks/clean-edits-guard.mjs:890",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:890",
+          "hooks/clean-edits-guard.mjs:891",
+          "hooks/clean-edits-guard.mjs:914",
+          "hooks/clean-edits-guard.mjs:1576",
+          "hooks/clean-edits-guard.mjs:1577"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "394151d3ef0227b5",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 890,
+      "symbol": "([0-9a-f-]{36})",
+      "evidence": "hooks/clean-edits-guard.mjs:890",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:890",
+          "hooks/clean-edits-guard.mjs:891",
+          "hooks/clean-edits-guard.mjs:914",
+          "hooks/clean-edits-guard.mjs:1576",
+          "hooks/clean-edits-guard.mjs:1577"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e727de861bac1dd4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 902,
+      "symbol": "stanislav",
+      "evidence": "hooks/clean-edits-guard.mjs:902",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:902",
+          "hooks/clean-edits-guard.mjs:1558",
+          "hooks/hermes-trigger.mjs:11",
+          "hooks/qa-gate.mjs:387",
+          "hooks/qa-gate.mjs:406"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bc03ed03bbc8c698",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 922,
+      "symbol": ").toLowerCase() ===",
+      "evidence": "hooks/clean-edits-guard.mjs:922",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:922",
+          "hooks/clean-edits-guard.mjs:962",
+          "hooks/clean-edits-guard.mjs:1249",
+          "hooks/clean-edits-guard.mjs:1264",
+          "hooks/clean-edits-guard.mjs:1413"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a010f626e9aa8653",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 938,
+      "symbol": ").toUpperCase() ===",
+      "evidence": "hooks/clean-edits-guard.mjs:938",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:938",
+          "hooks/clean-edits-guard.mjs:1653",
+          "hooks/consent-validator.mjs:325",
+          "hooks/qa-gate.mjs:479",
+          "hooks/subagent-binding.mjs:186"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "89fdd24a46428d15",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 973,
+      "symbol": "SYSTEM_MESSAGE",
+      "evidence": "hooks/clean-edits-guard.mjs:973",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:973",
+          "hooks/clean-edits-guard.mjs:1742",
+          "hooks/clean-edits-guard.mjs:2906",
+          "hooks/qa-gate.mjs:398",
+          "hooks/subagent-binding.mjs:36"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c951de50cacaf686",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1001,
+      "symbol": "council-criteria.json",
+      "evidence": "hooks/clean-edits-guard.mjs:1001",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1001",
+          "hooks/clean-edits-guard.mjs:1059",
+          "hooks/clean-edits-guard.mjs:1918",
+          "hooks/council-learning.mjs:652"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "619ce3d57525df0d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1052,
+      "symbol": "define_subagent",
+      "evidence": "hooks/clean-edits-guard.mjs:1052",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1052",
+          "hooks/clean-edits-guard.mjs:2200",
+          "hooks/plan-gate.mjs:515",
+          "hooks/subagent-binding.mjs:152",
+          "hooks/team-stop.mjs:112"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d6d977056dbfd022",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1084,
+      "symbol": "send_message",
+      "evidence": "hooks/clean-edits-guard.mjs:1084",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1084",
+          "hooks/clean-edits-guard.mjs:1714",
+          "hooks/clean-edits-guard.mjs:2896",
+          "hooks/subagent-binding.mjs:169"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ce0dd68af074aabd",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1238,
+      "symbol": "APPROVED",
+      "evidence": "hooks/clean-edits-guard.mjs:1238",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1238",
+          "hooks/clean-edits-guard.mjs:1332",
+          "hooks/clean-edits-guard.mjs:1362",
+          "hooks/clean-edits-guard.mjs:1465",
+          "hooks/clean-edits-guard.mjs:2037"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "cbb87759d62cd6bb",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1281,
+      "symbol": "(?<![а-яёa-z0-9_-])",
+      "evidence": "hooks/clean-edits-guard.mjs:1281",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1281",
+          "hooks/clean-edits-guard.mjs:1980",
+          "hooks/consent-validator.mjs:10"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e4d4818f52a1f4d1",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1282,
+      "symbol": "(?![а-яёa-z0-9_-])",
+      "evidence": "hooks/clean-edits-guard.mjs:1282",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1282",
+          "hooks/clean-edits-guard.mjs:1981",
+          "hooks/consent-validator.mjs:11"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "499e6c657e65b8ca",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1515,
+      "symbol": "roundtable",
+      "evidence": "hooks/clean-edits-guard.mjs:1515",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1515",
+          "hooks/clean-edits-guard.mjs:2027",
+          "hooks/clean-edits-guard.mjs:2029",
+          "hooks/clean-edits-guard.mjs:2044",
+          "hooks/clean-edits-guard.mjs:2144"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "317e511aae51a83e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 1697,
+      "symbol": "uncertain",
+      "evidence": "hooks/clean-edits-guard.mjs:1697",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:1697",
+          "hooks/council-learning.mjs:316",
+          "hooks/council-learning.mjs:334",
+          "hooks/council-learning.mjs:513",
+          "hooks/grade-gate.mjs:351"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "0acd54c55fa7e726",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2196,
+      "symbol": "invoke_subagent",
+      "evidence": "hooks/clean-edits-guard.mjs:2196",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2196",
+          "hooks/clean-edits-guard.mjs:2695",
+          "hooks/clean-edits-guard.mjs:2776",
+          "hooks/clean-edits-guard.mjs:2824",
+          "hooks/clean-edits-guard.mjs:2896"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fdaae84868fdc8c1",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2204,
+      "symbol": "lessons.jsonl",
+      "evidence": "hooks/clean-edits-guard.mjs:2204",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2204",
+          "hooks/lessons-ledger.mjs:96",
+          "hooks/lessons-ledger.mjs:187",
+          "scripts/export-logs.mjs:88",
+          "scripts/export-logs.mjs:88"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "62057a7f51be323c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2229,
+      "symbol": ").toLowerCase() !==",
+      "evidence": "hooks/clean-edits-guard.mjs:2229",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2229",
+          "hooks/clean-edits-guard.mjs:2803",
+          "hooks/grade-gate.mjs:217",
+          "hooks/plan-gate.mjs:479",
+          "hooks/team-stop.mjs:99"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b239e942b4a2fff9",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2246,
+      "symbol": "user_ask_question:xray",
+      "evidence": "hooks/clean-edits-guard.mjs:2246",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2246",
+          "hooks/clean-edits-guard.mjs:2253",
+          "hooks/clean-edits-guard.mjs:2268",
+          "hooks/xray-ledger.mjs:222"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4b11155f1c62cd24",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2248,
+      "symbol": "accept_risk",
+      "evidence": "hooks/clean-edits-guard.mjs:2248",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2248",
+          "hooks/consent-validator.mjs:630",
+          "hooks/consent-validator.mjs:646"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "578ca6bf50a90d5b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2251,
+      "symbol": "accepted",
+      "evidence": "hooks/clean-edits-guard.mjs:2251",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2251",
+          "hooks/xray-ledger.mjs:7",
+          "hooks/xray-ledger.mjs:144",
+          "hooks/xray-ledger.mjs:144",
+          "hooks/xray-ledger.mjs:214"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1c71f45900697e34",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2260,
+      "symbol": "confirmed",
+      "evidence": "hooks/clean-edits-guard.mjs:2260",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 9,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2260",
+          "hooks/clean-edits-guard.mjs:2278",
+          "hooks/clean-edits-guard.mjs:2464",
+          "hooks/clean-edits-guard.mjs:2641",
+          "hooks/grade-gate.mjs:274"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a7b2e64554378c9a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2316,
+      "symbol": "config.json",
+      "evidence": "hooks/clean-edits-guard.mjs:2316",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2316",
+          "hooks/consent-validator.mjs:140",
+          "hooks/qa-runner.mjs:29"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "cfa01ef62380601d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2405,
+      "symbol": "${portableExportScript}",
+      "evidence": "hooks/clean-edits-guard.mjs:2405",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2405",
+          "hooks/clean-edits-guard.mjs:2405",
+          "hooks/clean-edits-guard.mjs:2624",
+          "hooks/clean-edits-guard.mjs:2624"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d9c0582ccb85beab",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2482,
+      "symbol": "xray_delete_without_zero_ref_proof_deny",
+      "evidence": "hooks/clean-edits-guard.mjs:2482",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2482",
+          "hooks/clean-edits-guard.mjs:2659",
+          "hooks/xray-ledger.mjs:452",
+          "hooks/xray-ledger.mjs:487",
+          "hooks/xray-ledger.mjs:506"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "af8e371378e6c114",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2492,
+      "symbol": "rule8_clean_edits",
+      "evidence": "hooks/clean-edits-guard.mjs:2492",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2492",
+          "hooks/clean-edits-guard.mjs:2616",
+          "hooks/clean-edits-guard.mjs:2667"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f2efe561552d08ee",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2709,
+      "symbol": "flash_lite",
+      "evidence": "hooks/clean-edits-guard.mjs:2709",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2709",
+          "hooks/clean-edits-guard.mjs:2712",
+          "hooks/clean-edits-guard.mjs:2712",
+          "hooks/clean-edits-guard.mjs:2739",
+          "hooks/clean-edits-guard.mjs:2741"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "5f54efcfcabfafa9",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/clean-edits-guard.mjs",
+      "line": 2938,
+      "symbol": "plan_ask_mirror_invalid",
+      "evidence": "hooks/clean-edits-guard.mjs:2938",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/clean-edits-guard.mjs:2938",
+          "hooks/clean-edits-guard.mjs:2945",
+          "hooks/plan-gate.mjs:773",
+          "hooks/plan-gate.mjs:780"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "915398442210f1e1",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 103,
+      "symbol": "invalid JSON",
+      "evidence": "hooks/consent-validator.mjs:103",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:103",
+          "hooks/consent-validator.mjs:129",
+          "hooks/consent-validator.mjs:157",
+          "scripts/eval-record.mjs:43"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3254913a24eeb049",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 317,
+      "symbol": "PLANNER_RESPONSE",
+      "evidence": "hooks/consent-validator.mjs:317",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:317",
+          "hooks/subagent-binding.mjs:88",
+          "hooks/subagent-binding.mjs:136"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "2bb3c75683569150",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 322,
+      "symbol": "TOOL_OUTPUT",
+      "evidence": "hooks/consent-validator.mjs:322",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:322",
+          "hooks/qa-gate.mjs:472",
+          "hooks/subagent-binding.mjs:140"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3c62b6e752036a4e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 322,
+      "symbol": "TOOL_RESULT",
+      "evidence": "hooks/consent-validator.mjs:322",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:322",
+          "hooks/qa-gate.mjs:472",
+          "hooks/subagent-binding.mjs:140"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "74c0bc612878661a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 323,
+      "symbol": "USER_EXPLICIT",
+      "evidence": "hooks/consent-validator.mjs:323",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:323",
+          "hooks/hermes-trigger.mjs:58",
+          "hooks/qa-gate.mjs:255",
+          "hooks/qa-gate.mjs:475"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e708f627f764f8b6",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 422,
+      "symbol": ").replace(/^\\.?\\//,",
+      "evidence": "hooks/consent-validator.mjs:422",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:422",
+          "hooks/qa-runner.mjs:152",
+          "hooks/qa-runner.mjs:154",
+          "hooks/qa-runner.mjs:169",
+          "hooks/workspace.mjs:90"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "613f7702150c6efa",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 451,
+      "symbol": "unconfirmed",
+      "evidence": "hooks/consent-validator.mjs:451",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:451",
+          "hooks/consent-validator.mjs:455",
+          "hooks/consent-validator.mjs:467",
+          "hooks/consent-validator.mjs:504",
+          "hooks/consent-validator.mjs:508"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d3bdc839ef8373d7",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 451,
+      "symbol": ", reason:",
+      "evidence": "hooks/consent-validator.mjs:451",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:451",
+          "hooks/consent-validator.mjs:455",
+          "hooks/consent-validator.mjs:504",
+          "hooks/consent-validator.mjs:508",
+          "hooks/consent-validator.mjs:608"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6fdf6ac69642cbf7",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 462,
+      "symbol": "${selectedOptionText} ${strippedAnswer}",
+      "evidence": "hooks/consent-validator.mjs:462",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:462",
+          "hooks/consent-validator.mjs:515",
+          "hooks/consent-validator.mjs:624"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "dc1c975381ac04d4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 517,
+      "symbol": "accept_as_is",
+      "evidence": "hooks/consent-validator.mjs:517",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:517",
+          "hooks/grade-gate.mjs:547",
+          "hooks/grade-gate.mjs:555",
+          "hooks/grade-gate.mjs:564"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c0458c88564385b3",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/consent-validator.mjs",
+      "line": 520,
+      "symbol": "stop_task",
+      "evidence": "hooks/consent-validator.mjs:520",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/consent-validator.mjs:520",
+          "hooks/grade-gate.mjs:566",
+          "hooks/grade-gate.mjs:573",
+          "hooks/grade-gate.mjs:582"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a3ef3f6187b4c068",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/context-injector.mjs",
+      "line": 164,
+      "symbol": "SKILL.md",
+      "evidence": "hooks/context-injector.mjs:164",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/context-injector.mjs:164",
+          "hooks/context-injector.mjs:262",
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:90",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:66",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:90"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d9fb14701b806b7f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/context-injector.mjs",
+      "line": 208,
+      "symbol": "references",
+      "evidence": "hooks/context-injector.mjs:208",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/context-injector.mjs:208",
+          "hooks/qa-gate.mjs:761",
+          "hooks/qa-gate.mjs:762",
+          "hooks/qa-runner.mjs:746",
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:29"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "66c298ab2c0b1d43",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 19,
+      "symbol": "database",
+      "evidence": "hooks/council-learning.mjs:19",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:19",
+          "hooks/council-learning.mjs:38",
+          "hooks/council-learning.mjs:53"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "db6d47f8a8cfe3b8",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 21,
+      "symbol": "protocol",
+      "evidence": "hooks/council-learning.mjs:21",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:21",
+          "hooks/council-learning.mjs:44",
+          "hooks/council-learning.mjs:57"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6b357dd35a22432e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 23,
+      "symbol": "frontend",
+      "evidence": "hooks/council-learning.mjs:23",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:23",
+          "hooks/council-learning.mjs:37",
+          "hooks/council-learning.mjs:55"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e7f3ccc72514832e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 26,
+      "symbol": "architecture",
+      "evidence": "hooks/council-learning.mjs:26",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:26",
+          "hooks/council-learning.mjs:40",
+          "hooks/council-learning.mjs:60"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "2d3221abacd94987",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 239,
+      "symbol": "lead_declared",
+      "evidence": "hooks/council-learning.mjs:239",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:239",
+          "hooks/council-learning.mjs:288",
+          "hooks/council-learning.mjs:344",
+          "hooks/council-learning.mjs:356",
+          "hooks/council-learning.mjs:518"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a2256d94de1f11df",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 242,
+      "symbol": "decisions.md",
+      "evidence": "hooks/council-learning.mjs:242",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:242",
+          "hooks/council-learning.mjs:631",
+          "hooks/council-learning.mjs:631",
+          "scripts/export-logs.mjs:102"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b75f119afd3b7b85",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 344,
+      "symbol": "team_fallback",
+      "evidence": "hooks/council-learning.mjs:344",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:344",
+          "hooks/council-learning.mjs:369",
+          "hooks/council-learning.mjs:537"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "acfcdafb4717bbed",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/council-learning.mjs",
+      "line": 478,
+      "symbol": "council-outcomes.jsonl",
+      "evidence": "hooks/council-learning.mjs:478",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/council-learning.mjs:478",
+          "scripts/export-logs.mjs:85",
+          "scripts/export-logs.mjs:85"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "55f597c632f5a942",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 18,
+      "symbol": "FULFILLED",
+      "evidence": "hooks/grade-gate.mjs:18",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:18",
+          "scripts/eval-record.mjs:22",
+          "scripts/eval-record.mjs:94"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "823f13854590b2a1",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 18,
+      "symbol": "NOT_FULFILLED",
+      "evidence": "hooks/grade-gate.mjs:18",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:18",
+          "hooks/grade-gate.mjs:182",
+          "hooks/grade-gate.mjs:600",
+          "hooks/grade-gate.mjs:615",
+          "scripts/eval-record.mjs:22"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9112ff9474a58770",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 55,
+      "symbol": "rubric.json",
+      "evidence": "hooks/grade-gate.mjs:55",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:55",
+          "hooks/grade-gate.mjs:267",
+          "scripts/export-logs.mjs:93",
+          "scripts/export-logs.mjs:93"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "126b2d519f75b8cd",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 93,
+      "symbol": "${relPath}",
+      "evidence": "hooks/grade-gate.mjs:93",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:93",
+          "hooks/grade-gate.mjs:100",
+          "hooks/grade-gate.mjs:105",
+          "hooks/grade-gate.mjs:112",
+          "hooks/grade-gate.mjs:115"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ebb7e2ceaa7b76db",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 184,
+      "symbol": "NEEDS_HUMAN",
+      "evidence": "hooks/grade-gate.mjs:184",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:184",
+          "hooks/grade-gate.mjs:542",
+          "hooks/grade-gate.mjs:598",
+          "scripts/eval-record.mjs:21",
+          "scripts/eval-record.mjs:89"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "53dc600f68fb2d79",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 192,
+      "symbol": "grade-ledger.jsonl",
+      "evidence": "hooks/grade-gate.mjs:192",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:192",
+          "hooks/grade-gate.mjs:269",
+          "scripts/export-logs.mjs:95",
+          "scripts/export-logs.mjs:95"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "28a99976816e761f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 202,
+      "symbol": "grade-report.json",
+      "evidence": "hooks/grade-gate.mjs:202",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:202",
+          "hooks/grade-gate.mjs:268",
+          "scripts/eval-record.mjs:49",
+          "scripts/export-logs.mjs:94",
+          "scripts/export-logs.mjs:94"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "752ffbf4f554a98d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 283,
+      "symbol": "grade_missing",
+      "evidence": "hooks/grade-gate.mjs:283",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:283",
+          "hooks/grade-gate.mjs:669",
+          "hooks/qa-gate.mjs:596",
+          "hooks/qa-gate.mjs:1039",
+          "hooks/qa-gate.mjs:1046"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4b390692f30fce92",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 291,
+      "symbol": "function",
+      "evidence": "hooks/grade-gate.mjs:291",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:291",
+          "hooks/grade-gate.mjs:617",
+          "hooks/grade-gate.mjs:647",
+          "hooks/team-stop.mjs:77",
+          "hooks/xray-ledger.mjs:502"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1c3ef35925469302",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 339,
+      "symbol": "grade_schema_invalid",
+      "evidence": "hooks/grade-gate.mjs:339",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:339",
+          "hooks/grade-gate.mjs:402",
+          "hooks/grade-gate.mjs:406",
+          "hooks/grade-gate.mjs:410"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b47dc2b1cb643b7e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 354,
+      "symbol": "${senderUuid}",
+      "evidence": "hooks/grade-gate.mjs:354",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:354",
+          "hooks/grade-gate.mjs:365",
+          "hooks/grade-gate.mjs:369"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "83c2bc7cca6ec189",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 361,
+      "symbol": "grade_conflict_of_interest",
+      "evidence": "hooks/grade-gate.mjs:361",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:361",
+          "hooks/grade-gate.mjs:365",
+          "hooks/grade-gate.mjs:369"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6372a0a607af04c8",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 455,
+      "symbol": "GRADE_RECORDED",
+      "evidence": "hooks/grade-gate.mjs:455",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:455",
+          "hooks/grade-gate.mjs:481",
+          "hooks/grade-gate.mjs:514"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "da47cbb448602e49",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 464,
+      "symbol": "mechanical",
+      "evidence": "hooks/grade-gate.mjs:464",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:464",
+          "hooks/grade-gate.mjs:522",
+          "hooks/lessons-ledger.mjs:88",
+          "hooks/lessons-ledger.mjs:113",
+          "hooks/lessons-ledger.mjs:132"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "3ec6f64be499c9ab",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/grade-gate.mjs",
+      "line": 557,
+      "symbol": "user_ask_question:grade_override",
+      "evidence": "hooks/grade-gate.mjs:557",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/grade-gate.mjs:557",
+          "hooks/grade-gate.mjs:562",
+          "hooks/grade-gate.mjs:575",
+          "hooks/grade-gate.mjs:580"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1f487362640c6364",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 410,
+      "symbol": "plan_unconfirmed",
+      "evidence": "hooks/plan-gate.mjs:410",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:410",
+          "hooks/plan-gate.mjs:416",
+          "hooks/plan-gate.mjs:443",
+          "hooks/plan-gate.mjs:739",
+          "hooks/plan-gate.mjs:746"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "61cc3ff8ac14745d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 421,
+      "symbol": "plan_negated_consent",
+      "evidence": "hooks/plan-gate.mjs:421",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:421",
+          "hooks/plan-gate.mjs:429",
+          "hooks/plan-gate.mjs:806",
+          "hooks/plan-gate.mjs:813"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "da2e0fc7081f90a3",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 434,
+      "symbol": "plan_revision_pending",
+      "evidence": "hooks/plan-gate.mjs:434",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:434",
+          "hooks/plan-gate.mjs:828",
+          "hooks/plan-gate.mjs:835"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "04f20ac494c05d20",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 440,
+      "symbol": "approved",
+      "evidence": "hooks/plan-gate.mjs:440",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:440",
+          "hooks/plan-gate.mjs:638",
+          "hooks/plan-gate.mjs:840"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "c2d07cf7c4e644c2",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 450,
+      "symbol": "plan-ledger.jsonl",
+      "evidence": "hooks/plan-gate.mjs:450",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:450",
+          "hooks/plan-gate.mjs:582",
+          "scripts/export-logs.mjs:92",
+          "scripts/export-logs.mjs:92"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bbf9a5b05c3ea48f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 523,
+      "symbol": "planGate",
+      "evidence": "hooks/plan-gate.mjs:523",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:523",
+          "hooks/plan-gate.mjs:565",
+          "hooks/plan-gate.mjs:568",
+          "hooks/plan-gate.mjs:935",
+          "scripts/export-logs.mjs:55"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "80733b3099112819",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 524,
+      "symbol": "HERMES_PLAN_GATE",
+      "evidence": "hooks/plan-gate.mjs:524",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:524",
+          "hooks/plan-gate.mjs:936",
+          "scripts/export-logs.mjs:56"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e73e019ac97eb2ae",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 650,
+      "symbol": "plan_lint_failed",
+      "evidence": "hooks/plan-gate.mjs:650",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:650",
+          "hooks/plan-gate.mjs:657",
+          "hooks/plan-gate.mjs:867",
+          "hooks/plan-gate.mjs:874"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "11888b559188ba3c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/plan-gate.mjs",
+      "line": 722,
+      "symbol": "plan_tampered",
+      "evidence": "hooks/plan-gate.mjs:722",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/plan-gate.mjs:722",
+          "hooks/plan-gate.mjs:729",
+          "hooks/plan-gate.mjs:968",
+          "hooks/plan-gate.mjs:975",
+          "hooks/team-stop.mjs:16"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8f21c08ec397e179",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 190,
+      "symbol": "continue",
+      "evidence": "hooks/qa-gate.mjs:190",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:190",
+          "hooks/qa-gate.mjs:191",
+          "hooks/qa-gate.mjs:409",
+          "hooks/qa-gate.mjs:921",
+          "hooks/qa-gate.mjs:945"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e161bafda34fa65b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 437,
+      "symbol": "artifact",
+      "evidence": "hooks/qa-gate.mjs:437",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:437",
+          "hooks/qa-gate.mjs:752",
+          "hooks/qa-runner.mjs:48",
+          "hooks/qa-runner.mjs:49",
+          "hooks/qa-runner.mjs:49"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "82f0cf367e311351",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 761,
+      "symbol": "compliance-policy-as-code",
+      "evidence": "hooks/qa-gate.mjs:761",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:761",
+          "hooks/qa-gate.mjs:762",
+          "hooks/qa-runner.mjs:746",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:29",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:66"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "bca4cfa26c8a3613",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 761,
+      "symbol": "qa-verdict.schema.json",
+      "evidence": "hooks/qa-gate.mjs:761",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:761",
+          "hooks/qa-gate.mjs:762",
+          "hooks/qa-runner.mjs:746"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ad2f8bb0b91ef39d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 799,
+      "symbol": "e3b0c44298fc1c14",
+      "evidence": "hooks/qa-gate.mjs:799",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:799",
+          "hooks/qa-runner.mjs:226",
+          "hooks/qa-runner.mjs:256"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "2859d19545359d8d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 800,
+      "symbol": "0000000000000000",
+      "evidence": "hooks/qa-gate.mjs:800",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:800",
+          "hooks/qa-gate.mjs:807",
+          "hooks/qa-gate.mjs:825",
+          "hooks/qa-runner.mjs:260"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1c746df658ef21c7",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-gate.mjs",
+      "line": 856,
+      "symbol": "advisory",
+      "evidence": "hooks/qa-gate.mjs:856",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-gate.mjs:856",
+          "hooks/qa-runner.mjs:53",
+          "hooks/qa-runner.mjs:577",
+          "hooks/xray-ledger.mjs:6",
+          "hooks/xray-ledger.mjs:24"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "646e153e56a2868c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-runner.mjs",
+      "line": 78,
+      "symbol": "--verify",
+      "evidence": "hooks/qa-runner.mjs:78",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-runner.mjs:78",
+          "hooks/qa-runner.mjs:92",
+          "hooks/qa-runner.mjs:130",
+          "scripts/refinery.mjs:304"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "be73c328fc908a7e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-runner.mjs",
+      "line": 78,
+      "symbol": "rev-parse",
+      "evidence": "hooks/qa-runner.mjs:78",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 9,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-runner.mjs:78",
+          "hooks/qa-runner.mjs:92",
+          "hooks/qa-runner.mjs:116",
+          "hooks/qa-runner.mjs:130",
+          "hooks/qa-runner.mjs:236"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "89272ed9b06594fe",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-runner.mjs",
+      "line": 116,
+      "symbol": "--abbrev-ref",
+      "evidence": "hooks/qa-runner.mjs:116",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-runner.mjs:116",
+          "scripts/export-logs.mjs:211",
+          "scripts/refinery.mjs:196"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "cb69618b7bc1a9a0",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/qa-runner.mjs",
+      "line": 355,
+      "symbol": "--version",
+      "evidence": "hooks/qa-runner.mjs:355",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/qa-runner.mjs:355",
+          "hooks/qa-runner.mjs:364",
+          "hooks/qa-runner.mjs:373"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "90848dd39f0397ec",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/session-report.mjs",
+      "line": 28,
+      "symbol": "нет данных",
+      "evidence": "hooks/session-report.mjs:28",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 7,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/session-report.mjs:28",
+          "hooks/session-report.mjs:64",
+          "hooks/session-report.mjs:94",
+          "hooks/session-report.mjs:160",
+          "hooks/session-report.mjs:200"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6f83e514a6a40093",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/session-report.mjs",
+      "line": 136,
+      "symbol": "journal.jsonl",
+      "evidence": "hooks/session-report.mjs:136",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/session-report.mjs:136",
+          "skills/hermes/scripts/journal.mjs:23",
+          "skills/hermes/scripts/journal.mjs:61"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b644c90e7353c23a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/session-report.mjs",
+      "line": 184,
+      "symbol": "| Метрика | Значение | Источник (Rule 13) |",
+      "evidence": "hooks/session-report.mjs:184",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/session-report.mjs:184",
+          "hooks/session-report.mjs:204",
+          "hooks/session-report.mjs:213"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fb355821ee81fe2e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/session-report.mjs",
+      "line": 185,
+      "symbol": "| :--- | :--- | :--- |",
+      "evidence": "hooks/session-report.mjs:185",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/session-report.mjs:185",
+          "hooks/session-report.mjs:205",
+          "hooks/session-report.mjs:214",
+          "hooks/session-report.mjs:222"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "089379a3eeebd363",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/team-stop.mjs",
+      "line": 20,
+      "symbol": "team-stop.json",
+      "evidence": "hooks/team-stop.mjs:20",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/team-stop.mjs:20",
+          "scripts/export-logs.mjs:96",
+          "scripts/export-logs.mjs:96"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "509e211030867ab4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/test-runner.mjs",
+      "line": 25,
+      "symbol": "consistency",
+      "evidence": "hooks/test-runner.mjs:25",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/test-runner.mjs:25",
+          "hooks/test-runner.mjs:55",
+          "hooks/test-runner.mjs:60"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "73112aec3806784b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 68,
+      "symbol": "xray-report.json",
+      "evidence": "hooks/xray-ledger.mjs:68",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:68",
+          "hooks/xray-ledger.mjs:151",
+          "scripts/export-logs.mjs:98",
+          "scripts/export-logs.mjs:98"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "35968db884a9ab58",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 87,
+      "symbol": "debt-ledger.jsonl",
+      "evidence": "hooks/xray-ledger.mjs:87",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:87",
+          "hooks/xray-ledger.mjs:133",
+          "scripts/export-logs.mjs:99",
+          "scripts/export-logs.mjs:99"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "92f25d4625194a4a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 355,
+      "symbol": "dead.unused_file",
+      "evidence": "hooks/xray-ledger.mjs:355",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:355",
+          "hooks/xray-ledger.mjs:496",
+          "hooks/xray-ledger.mjs:499",
+          "scripts/xray-scan.mjs:965"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a32655323e612ca9",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 359,
+      "symbol": "stub.empty_catch",
+      "evidence": "hooks/xray-ledger.mjs:359",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:359",
+          "scripts/xray-scan.mjs:498",
+          "scripts/xray-scan.mjs:760"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "17089c81fc6e5cb0",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 360,
+      "symbol": "stub.always_true_return",
+      "evidence": "hooks/xray-ledger.mjs:360",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:360",
+          "scripts/xray-scan.mjs:449",
+          "scripts/xray-scan.mjs:524"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1444a3c37b4b0737",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 361,
+      "symbol": "stub.todo_fixme",
+      "evidence": "hooks/xray-ledger.mjs:361",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:361",
+          "scripts/xray-scan.mjs:615",
+          "scripts/xray-scan.mjs:747"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "80b4d1e514deaa9d",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 362,
+      "symbol": "stub.unreachable_branch",
+      "evidence": "hooks/xray-ledger.mjs:362",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:362",
+          "scripts/xray-scan.mjs:539",
+          "scripts/xray-scan.mjs:557"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e5c8bd45046a971b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 372,
+      "symbol": "lies_to_user",
+      "evidence": "hooks/xray-ledger.mjs:372",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:372",
+          "scripts/xray-scan.mjs:454",
+          "scripts/xray-scan.mjs:481",
+          "scripts/xray-scan.mjs:517",
+          "scripts/xray-scan.mjs:529"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "2caa1399815bfbd8",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 373,
+      "symbol": "brick_risk",
+      "evidence": "hooks/xray-ledger.mjs:373",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:373",
+          "scripts/xray-scan.mjs:503",
+          "scripts/xray-scan.mjs:589",
+          "scripts/xray-scan.mjs:691",
+          "scripts/xray-scan.mjs:766"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "cd27b096f4fc827a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "hooks/xray-ledger.mjs",
+      "line": 374,
+      "symbol": "resource_waste",
+      "evidence": "hooks/xray-ledger.mjs:374",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "hooks/xray-ledger.mjs:374",
+          "scripts/xray-scan.mjs:430",
+          "scripts/xray-scan.mjs:544",
+          "scripts/xray-scan.mjs:562",
+          "scripts/xray-scan.mjs:577"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b0c2f4fc1e41762e",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 28,
+      "symbol": "plugin.json",
+      "evidence": "install.ps1:28",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:28",
+          "install.ps1:81",
+          "install.sh:31",
+          "install.sh:66",
+          "verify.ps1:30"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6ffb2ba0f6e9b5e2",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 29,
+      "symbol": "package.json",
+      "evidence": "install.ps1:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:29",
+          "install.sh:32",
+          "hooks/qa-runner.mjs:271",
+          "scripts/xray-scan.mjs:85",
+          "scripts/xray-scan.mjs:212"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "462b1b845334797a",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 30,
+      "symbol": "hooks.json",
+      "evidence": "install.ps1:30",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:30",
+          "install.sh:33",
+          "verify.ps1:31",
+          "verify.sh:26",
+          "scripts/xray-scan.mjs:85"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "e7d6d46b192bcd62",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 37,
+      "symbol": "verify.ps1",
+      "evidence": "install.ps1:37",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:37",
+          "install.sh:40",
+          "scripts/xray-scan.mjs:86"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "175a84a4b5372ef4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 38,
+      "symbol": "verify.sh",
+      "evidence": "install.ps1:38",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:38",
+          "install.sh:41",
+          "scripts/xray-scan.mjs:86"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "66e5cc5756ab0e65",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 39,
+      "symbol": "install.ps1",
+      "evidence": "install.ps1:39",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:39",
+          "install.sh:42",
+          "scripts/xray-scan.mjs:86",
+          "scripts/xray-scan.mjs:246"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "5697f03cba2813f9",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "install.ps1",
+      "line": 40,
+      "symbol": "install.sh",
+      "evidence": "install.ps1:40",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "install.ps1:40",
+          "install.sh:43",
+          "scripts/xray-scan.mjs:86",
+          "scripts/xray-scan.mjs:246"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9a81564e73feba94",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/eval-record.mjs",
+      "line": 95,
+      "symbol": "eval-results.jsonl",
+      "evidence": "scripts/eval-record.mjs:95",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/eval-record.mjs:95",
+          "scripts/export-logs.mjs:97",
+          "scripts/export-logs.mjs:97"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "22528e18f0992a12",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/eval-record.mjs",
+      "line": 132,
+      "symbol": "--workspace=",
+      "evidence": "scripts/eval-record.mjs:132",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 6,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/eval-record.mjs:132",
+          "scripts/eval-record.mjs:132",
+          "scripts/export-logs.mjs:433",
+          "scripts/export-logs.mjs:434",
+          "scripts/xray-scan.mjs:1109"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4d2a3e96a431d577",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/export-logs.mjs",
+      "line": 437,
+      "symbol": "--task-hash=",
+      "evidence": "scripts/export-logs.mjs:437",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/export-logs.mjs:437",
+          "scripts/export-logs.mjs:438",
+          "scripts/xray-scan.mjs:1113",
+          "scripts/xray-scan.mjs:1113"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "08335b637c9f683f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/refinery.mjs",
+      "line": 205,
+      "symbol": "checkout",
+      "evidence": "scripts/refinery.mjs:205",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/refinery.mjs:205",
+          "scripts/refinery.mjs:211",
+          "scripts/refinery.mjs:249",
+          "scripts/refinery.mjs:253"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "fdbe985eab3248ed",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 36,
+      "symbol": "hypothesis",
+      "evidence": "scripts/xray-scan.mjs:36",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:36",
+          "scripts/xray-scan.mjs:427",
+          "scripts/xray-scan.mjs:478",
+          "scripts/xray-scan.mjs:514",
+          "scripts/xray-scan.mjs:586"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "94ce72093b22dce3",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 121,
+      "symbol": "&& next ===",
+      "evidence": "scripts/xray-scan.mjs:121",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:121",
+          "scripts/xray-scan.mjs:127",
+          "scripts/xray-scan.mjs:143"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "193bb707f599bf99",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 196,
+      "symbol": "entrypoint",
+      "evidence": "scripts/xray-scan.mjs:196",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:196",
+          "scripts/xray-scan.mjs:202",
+          "scripts/xray-scan.mjs:207"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f8872cbea25848fb",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 217,
+      "symbol": "packaged_file",
+      "evidence": "scripts/xray-scan.mjs:217",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:217",
+          "scripts/xray-scan.mjs:218",
+          "scripts/xray-scan.mjs:219",
+          "scripts/xray-scan.mjs:221",
+          "scripts/xray-scan.mjs:225"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ad11a5244ca958da",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 405,
+      "symbol": "${file.relPath}:${lineNum}",
+      "evidence": "scripts/xray-scan.mjs:405",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 8,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:405",
+          "scripts/xray-scan.mjs:640",
+          "scripts/xray-scan.mjs:658",
+          "scripts/xray-scan.mjs:690",
+          "scripts/xray-scan.mjs:702"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9af7a9323f82e784",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 420,
+      "symbol": "truncated_scan",
+      "evidence": "scripts/xray-scan.mjs:420",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 5,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:420",
+          "scripts/xray-scan.mjs:486",
+          "scripts/xray-scan.mjs:664",
+          "scripts/xray-scan.mjs:724",
+          "scripts/xray-scan.mjs:977"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "6316ca12e7caed62",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 433,
+      "symbol": "manifest",
+      "evidence": "scripts/xray-scan.mjs:433",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:433",
+          "scripts/xray-scan.mjs:662",
+          "scripts/xray-scan.mjs:975"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "a8684e3b55d681e2",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "scripts/xray-scan.mjs",
+      "line": 620,
+      "symbol": "cosmetic",
+      "evidence": "scripts/xray-scan.mjs:620",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "scripts/xray-scan.mjs:620",
+          "scripts/xray-scan.mjs:753",
+          "scripts/xray-scan.mjs:997"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "205eecb21c218e25",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs",
+      "line": 27,
+      "symbol": "[PASS] ${message}",
+      "evidence": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:27",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:27",
+          "skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs:27",
+          "skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs:27",
+          "skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs:27",
+          "skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs:27"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "1040fd7680832508",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs",
+      "line": 29,
+      "symbol": "[FAIL] ${message}",
+      "evidence": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:29",
+          "skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs:29",
+          "skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs:29",
+          "skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs:29",
+          "skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs:29"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "dee666c81bc3adea",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs",
+      "line": 38,
+      "symbol": "Manual contains comprehensive content (>1000 cha",
+      "evidence": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:38",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:38",
+          "skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs:38",
+          "skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs:38",
+          "skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs:38",
+          "skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs:38"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b460da141cb083b5",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs",
+      "line": 63,
+      "symbol": "\\nResult: ${passedTests}/${totalTests} tests pas",
+      "evidence": "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:63",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs:63",
+          "skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs:63",
+          "skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs:63",
+          "skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs:66",
+          "skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs:66"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "9c9f109ad7c59645",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 21,
+      "symbol": "PASS ${name}",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:21",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:21",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:21",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:21",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:21"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "4ceeced10285b62b",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 24,
+      "symbol": "FAIL ${name}: ${err.message}",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:24",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:24",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:24",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:24",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:24"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "02a94fafb7033f54",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 29,
+      "symbol": "csharp-zero-alloc-performance.md",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:29",
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:92",
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:105"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "797b660c6c29a2fc",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 30,
+      "symbol": "ref_file_exists",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:30",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:30",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:30",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:30",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:30"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "f95b0cd8d3c0c12f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 72,
+      "symbol": "csharp_code_blocks_syntax_sanity",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:72",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:72",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:72",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:72"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "ed782441047d1d39",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 73,
+      "symbol": "csharp([\\s\\S]*?)",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:73",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:73",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:73",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:73"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "04594f45f7b13bb4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+      "line": 82,
+      "symbol": "Code block #${blockCount} has unbalanced braces ",
+      "evidence": "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:82",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs:82",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:82",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:82"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "dbf21f6648778ede",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs",
+      "line": 29,
+      "symbol": "thermo-nuclear-code-quality-review.md",
+      "evidence": "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 4,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:29",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:68",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:81",
+          "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs:94"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "8171c99a6e6b01f4",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/frontend-design/scripts/verify-winforms-patterns.mjs",
+      "line": 29,
+      "symbol": "winforms-modern-dark-controls.md",
+      "evidence": "skills/frontend-design/scripts/verify-winforms-patterns.mjs:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:29",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:92",
+          "skills/frontend-design/scripts/verify-winforms-patterns.mjs:105"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "149100a5e187bc25",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/hermes/scripts/monitor.mjs",
+      "line": 135,
+      "symbol": "worker-name",
+      "evidence": "skills/hermes/scripts/monitor.mjs:135",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/hermes/scripts/monitor.mjs:135",
+          "skills/hermes/scripts/monitor.mjs:136",
+          "skills/hermes/scripts/monitor.mjs:137",
+          "skills/hermes/scripts/monitor.mjs:138",
+          "skills/hermes/scripts/monitor.mjs:139"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "592d83be0fcfcd5c",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/hermes/scripts/monitor.mjs",
+      "line": 135,
+      "symbol": "worker-card",
+      "evidence": "skills/hermes/scripts/monitor.mjs:135",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/hermes/scripts/monitor.mjs:135",
+          "skills/hermes/scripts/monitor.mjs:136",
+          "skills/hermes/scripts/monitor.mjs:137",
+          "skills/hermes/scripts/monitor.mjs:138",
+          "skills/hermes/scripts/monitor.mjs:139"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d53a1755184231c3",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/hermes/scripts/monitor.mjs",
+      "line": 135,
+      "symbol": "worker-role",
+      "evidence": "skills/hermes/scripts/monitor.mjs:135",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 10,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/hermes/scripts/monitor.mjs:135",
+          "skills/hermes/scripts/monitor.mjs:136",
+          "skills/hermes/scripts/monitor.mjs:137",
+          "skills/hermes/scripts/monitor.mjs:138",
+          "skills/hermes/scripts/monitor.mjs:139"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "d1a81e906f64342f",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs",
+      "line": 29,
+      "symbol": "flaui-desktop-e2e.md",
+      "evidence": "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:29",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:29",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:92",
+          "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs:105"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    },
+    {
+      "id": "b8f51637b13c5238",
+      "rule": "fragile.duplicate_literal",
+      "class": "fact",
+      "category": "fragile",
+      "path": "verify.ps1",
+      "line": 32,
+      "symbol": "hermes-fleet",
+      "evidence": "verify.ps1:32",
+      "impact": "cosmetic",
+      "refs": {
+        "count": 3,
+        "checkedScopes": [
+          "code",
+          "strings"
+        ],
+        "sample": [
+          "verify.ps1:32",
+          "verify.sh:27",
+          "hooks/qa-runner.mjs:275"
+        ],
+        "protectedBy": [],
+        "safeToDelete": false
+      }
+    }
+  ],
+  "protectedFiles": [
+    ".",
+    "..",
+    "...",
+    "../hooks/consent-validator.mjs",
+    "../hooks/grade-gate.mjs",
+    "../hooks/xray-ledger.mjs",
+    ".7z",
+    ".a",
+    ".avi",
+    ".bin",
+    ".bmp",
+    ".bz2",
+    ".cfg",
+    ".cjs",
+    ".class",
+    ".conf",
+    ".cs",
+    ".css",
+    ".db",
+    ".dll",
+    ".dylib",
+    ".env",
+    ".eot",
+    ".exe",
+    ".gemini/config/plugins/hermes-fleet",
+    ".gif",
+    ".git",
+    ".go",
+    ".gz",
+    ".hermes",
+    ".htm",
+    ".html",
+    ".ico",
+    ".ini",
+    ".ipk",
+    ".jar",
+    ".java",
+    ".jpeg",
+    ".jpg",
+    ".js",
+    ".json",
+    ".jsx",
+    ".md",
+    ".mjs",
+    ".mov",
+    ".mp3",
+    ".mp4",
+    ".next",
+    ".nuxt",
+    ".o",
+    ".ogg",
+    ".otf",
+    ".pdf",
+    ".php",
+    ".png",
+    ".ps1",
+    ".py",
+    ".pyc",
+    ".rar",
+    ".rb",
+    ".sh",
+    ".so",
+    ".sqlite",
+    ".svgz",
+    ".tar",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".ttf",
+    ".txt",
+    ".venv",
+    ".wasm",
+    ".wav",
+    ".webm",
+    ".webp",
+    ".woff",
+    ".woff2",
+    ".xaml",
+    ".xml",
+    ".xz",
+    ".yaml",
+    ".yml",
+    ".zip",
+    "4.7.2",
+    "agents/alexey.md",
+    "agents/anna.md",
+    "agents/artem.md",
+    "agents/denis.md",
+    "agents/dmitry.md",
+    "agents/elena.md",
+    "agents/gleb.md",
+    "agents/igor.md",
+    "agents/kritik.md",
+    "agents/mikhail.md",
+    "agents/ruslan.md",
+    "agents/sergey.md",
+    "agents/stanislav.md",
+    "agents/viktor.md",
+    "app.js",
+    "app.mjs",
+    "app.ts",
+    "appinfo.json",
+    "assets/logo.svg",
+    "changelog.md",
+    "cli.js",
+    "cli.mjs",
+    "dead.broken_asset_ref",
+    "dead.element_never_assigned",
+    "dead.unreferenced_element",
+    "dead.unused_css_selector",
+    "dead.unused_file",
+    "dead.unused_symbol",
+    "docs/adr/0001-l2-diff-review-and-anti-self-signing.md",
+    "docs/adr/adr-0002-refinery-merge-queue.md",
+    "docs/adr/adr-0003-rewrite-parity-protocol.md",
+    "docs/adr/adr-0004-enterprise-sandboxing-and-durable-journal.md",
+    "docs/adr/adr-0005-mechanical-qa-rails-and-artifact-gate.md",
+    "docs/backlog.md",
+    "docs/evals/eval-001.json",
+    "docs/evals/eval-002.json",
+    "docs/evals/eval-003.json",
+    "docs/evals/eval-004.json",
+    "docs/evals/eval-005.json",
+    "docs/evals/eval-006.json",
+    "docs/evals/readme.md",
+    "docs/known-boundaries.md",
+    "docs/release-checklist.md",
+    "docs/troubleshooting.md",
+    "fragile.duplicate_listener",
+    "fragile.duplicate_literal",
+    "fragile.poll_side_effect",
+    "fragile.retry_sleep_mask",
+    "fragile.unstopped_timer",
+    "hooks.json",
+    "hooks/clean-edits-guard.mjs",
+    "hooks/clean-edits-guard.test.mjs",
+    "hooks/consent-validator.mjs",
+    "hooks/consistency.test.mjs",
+    "hooks/context-injector.mjs",
+    "hooks/context-injector.test.mjs",
+    "hooks/council-learning.mjs",
+    "hooks/doc-lint.test.mjs",
+    "hooks/eval-harness.test.mjs",
+    "hooks/grade-gate.mjs",
+    "hooks/hermes-trigger.mjs",
+    "hooks/journal.test.mjs",
+    "hooks/lessons-ledger.mjs",
+    "hooks/plan-gate.mjs",
+    "hooks/qa-gate.mjs",
+    "hooks/qa-gate.test.mjs",
+    "hooks/qa-runner.mjs",
+    "hooks/refinery.test.mjs",
+    "hooks/rule-engine.mjs",
+    "hooks/rule-engine.test.mjs",
+    "hooks/session-report.mjs",
+    "hooks/session-report.test.mjs",
+    "hooks/subagent-binding.mjs",
+    "hooks/team-stop.mjs",
+    "hooks/test-runner.mjs",
+    "hooks/workspace.mjs",
+    "hooks/workspace.test.mjs",
+    "hooks/xray-ledger.mjs",
+    "index.cjs",
+    "index.htm",
+    "index.html",
+    "index.js",
+    "index.mjs",
+    "index.ts",
+    "install.ps1",
+    "install.sh",
+    "main.cjs",
+    "main.js",
+    "main.mjs",
+    "main.ts",
+    "package.json",
+    "plugin.json",
+    "qa-runner.mjs",
+    "readme.md",
+    "readme.ru.md",
+    "scripts/eval-record.mjs",
+    "scripts/export-logs.mjs",
+    "scripts/refinery.mjs",
+    "scripts/xray-scan.mjs",
+    "server.js",
+    "server.mjs",
+    "service.js",
+    "service.mjs",
+    "services.json",
+    "skills/agent-context-memory-engineering/references/agent-evals-redteam.md",
+    "skills/agent-context-memory-engineering/references/context-compaction-patterns.md",
+    "skills/agent-context-memory-engineering/references/context-memory-harness.md",
+    "skills/agent-context-memory-engineering/skill.md",
+    "skills/ai-rag-engineering/references/hybrid-rag-chunking-and-evals.md",
+    "skills/ai-rag-engineering/references/llm-evals-inference.md",
+    "skills/ai-rag-engineering/references/rag-vector-hybrid.md",
+    "skills/ai-rag-engineering/scripts/verify-hybrid-rag-patterns.mjs",
+    "skills/ai-rag-engineering/skill.md",
+    "skills/backend-architecture/references/api-resilience-contracts.md",
+    "skills/backend-architecture/references/clean-architecture-ddd.md",
+    "skills/backend-architecture/references/concurrency-messaging-caching.md",
+    "skills/backend-architecture/references/csharp-zero-alloc-performance.md",
+    "skills/backend-architecture/references/dotnet-csharp-enterprise.md",
+    "skills/backend-architecture/references/python-node-go-backends.md",
+    "skills/backend-architecture/scripts/verify-zero-alloc-patterns.mjs",
+    "skills/backend-architecture/skill.md",
+    "skills/c4-architecture-mermaid/references/c4-mermaid-living-architecture.md",
+    "skills/c4-architecture-mermaid/scripts/verify-living-c4-patterns.mjs",
+    "skills/c4-architecture-mermaid/skill.md",
+    "skills/code-refactoring-modernization/references/csharp-ast-modernization.md",
+    "skills/code-refactoring-modernization/references/monolith-decomposition.md",
+    "skills/code-refactoring-modernization/references/strangler-characterization.md",
+    "skills/code-refactoring-modernization/scripts/verify-ast-modernization-patterns.mjs",
+    "skills/code-refactoring-modernization/skill.md",
+    "skills/cognitive-discipline/skill.md",
+    "skills/compliance-policy-as-code/references/schemas/contract-proposal.schema.json",
+    "skills/compliance-policy-as-code/references/schemas/mutation-report.schema.json",
+    "skills/compliance-policy-as-code/references/schemas/patch-blueprint.schema.json",
+    "skills/compliance-policy-as-code/references/schemas/qa-verdict.schema.json",
+    "skills/compliance-policy-as-code/references/schemas/security-verdict.schema.json",
+    "skills/compliance-policy-as-code/references/skill-trigger-verification.md",
+    "skills/compliance-policy-as-code/references/thermo-nuclear-code-quality-review.md",
+    "skills/compliance-policy-as-code/scripts/contract-validator.mjs",
+    "skills/compliance-policy-as-code/scripts/contract-validator.test.mjs",
+    "skills/compliance-policy-as-code/scripts/verify-thermonuclear-review.mjs",
+    "skills/compliance-policy-as-code/skill.md",
+    "skills/frontend-design/references/platform-design-systems.md",
+    "skills/frontend-design/references/visual-qa-layout-audit.md",
+    "skills/frontend-design/references/winforms-modern-dark-controls.md",
+    "skills/frontend-design/scripts/verify-winforms-patterns.mjs",
+    "skills/frontend-design/skill.md",
+    "skills/hardware-protocol-simulation/references/fault-injection-fuzzing.md",
+    "skills/hardware-protocol-simulation/references/industrial-fault-injection.md",
+    "skills/hardware-protocol-simulation/references/pairwise-fault-matrices.md",
+    "skills/hardware-protocol-simulation/references/stateful-protocol-emulators.md",
+    "skills/hardware-protocol-simulation/scripts/verify-fault-injection-patterns.mjs",
+    "skills/hardware-protocol-simulation/skill.md",
+    "skills/hermes/references/ai-ml-standards.md",
+    "skills/hermes/references/anthropic-advanced-patterns.md",
+    "skills/hermes/references/anti-regression-protocol.md",
+    "skills/hermes/references/backend-patterns.md",
+    "skills/hermes/references/checkpoints.md",
+    "skills/hermes/references/compliance-audit-standards.md",
+    "skills/hermes/references/configuration-hygiene.md",
+    "skills/hermes/references/council-learning-protocol.md",
+    "skills/hermes/references/database-tuning.md",
+    "skills/hermes/references/devops-resilience.md",
+    "skills/hermes/references/documentation-standards.md",
+    "skills/hermes/references/feature-dev-protocol.md",
+    "skills/hermes/references/fleet-protocol.md",
+    "skills/hermes/references/frontend-lifecycle.md",
+    "skills/hermes/references/git-auto-rollback.md",
+    "skills/hermes/references/hardware-mocks.md",
+    "skills/hermes/references/hermes-commands-reference.md",
+    "skills/hermes/references/independent-grading-protocol.md",
+    "skills/hermes/references/kanban-ui.md",
+    "skills/hermes/references/log-export-protocol.md",
+    "skills/hermes/references/memory-bank-system.md",
+    "skills/hermes/references/orchestrator-parallel.md",
+    "skills/hermes/references/orchestrator-planning.md",
+    "skills/hermes/references/plan-act-isolation.md",
+    "skills/hermes/references/plan-steering-protocol.md",
+    "skills/hermes/references/pr-review-methodologies.md",
+    "skills/hermes/references/qa-heuristics.md",
+    "skills/hermes/references/rea-investigation.md",
+    "skills/hermes/references/refactoring-patterns.md",
+    "skills/hermes/references/repo-map-protocol.md",
+    "skills/hermes/references/rewrite-parity-protocol.md",
+    "skills/hermes/references/skill-index.md",
+    "skills/hermes/references/spec-driven-templates.md",
+    "skills/hermes/references/specialist-council-protocol.md",
+    "skills/hermes/references/specialist-dispatch-matrix.md",
+    "skills/hermes/references/systematic-debugging.md",
+    "skills/hermes/references/tdd-workflow.md",
+    "skills/hermes/references/ux-scouting-standards.md",
+    "skills/hermes/references/verification-before-completion.md",
+    "skills/hermes/references/warning-buster.md",
+    "skills/hermes/references/writing-skills.md",
+    "skills/hermes/references/xray-protocol.md",
+    "skills/hermes/scripts/journal.mjs",
+    "skills/hermes/scripts/monitor.mjs",
+    "skills/hermes/skill.md",
+    "skills/high-load-db-tuning/references/high-load-deadlock-killer.md",
+    "skills/high-load-db-tuning/references/mssql-concurrency-dmv.md",
+    "skills/high-load-db-tuning/references/mysql-innodb-tuning.md",
+    "skills/high-load-db-tuning/references/nosql-olap-caching.md",
+    "skills/high-load-db-tuning/references/postgres-mvcc-tuning.md",
+    "skills/high-load-db-tuning/references/query-migration-patterns.md",
+    "skills/high-load-db-tuning/references/sqlite-concurrency.md",
+    "skills/high-load-db-tuning/scripts/verify-deadlock-killer-patterns.mjs",
+    "skills/high-load-db-tuning/skill.md",
+    "skills/industrial-equipment-research/references/hardware-matrix-and-registers.md",
+    "skills/industrial-equipment-research/references/integration-ladder.md",
+    "skills/industrial-equipment-research/references/manual-hunting-playbook.md",
+    "skills/industrial-equipment-research/skill.md",
+    "skills/llm-finetuning-multimodal-ops/references/finetuning-posttraining.md",
+    "skills/llm-finetuning-multimodal-ops/references/gpu-serving-multimodal.md",
+    "skills/llm-finetuning-multimodal-ops/skill.md",
+    "skills/office-documents/references/docx-standards.md",
+    "skills/office-documents/references/xlsx-standards.md",
+    "skills/office-documents/scripts/office-validator.py",
+    "skills/office-documents/scripts/verify-office-documents-patterns.mjs",
+    "skills/office-documents/skill.md",
+    "skills/procedural-3d-digital-twin/references/modern-threejs-patterns.md",
+    "skills/procedural-3d-digital-twin/references/threejs-vram-hygiene-twin.md",
+    "skills/procedural-3d-digital-twin/scripts/verify-vram-hygiene-patterns.mjs",
+    "skills/procedural-3d-digital-twin/skill.md",
+    "skills/product-ux-scouting/references/global-forums-and-heuristics.md",
+    "skills/product-ux-scouting/references/nielsen-ergonomics-roast.md",
+    "skills/product-ux-scouting/references/ru-text-typography.md",
+    "skills/product-ux-scouting/scripts/verify-nielsen-roast-patterns.mjs",
+    "skills/product-ux-scouting/skill.md",
+    "skills/qa-test-automation/references/flaui-desktop-e2e.md",
+    "skills/qa-test-automation/references/playwright-e2e-patterns.md",
+    "skills/qa-test-automation/references/property-e2e-concurrency.md",
+    "skills/qa-test-automation/references/qa-verdict-protocol.md",
+    "skills/qa-test-automation/references/tdd-debugging-anti-patterns.md",
+    "skills/qa-test-automation/scripts/verify-flaui-desktop-e2e.mjs",
+    "skills/qa-test-automation/skill.md",
+    "skills/reverse-engineer-anything/references/binary-frame-disassembly.md",
+    "skills/reverse-engineer-anything/references/connection-recovery.md",
+    "skills/reverse-engineer-anything/references/target-routing-reference.md",
+    "skills/reverse-engineer-anything/scripts/verify-frame-disassembly-patterns.mjs",
+    "skills/reverse-engineer-anything/skill.md",
+    "skills/sap-enterprise-automation/references/integration-ladder.md",
+    "skills/sap-enterprise-automation/references/sap-nco-com-hygiene.md",
+    "skills/sap-enterprise-automation/scripts/verify-sap-nco-hygiene.mjs",
+    "skills/sap-enterprise-automation/skill.md",
+    "skills/security-audit/references/diff-review-sharp-edges.md",
+    "skills/security-audit/references/supply-chain-devsecops.md",
+    "skills/security-audit/references/web-auth-crypto-owasp.md",
+    "skills/security-audit/skill.md",
+    "skills/socket-network-diagnostics/references/socket-pipeline-streaming.md",
+    "skills/socket-network-diagnostics/scripts/verify-pipeline-streaming-patterns.mjs",
+    "skills/socket-network-diagnostics/skill.md",
+    "skills/technical-documentation-adr/references/diataxis-adr-runbooks.md",
+    "skills/technical-documentation-adr/references/openapi-protocol-specs.md",
+    "skills/technical-documentation-adr/skill.md",
+    "stub.always_true_return",
+    "stub.empty_catch",
+    "stub.todo_fixme",
+    "stub.unreachable_branch",
+    "test-runner.mjs",
+    "third_party_notices.md",
+    "troubleshooting.md",
+    "verify.ps1",
+    "verify.sh"
+  ],
+  "counts": {
+    "filesScanned": 224,
+    "filesSkippedBinary": 0,
+    "filesSkippedTooLarge": 0,
+    "filesSkippedUnsupported": 0,
+    "filesSkippedMinified": 0,
+    "totalFindings": 257,
+    "byCategory": {
+      "dead": 0,
+      "stub": 93,
+      "fragile": 164
+    },
+    "byClass": {
+      "fact": 257,
+      "hypothesis": 0
+    },
+    "byImpact": {
+      "lies_to_user": 0,
+      "brick_risk": 93,
+      "resource_waste": 1,
+      "cosmetic": 163
+    },
+    "durationMs": 253
+  },
+  "truncated": false,
+  "truncatedReason": null,
+  "ts": "2026-11-18T11:44:40.201Z"
+}

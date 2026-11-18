@@ -1,0 +1,691 @@
+Command exited with code 0.
+
+Command output:
+==========================================
+  Hermes Fleet v4.7.2 Installer for Antigravity
+==========================================
+Target plugin directory: %USER%\.gemini\config\plugins\hermes-fleet
+  [OK] Copied: plugin.json
+  [OK] Copied: package.json
+  [OK] Copied: hooks.json
+  [OK] Copied: LICENSE
+  [OK] Copied: README.md
+  [OK] Copied: README.ru.md
+  [OK] Copied: CHANGELOG.md
+  [OK] Copied: TROUBLESHOOTING.md
+  [OK] Copied: THIRD_PARTY_NOTICES.md
+  [OK] Copied: verify.ps1
+  [OK] Copied: verify.sh
+  [OK] Copied: install.ps1
+  [OK] Copied: install.sh
+  [OK] Copied: hooks
+  [OK] Copied: assets
+  [OK] Copied: skills
+  [OK] Copied: agents
+  [OK] Copied: docs
+  [OK] Copied: scripts
+
+Running hook self-tests...
+🏛️  [HERMES TEST RUNNER] Starting execution of all 11 test suites...
+
+▶ Running suite: context-injector (hooks/context-injector.test.mjs)...
+PASS skip_non_hermes_normal_chat
+PASS skip_when_system_context_only_mentions_hermes_without_trigger
+PASS inject_once_on_slash_hermes_trigger
+PASS skip_full_protocol_on_single_specialist_mention
+PASS inject_on_hermes_mode_phrase
+PASS skip_mid_sentence_slash_mention_with_skill_metadata
+PASS skip_question_about_hermes_mode
+PASS inject_on_slash_hermes_inside_user_request_wrapper
+PASS dedup_skip_when_protocol_already_in_transcript
+PASS inject_checkpoint_when_present_in_cwd
+PASS inject_project_instincts_filtered_by_confidence
+PASS suggest_strategic_compact_when_transcript_exceeds_step_threshold
+PASS skip_strategic_compact_during_cooldown
+PASS workspace_resolve_from_workspacePaths_array
+PASS workspace_resolve_from_workspacePaths_file_uri
+PASS workspace_workspacePaths_takes_precedence_over_plugin_root_cwd
+PASS workspace_fallback_to_payload_cwd_when_workspacePaths_absent
+PASS workspace_fallback_to_process_cwd_when_payload_empty_or_null
+PASS injector_loads_lessons_within_budget_allow
+PASS xray_debt_injected_within_budget
+CONTEXT-INJECTOR SUMMARY: 20/20 passed
+✔ Finished context-injector in 970ms [PASS]
+
+▶ Running suite: clean-edits-guard (hooks/clean-edits-guard.test.mjs)...
+PASS deny_patch_ps1: expected=deny actual=deny
+PASS deny_sed_i: expected=deny actual=deny
+PASS deny_xargs_sed_i: expected=deny actual=deny
+PASS deny_find_exec_sed_i: expected=deny actual=deny
+PASS deny_bash_c_sed_i: expected=deny actual=deny
+PASS deny_python_semicolon_write_text: expected=deny actual=deny
+PASS deny_node_eval_write: expected=deny actual=deny
+PASS deny_redirect_cs: expected=deny actual=deny
+PASS deny_tee_cs: expected=deny actual=deny
+PASS deny_git_apply: expected=deny actual=deny
+PASS deny_ps_set_content_cs: expected=deny actual=deny
+PASS deny_git_commit_unquoted_m_then_sed_i: expected=deny actual=deny
+PASS deny_sed_i_bak: expected=deny actual=deny
+PASS deny_sed_in_place: expected=deny actual=deny
+PASS deny_hardcode_url_ip_cs: expected=deny actual=deny
+PASS deny_hardcode_path_bslash: expected=deny actual=deny
+PASS deny_hardcode_path_fslash: expected=deny actual=deny
+PASS deny_hardcode_linux_home_file: expected=deny actual=deny
+PASS deny_hardcode_sleep_cs: expected=deny actual=deny
+PASS deny_hardcode_timeout: expected=deny actual=deny
+PASS deny_hardcode_asyncio_sleep: expected=deny actual=deny
+PASS deny_csharp_password_prop: expected=deny actual=deny
+PASS deny_weak_password_literal: expected=deny actual=deny
+PASS deny_jwt_token: expected=deny actual=deny
+PASS deny_backtick_sk_token: expected=deny actual=deny
+PASS deny_token_alnum_literal: expected=deny actual=deny
+PASS deny_connection_string_password: expected=deny actual=deny
+PASS deny_connection_string_no_trailing_semicolon: expected=deny actual=deny
+PASS deny_ts_typed_secret: expected=deny actual=deny
+PASS deny_go_walrus_secret: expected=deny actual=deny
+PASS deny_task_delay_with_ct: expected=deny actual=deny
+PASS deny_razor_secret: expected=deny actual=deny
+PASS allow_rg_quoted_gt_before_ts: expected=allow actual=allow
+PASS allow_users_web_avatar_route: expected=allow actual=allow
+PASS allow_forgot_password_ui_text: expected=allow actual=allow
+PASS allow_aspnet_antiforgery_token: expected=allow actual=allow
+PASS allow_csharp_password_label: expected=allow actual=allow
+PASS allow_parameterized_conn_string: expected=allow actual=allow
+PASS allow_mvc_home_privacy_route: expected=allow actual=allow
+PASS allow_nested_web_route: expected=allow actual=allow
+PASS allow_git_commit_msg_mentioning_sed: expected=allow actual=allow
+PASS allow_test_file_ip: expected=allow actual=allow
+PASS allow_markdown_doc: expected=allow actual=allow
+PASS allow_clean_ts: expected=allow actual=allow
+PASS allow_dotnet_test: expected=allow actual=allow
+PASS allow_env_fallback_loopback_ts: expected=allow actual=allow
+PASS allow_env_or_fallback_js: expected=allow actual=allow
+PASS allow_python_getenv_default: expected=allow actual=allow
+PASS allow_python_getenv_or_default: expected=allow actual=allow
+PASS allow_csharp_getvalue_default: expected=allow actual=allow
+PASS deny_env_fallback_secret_still_leaks: expected=deny actual=deny
+PASS deny_ip_next_to_unrelated_fallback: expected=deny actual=deny
+PASS allow_non_hermes_sed_i: expected=allow actual=allow
+PASS allow_non_hermes_hardcoded_ip: expected=allow actual=allow
+PASS allow_mid_sentence_hermes_mention: expected=allow actual=allow
+PASS allow_hermes_only_in_metadata: expected=allow actual=allow
+PASS deny_hermes_slash_inside_user_request: expected=deny actual=deny
+PASS deny_hermes_via_at_specialist: expected=deny actual=deny
+PASS deny_hermes_via_transcript_history: expected=deny actual=deny
+PASS allow_transcript_without_hermes: expected=allow actual=allow
+PASS deny_invoke_subagent_without_model_handshake: expected=deny actual=deny
+PASS allow_invoke_subagent_after_ask_question: expected=allow actual=allow
+PASS allow_invoke_subagent_inherit_on_flash_high: expected=allow actual=allow
+PASS deny_invoke_subagent_invalid_model_enum: expected=deny actual=deny
+PASS allow_invoke_subagent_tier_high_with_inherit: expected=allow actual=allow
+PASS deny_invoke_subagent_tier_high_downgrade_to_flash: expected=deny actual=deny
+PASS deny_invoke_subagent_tier_medium_overspend_inherit_on_high_host: expected=deny actual=deny
+PASS allow_invoke_subagent_tier_medium_with_flash: expected=allow actual=allow
+PASS allow_invoke_subagent_tier_low_with_flash_lite: expected=allow actual=allow
+PASS allow_invoke_subagent_tier_low_pro_escalation_for_elena: expected=allow actual=allow
+PASS allow_invoke_subagent_tier_low_pro_escalation_for_self: expected=allow actual=allow
+PASS deny_invoke_subagent_tier_low_overspend_with_flash: expected=deny actual=deny
+PASS allow_invoke_subagent_tier_null_defaults_to_fail_open_flash: expected=allow actual=allow
+PASS allow_invoke_subagent_tier_null_defaults_to_fail_open_inherit: expected=allow actual=allow
+PASS deny_invoke_subagent_tier_null_still_blocks_invalid_enum: expected=deny actual=deny
+PASS allow_browser_subagent_without_handshake: expected=allow actual=allow
+PASS deny_premature_kill_all_before_subagent_replies: expected=deny actual=deny
+PASS allow_kill_all_after_subagent_replied: expected=allow actual=allow
+PASS deny_post_edit_subagent_without_asking_user_first: expected=deny actual=deny
+PASS allow_post_edit_subagent_after_asking_user: expected=allow actual=allow
+PASS deny_run_command_before_handshake_even_with_settings_change_and_checkpoint: expected=deny actual=deny
+PASS deny_read_project_file_before_model_handshake: expected=deny actual=deny
+PASS allow_read_skill_md_before_model_handshake: expected=allow actual=allow
+PASS allow_subagent_run_command_without_own_handshake: expected=allow actual=allow
+PASS deny_l1_pickle_loads: expected=deny actual=deny
+PASS deny_l1_inner_html: expected=deny actual=deny
+PASS deny_l1_interlock_override: expected=deny actual=deny
+PASS allow_l1_with_ignore_comment: expected=allow actual=allow
+PASS allow_l1_test_file: expected=allow actual=allow
+PASS allow_l1_simulator_file: expected=allow actual=allow
+PASS allow_l1_igor_file: expected=allow actual=allow
+PASS allow_l1_when_pattern_rules_env_disabled: expected=allow actual=allow
+PASS allow_hardcode_with_valid_ignore_reason: expected=allow actual=allow
+PASS deny_hardcode_with_empty_ignore_reason: expected=deny actual=deny
+PASS deny_l1_inner_html_despite_hardcode_ignore: expected=deny actual=deny
+PASS deny_view_file_project_file_before_model_handshake: expected=deny actual=deny
+PASS allow_view_file_skill_doc_before_model_handshake: expected=allow actual=allow
+PASS allow_invoke_subagent_array_form_valid: expected=allow actual=allow
+PASS deny_invoke_subagent_array_form_tier_high_downgrade: expected=deny actual=deny
+PASS deny_invoke_subagent_array_form_mixed_second_downgrade: expected=deny actual=deny
+PASS deny_invoke_subagent_array_form_invalid_model_enum: expected=deny actual=deny
+PASS deny_invoke_subagent_array_form_forbidden_name: expected=deny actual=deny
+PASS allow_tier_heuristics_ignores_prose_mention_of_low_mode: expected=allow actual=allow
+PASS deny_subagent_write_file_after_browser: expected=deny actual=deny
+PASS deny_subagent_edit_file_after_search: expected=deny actual=deny
+PASS deny_subagent_mutating_command_after_browser: expected=deny actual=deny
+PASS allow_subagent_readonly_read_file_after_browser: expected=allow actual=allow
+PASS allow_subagent_readonly_command_after_browser: expected=allow actual=allow
+PASS deny_auditor_subagent_write_file: expected=deny actual=deny
+PASS deny_auditor_subagent_mutating_command: expected=deny actual=deny
+PASS deny_auditor_subagent_network_command: expected=deny actual=deny
+PASS deny_writer_subagent_outside_workspace: expected=deny actual=deny
+PASS deny_emulator_subagent_external_network: expected=deny actual=deny
+PASS deny_emulator_subagent_external_ip_network: expected=deny actual=deny
+PASS deny_emulator_subagent_schemeless_network: expected=deny actual=deny
+PASS allow_emulator_subagent_localhost_network: expected=allow actual=allow
+PASS deny_write_file_qa_verdict: expected=deny actual=deny
+PASS deny_edit_file_security_verdict: expected=deny actual=deny
+PASS deny_write_file_mutation_report: expected=deny actual=deny
+PASS deny_write_file_test_summary: expected=deny actual=deny
+PASS deny_write_file_council_state: expected=deny actual=deny
+PASS deny_edit_file_council_state: expected=deny actual=deny
+PASS allow_run_command_qa_runner: expected=allow actual=allow
+PASS deny_council_gate_no_decision_first_write: expected=deny actual=deny
+PASS allow_council_gate_valid_solo_decision: expected=allow actual=allow
+PASS deny_council_gate_council_chosen_no_deliveries: expected=deny actual=deny
+PASS allow_council_gate_council_chosen_with_authentic_deliveries: expected=allow actual=allow
+PASS deny_council_gate_forged_model_prose_or_system_echo: expected=deny actual=deny
+PASS allow_council_gate_fast_path_exception: expected=allow actual=allow
+PASS allow_council_gate_loop_repeated_iteration: expected=allow actual=allow
+PASS deny_council_gate_stale_past_task_decision: expected=deny actual=deny
+PASS allow_council_gate_config_off: expected=allow actual=allow
+PASS deny_council_gate_config_auto_without_deliveries: expected=deny actual=deny
+PASS allow_council_gate_config_auto_with_deliveries: expected=allow actual=allow
+PASS allow_council_gate_direct_specialist_call: expected=allow actual=allow
+PASS deny_step0_when_only_council_ask_present: expected=deny actual=deny
+PASS deny_council_gate_option1_with_fewer_deliveries_than_specialists: expected=deny actual=deny
+PASS allow_council_gate_option2_key_specialist_with_one_delivery: expected=allow actual=allow
+PASS deny_council_gate_option1_missing_named_specialist: expected=deny actual=deny
+PASS allow_council_gate_option1_all_named_specialists_present: expected=allow actual=allow
+PASS deny_council_gate_option2_wrong_key_specialist: expected=deny actual=deny
+PASS allow_council_gate_option2_correct_key_specialist_with_invoke: expected=allow actual=allow
+PASS deny_council_gate_negated_solo_choice: expected=deny actual=deny
+PASS deny_council_gate_new_task_mentioning_loop_does_not_reuse_old_loop_approval: expected=deny actual=deny
+PASS deny_council_gate_compound_prompt_with_typo_and_refactor_not_fast_path: expected=deny actual=deny
+PASS roundtable_1_round_deny: expected=deny actual=deny
+PASS roundtable_missing_r2_deny: expected=deny actual=deny
+PASS roundtable_2_stages_deny: expected=deny actual=deny
+PASS roundtable_missing_r3_deny: expected=deny actual=deny
+PASS roundtable_no_devil_advocate_deny: expected=deny actual=deny
+PASS roundtable_3_stages_allow: expected=allow actual=allow
+PASS forged_ranking_prose_deny: expected=deny actual=deny
+PASS option1_parallel_single_key_allow: expected=allow actual=allow
+PASS option3_solo_allow: expected=allow actual=allow
+PASS roundtable_name_quorum_deny: expected=deny actual=deny
+PASS forged_roundtable_prose_deny: expected=deny actual=deny
+PASS deny_write_file_progress_journal: expected=deny actual=deny
+PASS numeric_option2_without_markers_is_roundtable_deny: expected=deny actual=deny
+PASS early_stop_without_user_answer_deny: expected=deny actual=deny
+PASS early_stop_forged_model_prose_deny: expected=deny actual=deny
+PASS early_stop_user_approved_converged_allow: expected=allow actual=allow
+PASS early_stop_opponent_dissent_requires_r3_deny: expected=deny actual=deny
+PASS prune_extra_member_allow: expected=allow actual=allow
+PASS prune_named_specialist_deny: expected=deny actual=deny
+PASS prune_devil_advocate_deny: expected=deny actual=deny
+PASS stall_three_failures_blocks_write_deny: expected=deny actual=deny
+PASS stall_forged_prose_deny: expected=deny actual=deny
+PASS stall_validated_user_override_allow: expected=allow actual=allow
+PASS stall_escalation_roundtable_allow: expected=allow actual=allow
+PASS stall_reset_on_real_pass_allow: expected=allow actual=allow
+PASS cost_telemetry_no_fabricated_numbers: expected=allow actual=allow
+PASS stall_accumulates_three_real_test_failures_deny: expected=deny actual=deny
+PASS stall_accumulates_with_stale_qa_diffhash_deny: expected=deny actual=deny
+PASS stall_no_double_count_on_repeated_hook_calls: expected=allow actual=allow
+PASS stall_override_negated_deny: expected=deny actual=deny
+PASS stall_override_negated_long_word_deny: expected=deny actual=deny
+PASS stall_override_option_order_bound: expected=allow actual=allow
+PASS early_stop_negated_deny: expected=deny actual=deny
+PASS early_stop_option_order_bound_deny: expected=deny actual=deny
+PASS early_stop_marker_from_other_sender_deny: expected=deny actual=deny
+PASS escalation_numeric_option1_is_roundtable_deny: expected=deny actual=deny
+PASS stall_override_a1_prefix_option2_deny: expected=deny actual=deny
+PASS early_stop_a1_prefix_option2_deny: expected=deny actual=deny
+PASS stall_override_negated_completes_roundtable_allow: expected=allow actual=allow
+PASS stall_accumulates_test_fails_with_stale_qa_reject_deny: expected=deny actual=deny
+PASS stall_override_cyrillic_boundary_pre_allow: expected=allow actual=allow
+PASS outcome_ledger_written_from_artifacts: expected=allow actual=allow
+PASS outcome_not_written_from_model_prose: expected=allow actual=allow
+PASS deny_write_file_council_outcomes: expected=deny actual=deny
+PASS deny_write_file_instincts: expected=deny actual=deny
+PASS deny_shell_redirect_instincts: expected=deny actual=deny
+PASS reputation_min_samples_threshold: expected=allow actual=allow
+PASS reputation_bounded_delta: expected=allow actual=allow
+PASS reputation_decay: expected=allow actual=allow
+PASS reputation_cannot_drop_named_specialist_deny: expected=deny actual=deny
+PASS authorship_not_in_roster_rejected: expected=allow actual=allow
+PASS solo_mode_no_specialist_reputation: expected=allow actual=allow
+PASS criteria_freeze_changed_after_r2_deny: expected=deny actual=deny
+PASS criteria_freeze_unchanged_allow: expected=allow actual=allow
+PASS binding_uncertain_no_reputation: expected=allow actual=allow
+PASS early_stop_skip_r3_phrasing_allow: expected=allow actual=allow
+PASS converged_marker_fallback_segment_deny: expected=deny actual=deny
+PASS criteria_freeze_real_r2_board_edit_tamper_deny: expected=deny actual=deny
+PASS deny_shell_mv_cp_and_node_unlink_protected_artifacts: expected=deny actual=deny
+PASS reputation_no_double_decay: expected=allow actual=allow
+PASS declared_authors_cyrillic_and_no_rejected_leak: expected=allow actual=allow
+PASS stale_artifact_not_reused_across_tasks: expected=allow actual=allow
+PASS pruned_uuids_persisted_in_state_full_roundtable: expected=allow actual=allow
+PASS domain_multimatch_recorded_primary_only: expected=allow actual=allow
+PASS domain_priority_deterministic_tiebreak: expected=allow actual=allow
+PASS reputation_no_inflation_from_multidomain: expected=allow actual=allow
+PASS authorship_team_fallback_weight: expected=allow actual=allow
+PASS authorship_lead_declared_full_weight: expected=allow actual=allow
+PASS hardcode_ignore_line_scoped_allow: expected=allow actual=allow
+PASS hardcode_ignore_far_violation_deny: expected=deny actual=deny
+PASS hardcode_ignore_file_blanket_deny: expected=deny actual=deny
+PASS hardcode_ignore_legacy_marker_shim: expected=allow actual=allow
+PASS hardcode_ignore_multiline_bypass_after_scoped_ignore_deny: expected=deny actual=deny
+PASS hardcode_ignore_multi_replace_cross_chunk_deny: expected=deny actual=deny
+PASS hardcode_multiline_env_fallback_allow: expected=allow actual=allow
+PASS gate_config_agent_write_off_deny: expected=deny actual=deny
+PASS gate_config_shell_mutate_off_deny: expected=deny actual=deny
+PASS gate_config_absent_gates_stay_on: expected=allow actual=allow
+PASS gate_config_invalid_fail_closed: expected=allow actual=allow
+PASS gate_off_user_setting_still_works: expected=allow actual=allow
+PASS exception_source_logged_in_gate_log: expected=allow actual=allow
+PASS hardcode_ignore_reason_globally_word_allow: expected=allow actual=allow
+PASS hardcode_ignore_reason_all_lines_allow: expected=allow actual=allow
+PASS hardcode_ignore_reason_ru_blanket_words_allow: expected=allow actual=allow
+PASS hardcode_ignore_file_suffix_still_deny: expected=deny actual=deny
+PASS hook_error_fail_closed_deny: expected=allow actual=allow
+PASS corrupt_protected_artifact_deny: expected=allow actual=allow
+PASS missing_optional_artifacts_no_false_deny: expected=allow actual=allow
+PASS gate_config_case_trailing_dot_junction_deny: expected=deny actual=deny
+PASS gate_config_shell_bypass_aliases_and_flags_deny: expected=deny actual=deny
+PASS corrupt_council_criteria_fail_closed_no_overwrite_deny: expected=allow actual=allow
+PASS plan_gate_standard_write_without_plan_deny: expected=deny actual=deny
+PASS plan_gate_unconfirmed_plan_deny: expected=deny actual=deny
+PASS plan_gate_confirmed_plan_allow: expected=allow actual=allow
+PASS plan_gate_plan_tamper_after_confirm_deny: expected=allow actual=allow
+PASS plan_gate_negated_consent_deny: expected=allow actual=allow
+PASS plan_gate_consent_option_order_bound: expected=allow actual=allow
+PASS plan_gate_forged_model_prose_consent_deny: expected=allow actual=allow
+PASS plan_gate_micro_typo_still_fast: expected=allow actual=allow
+PASS plan_gate_compound_prompt_not_micro_deny: expected=deny actual=deny
+PASS plan_lint_missing_verification_deny: expected=allow actual=allow
+PASS plan_lint_convention_claim_requires_source: expected=allow actual=allow
+PASS plan_version2_requires_reconfirm_deny: expected=allow actual=allow
+PASS plan_state_protected_from_agent_write_deny: expected=deny actual=deny
+PASS tdd_red_before_impl_no_stall_allow: expected=allow actual=allow
+PASS tdd_stall_after_impl_still_deny: expected=allow actual=allow
+PASS lessons_appended_from_real_gate_event_allow: expected=allow actual=allow
+PASS lessons_not_from_model_prose_deny: expected=allow actual=allow
+PASS lessons_protected_from_agent_write_deny: expected=deny actual=deny
+PASS plan_gate_orthogonal_to_council_off_deny: expected=allow actual=allow
+PASS plan_gate_pre_persistent_toctou_and_step0_isolation_deny: expected=allow actual=allow
+PASS plan_gate_colloquial_approval_and_edit_dominance: expected=allow actual=allow
+PASS plan_gate_subagent_and_hooks_matcher_lock: expected=allow actual=allow
+PASS rubric_frozen_from_plan_at_confirm_allow: expected=allow actual=allow
+PASS rubric_protected_from_agent_write_deny: expected=allow actual=allow
+PASS grade_report_protected_from_agent_write_deny: expected=allow actual=allow
+PASS eval_results_protected_from_agent_write_deny: expected=allow actual=allow
+PASS team_stop_on_hard_deny_blocks_lead_deny: expected=allow actual=allow
+PASS team_stop_blocks_subagent_write_deny: expected=allow actual=allow
+PASS team_stop_readonly_council_allowed: expected=allow actual=allow
+PASS team_stop_human_unblock_validated_allow: expected=allow actual=allow
+PASS team_stop_forged_unblock_deny: expected=allow actual=allow
+PASS team_stop_negated_unblock_deny: expected=allow actual=allow
+PASS team_stop_task_isolation: expected=allow actual=allow
+PASS team_stop_not_cleared_by_pass_deny: expected=allow actual=allow
+PASS eval_record_from_protected_grade_report_allow: expected=allow actual=allow
+PASS eval_record_forged_input_deny: expected=allow actual=allow
+PASS antigravity_live_ask_question_model_generic_allow: expected=allow actual=allow
+PASS fast_path_flag_on_complex_prompt_not_bypassed: expected=allow actual=allow
+PASS fast_path_flag_on_typo_still_works: expected=allow actual=allow
+PASS human_config_off_still_works_and_logged_as_config: expected=allow actual=allow
+PASS council_roster_excludes_later_auditors_after_state_loss: expected=allow actual=allow
+PASS plan_ask_window_shows_plain_mirror_not_codes: expected=allow actual=allow
+PASS team_stop_subagent_trigger_blocks_lead_deny: expected=allow actual=allow
+PASS ask_question_batched_run_command_stdout_spoof_deny: expected=allow actual=allow
+PASS shell_node_eval_hermes_triggers_team_stop_deny: expected=allow actual=allow
+PASS logs_exporter_copies_protected_sources_verbatim: expected=allow actual=allow
+PASS logs_exporter_redacts_secrets_and_user_paths: expected=allow actual=allow
+PASS logs_exporter_missing_artifact_recorded_absent_not_fabricated: expected=allow actual=allow
+PASS logs_manifest_hashes_and_git_anchor: expected=allow actual=allow
+PASS logs_agent_direct_write_deny: expected=allow actual=allow
+PASS logs_transcript_shape_has_no_content_by_default: expected=allow actual=allow
+PASS xray_dead_symbol_zero_refs_detected: expected=allow actual=allow
+PASS xray_dynamic_string_call_not_dead: expected=allow actual=allow
+PASS xray_element_never_assigned_detected: expected=allow actual=allow
+PASS xray_empty_catch_and_always_true_detected: expected=allow actual=allow
+PASS xray_unstopped_timer_detected: expected=allow actual=allow
+PASS xray_duplicate_literal_detected: expected=allow actual=allow
+PASS xray_delete_without_zero_ref_proof_deny: expected=allow actual=allow
+PASS xray_packaged_file_not_deleted: expected=allow actual=allow
+PASS xray_report_protected_from_agent_write_deny: expected=deny actual=deny
+PASS xray_debt_ledger_protected_and_hook_only: expected=deny actual=deny
+PASS xray_finding_id_stable_no_duplicates: expected=allow actual=allow
+PASS xray_fixed_detected_on_rescan: expected=allow actual=allow
+PASS xray_window_plain_ru_no_internal_codes: expected=deny actual=deny
+PASS xray_window_max_five_items: expected=deny actual=deny
+PASS xray_consent_negated_deny: expected=allow actual=allow
+PASS xray_fix_now_requires_plan_revision_deny: expected=allow actual=allow
+PASS xray_accepted_risk_stops_nagging: expected=allow actual=allow
+PASS xray_scan_budget_truncated_honest: expected=allow actual=allow
+PASS xray_no_fabricated_quality_scores: expected=allow actual=allow
+PASS export_manifest_contains_gate_modes_and_source: expected=allow actual=allow
+PASS logs_run_dir_immutable_no_overwrite: expected=allow actual=allow
+PASS plugin_scripts_resolve_from_installed_root_in_foreign_repo: expected=allow actual=allow
+PASS xray_window_does_not_hijack_step0_or_post_edit: expected=allow actual=allow
+PASS gate_log_not_created_outside_hermes
+PASS workspacePaths_precedence_in_gate_log
+PASS hooks_json_matcher_excludes_view_and_read_file
+GUARD SUMMARY: 313/313 passed
+✔ Finished clean-edits-guard in 41798ms [PASS]
+
+▶ Running suite: qa-gate (hooks/qa-gate.test.mjs)...
+PASS allow_non_hermes_even_with_edits: expected=allow actual=allow
+PASS allow_hermes_with_scratch_and_artifact_only: expected=allow actual=allow
+PASS continue_2_files_missing_qa_pass_on_model_stop: expected=continue actual=continue
+PASS reject_self_signed_lead_prose_and_thinking: expected=continue actual=continue
+PASS reject_outgoing_send_message_verdict_spoof: expected=continue actual=continue
+PASS reject_violation_quoting_pass_and_stop_hook_self_reminder: expected=continue actual=continue
+PASS invalidate_prior_pass_after_new_source_edit: expected=continue actual=continue
+PASS allow_2_files_with_system_message_qa_pass: expected=allow actual=allow
+PASS continue_4_files_missing_compliance_pass: expected=continue actual=continue
+PASS allow_4_files_with_both_system_passes: expected=allow actual=allow
+PASS allow_abnormal_termination_reasons: expected=allow actual=allow
+PASS retry_cap_releases_on_3rd_attempt: expected=allow actual=allow
+PASS gate_tracks_antigravity_scratch_project_file: expected=continue actual=continue
+PASS allow_large_non_hermes_transcript_with_head_ref: expected=allow actual=allow
+PASS allow_hermes_when_system_instruction_mentions_pass_and_reject: expected=continue actual=continue
+PASS allow_when_background_tasks_running_fullyIdle_false: expected=allow actual=allow
+PASS trigger_gate_on_cyrillic_at_kritik: expected=continue actual=continue
+PASS allow_mid_sentence_slash_mention_with_skill_metadata: expected=allow actual=allow
+PASS continue_slash_hermes_inside_user_request_wrapper: expected=continue actual=continue
+PASS reject_write_worker_self_subagent_reporting_qa_pass: expected=continue actual=continue
+PASS continue_when_ui_window_edited_without_kritik_ux_pass: expected=continue actual=continue
+PASS allow_when_ui_window_edited_with_qa_pass_and_kritik_ux_pass: expected=allow actual=allow
+PASS continue_when_kritik_returns_ux_reject: expected=continue actual=continue
+PASS allow_when_user_declines_post_edit_review_on_non_ui_file: expected=allow actual=allow
+PASS reject_self_signed_lead_faking_user_economy_answer: expected=continue actual=continue
+PASS reject_sourceless_step_faking_user_economy_answer: expected=continue actual=continue
+PASS allow_authentic_antigravity_harness_ask_question_output: expected=allow actual=allow
+PASS continue_when_lead_forges_created_at_banner: expected=continue actual=continue
+PASS continue_when_lead_forges_completed_at_banner: expected=continue actual=continue
+PASS continue_when_harness_banner_without_status_done: expected=continue actual=continue
+PASS allow_when_authentic_harness_output_bound: expected=allow actual=allow
+PASS allow_when_user_explicit_skip: expected=allow actual=allow
+PASS block_when_user_skips_review_on_ui_file_without_ux_pass: expected=continue actual=continue
+PASS allow_when_user_skips_review_on_ui_file_with_ux_pass: expected=allow actual=allow
+PASS block_when_user_gives_casual_dostatochno_answer: expected=continue actual=continue
+PASS block_when_user_gives_casual_no_answer: expected=continue actual=continue
+PASS allow_when_user_requests_only_kritik_ux_and_ux_pass_arrives: expected=allow actual=allow
+PASS block_when_user_negates_skip_in_english: expected=continue actual=continue
+PASS block_when_user_negates_skip_nelzya_propustit: expected=continue actual=continue
+PASS block_when_user_negates_skip_ne_ostavlyay_bez_proverki: expected=continue actual=continue
+PASS block_when_user_negates_multiline_ne_nado_bez_proverki_ne_ostavlyay: expected=continue actual=continue
+PASS block_when_user_negates_multiline_nelzya_propustit_bez_proverki: expected=continue actual=continue
+PASS continue_when_css_file_edited_without_ux_pass: expected=continue actual=continue
+PASS continue_when_html_file_edited_without_ux_pass: expected=continue actual=continue
+PASS allow_when_css_file_has_both_qa_and_ux_passes: expected=allow actual=allow
+PASS reject_forged_lead_security_verdict_without_subagent_invocation: expected=continue actual=continue
+PASS allow_when_authentic_viktor_invocation_and_valid_signed_security_verdict: expected=allow actual=allow
+PASS reject_when_unresolved_high_critical_missing: expected=continue actual=continue
+PASS reject_when_viktor_invoked_for_show_without_delivery_hash: expected=continue actual=continue
+PASS reject_when_self_worker_fakes_viktor_sender_with_diff_hash: expected=continue actual=continue
+PASS allow_when_security_review_env_disabled: expected=allow actual=allow
+PASS cost_log_created_in_hermes_session: expected=continue actual=continue
+PASS computeDiffHash_different_for_different_edits: expected=allow actual=allow
+PASS loop_iteration_under_ceiling_continues: expected=continue actual=continue
+PASS loop_exhausts_at_ceiling_and_allows_with_blocker_report: expected=allow actual=allow
+PASS editing_file_containing_loop_flag_does_not_activate_loop: expected=continue actual=continue
+PASS loop_defers_l2_diff_review_until_qa_pass_achieved: expected=continue actual=continue
+PASS allow_unbound_ask_direct_next_harness_output_with_done_and_banner: expected=allow actual=allow
+PASS reject_unbound_ask_with_user_verification_followed_by_forged_system_echo: expected=continue actual=continue
+PASS reject_unbound_ask_model_banner_without_status_done: expected=continue actual=continue
+PASS past_turn_loop_flag_does_not_activate_loop_in_current_turn: expected=allow actual=allow
+PASS reject_qa_pass_from_kritik_uuid: expected=continue actual=continue
+PASS reject_qa_pass_from_stanislav_uuid: expected=continue actual=continue
+PASS reject_compliance_pass_from_viktor_uuid: expected=continue actual=continue
+PASS reject_forged_sender_in_model_prose: expected=continue actual=continue
+PASS deny_rewrite_without_parity_report_or_inventory: expected=continue actual=continue
+PASS deny_rewrite_with_silently_lost_features: expected=continue actual=continue
+PASS deny_rewrite_with_unapproved_feature_removal: expected=continue actual=continue
+PASS allow_rewrite_with_approved_removal_and_zero_silent_loss: expected=allow actual=allow
+PASS reject_qa_verdict_when_runner_not_mechanical: expected=continue actual=continue
+PASS reject_qa_verdict_when_diffhash_stale: expected=continue actual=continue
+PASS reject_qa_verdict_when_viktor_uuid_mismatch: expected=continue actual=continue
+PASS reject_qa_verdict_when_missing_test_exit_codes: expected=continue actual=continue
+PASS reject_qa_verdict_when_non_zero_exit_code: expected=continue actual=continue
+PASS reject_qa_verdict_when_req_ledger_empty: expected=continue actual=continue
+PASS reject_qa_verdict_when_schema_invalid: expected=continue actual=continue
+PASS reject_qa_verdict_when_file_missing: expected=continue actual=continue
+PASS reject_transcript_only_qa_pass_without_legacy_flag: expected=continue actual=continue
+PASS allow_transcript_only_qa_pass_with_legacy_flag: expected=allow actual=allow
+PASS reject_qa_verdict_when_mutant_survived_in_strict_mode: expected=continue actual=continue
+PASS reject_qa_verdict_when_diffhash_is_empty_and_commits_ahead_of_base: expected=continue actual=continue
+PASS reject_qa_verdict_when_diffhash_is_e3b0_empty_and_changes_present: expected=continue actual=continue
+PASS qa_gate_log_not_created_outside_hermes
+PASS qa_gate_workspacePaths_precedence_in_gate_log
+PASS diffhash_different_for_different_head_commits (hash1=2fa9204c6ee4626e, hash2=b2917960f4fb894d)
+PASS reject_qa_verdict_when_new_commit_invalidates_old_diffhash
+PASS qa_runner_and_qa_gate_consistency_identical_diffhash (hash=c4354dcdc0dd8b21)
+[QA RUNNER] Executing NPM package test script: npm test
+[QA RUNNER] Successfully wrote mechanical verdict: %USER%\AppData\Local\Temp\hermes-runner-regen-7Pfjpo\.hermes\qa-verdict.json (status=PASS)
+PASS qa_runner_regenerates_valid_verdict_with_real_diffhash (diffHash=cf969e21e8e19f46)
+PASS reject_stale_verdict_after_uncommitted_tracked_edit
+PASS reject_stale_verdict_after_untracked_file_added
+PASS diffhash_covers_full_state (commit=b8c2c51d9ae463b1, tracked=1cd5ba29bc9f443e, untracked=e3a17a26687a2b93)
+PASS diffhash_hermetically_ignores_dot_hermes_without_gitignore (hash=b8c2c51d9ae463b1)
+PASS reject_verdict_when_mutation_unavailable_in_strict_mode
+PASS reject_verdict_when_prompt_requirements_not_covered
+PASS reject_verdict_when_viktor_uuid_missing
+PASS reject_verdict_when_acktoken_is_static_default
+PASS reject_verdict_when_delivery_text_missing_diffhash
+PASS reject_verdict_when_conversation_id_missing
+PASS reject_verdict_when_conversation_id_mismatch
+PASS reject_verdict_when_turn_marker_missing
+PASS reject_verdict_when_turn_marker_mismatch
+PASS reject_verdict_when_mutation_report_stale_in_strict_mode
+[QA RUNNER] Executing NPM package test script: npm test
+[QA RUNNER] Successfully wrote mechanical verdict: %USER%\AppData\Local\Temp\hermes-runner-optout-xYFaSZ\.hermes\qa-verdict.json (status=PASS)
+PASS allow_qa_runner_when_opt_out_require_req_ledger
+PASS qa_gate_appends_mechanical_lesson_on_qa_reject
+PASS rubric_hash_mismatch_grade_reject_deny
+PASS grade_report_from_authentic_grader_delivery_allow
+PASS grade_forged_lead_prose_deny
+PASS grade_from_council_member_deny
+PASS grade_from_write_worker_deny
+PASS grade_unknown_item_needs_human_deny
+PASS grade_missing_reqid_coverage_deny
+PASS grade_evidence_path_line_must_resolve_deny
+PASS stop_without_grade_for_plan_task_deny
+PASS stop_with_grade_pass_allow
+PASS stop_user_override_validated_allow
+PASS stop_override_negated_deny
+PASS stop_override_forged_prose_deny
+PASS grade_rework_ceiling_escalates_user
+PASS micro_task_no_grade_gate_allow
+PASS l2_binding_exact_accept
+PASS l2_binding_single_fifo_accept_logged
+PASS l2_binding_multi_uncertain_reject
+PASS stop_grade_never_bypassed_by_max_returns_with_missing_qa_deny
+PASS stop_override_invalidated_by_new_edit_deny
+PASS l2_binding_rejects_planner_prose_uuid_spoof
+PASS l2_binding_denied_invoke_does_not_shift_fifo
+PASS xray_never_denies_and_scanner_error_fail_open
+PASS xray_window_does_not_overwrite_stop_post_edit_answer
+QA-GATE SUMMARY: 128/128 passed
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA RUNNER WARNING] requireReqLedger is disabled: running with empty requirement ledger (reduced assurance).
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+[QA GATE DEPRECATION WARNING] qaVerdictMode is "legacy": accepting [QA PASS] token from transcript alone without mechanical artifact. Migrate to "artifact" mode.
+✔ Finished qa-gate in 30617ms [PASS]
+
+▶ Running suite: rule-engine (hooks/rule-engine.test.mjs)...
+PASS parseSimpleYamlFrontmatter name
+PASS parseSimpleYamlFrontmatter action
+PASS parseSimpleYamlFrontmatter conditions length
+PASS parseSimpleYamlFrontmatter operator
+PASS parseSimpleYamlFrontmatter body
+PASS condition regex_match
+PASS condition contains
+PASS condition not_contains
+PASS condition equals
+PASS condition starts_with
+PASS condition ends_with
+PASS fail-open on bad regex
+PASS fail-open on bad yaml
+PASS loadRules ignores disabled
+PASS evaluateRules blocks on matching rule
+PASS evaluateRules identifies blocking rule
+PASS evaluateRules does not block on warn-only
+PASS evaluateRules identifies warning rule
+PASS evaluateRules filters by event
+PASS formatRulesSummary outputs rule table
+RULE-ENGINE SUMMARY: 20/20 passed
+✔ Finished rule-engine in 89ms [PASS]
+
+▶ Running suite: session-report (hooks/session-report.test.mjs)...
+PASS session_report_generates_markdown_with_freshness_and_zero_token_fabrication
+PASS session_report_flags_stale_data_warning_when_last_event_older_than_24h
+PASS session_report_resolves_workspacePaths_payload
+PASS session_report_calculates_resolved_rate_when_findings_present
+PASS session_report_honesty_zero_data_outputs_net_dannyh
+PASS session_report_aggregates_otel_gen_ai_tokens_when_present
+SESSION-REPORT SUMMARY: 6/6 passed
+✔ Finished session-report in 963ms [PASS]
+
+▶ Running suite: eval-harness (hooks/eval-harness.test.mjs)...
+Running Hermes Eval Harness (Deterministic Prompt Trigger Test Suite)...
+[EVAL HARNESS PASS] 71/71 deterministic trigger tests passed successfully.
+✔ Finished eval-harness in 77ms [PASS]
+
+▶ Running suite: contract-validator (skills/compliance-policy-as-code/scripts/contract-validator.test.mjs)...
+PASS valid_contract_proposal
+PASS invalid_contract_proposal_missing_endpoints
+PASS invalid_contract_proposal_bad_enum_status
+PASS valid_patch_blueprint
+PASS invalid_patch_blueprint_missing_replacement
+PASS valid_security_verdict
+PASS invalid_security_verdict_non_zero_unresolved
+PASS valid_qa_verdict
+PASS invalid_qa_verdict_bad_status
+CONTRACT-VALIDATOR SUMMARY: 9/9 passed
+✔ Finished contract-validator in 90ms [PASS]
+
+▶ Running suite: doc-lint (hooks/doc-lint.test.mjs)...
+PASS verify_hybrid_rag_patterns
+PASS verify_zero_alloc_patterns
+PASS verify_living_c4_patterns
+PASS verify_ast_modernization_patterns
+PASS verify_thermonuclear_review
+PASS verify_winforms_patterns
+PASS verify_fault_injection_patterns
+PASS verify_deadlock_killer_patterns
+PASS verify_office_documents_patterns
+PASS verify_vram_hygiene_patterns
+PASS verify_nielsen_roast_patterns
+PASS verify_flaui_desktop_e2e
+PASS verify_frame_disassembly_patterns
+PASS verify_sap_nco_hygiene
+PASS verify_pipeline_streaming_patterns
+DOC-LINT SUMMARY: 15/15 passed
+✔ Finished doc-lint in 1170ms [PASS]
+
+▶ Running suite: refinery (hooks/refinery.test.mjs)...
+PASS validate_branch_name_valid
+PASS validate_branch_name_rejects_flags_and_injections
+PASS bisect_candidates_all_pass
+PASS bisect_candidates_isolates_single_culprit
+PASS run_refinery_positive_green_batch
+PASS run_refinery_bisection_on_red_batch
+PASS run_refinery_fail_open_safe_rollback
+PASS sync_tasks_json_updates_statuses_and_preserves_subagents
+PASS refinery_module_pure_exports
+REFINERY SUMMARY: 9/9 passed
+✔ Finished refinery in 86ms [PASS]
+
+▶ Running suite: journal (hooks/journal.test.mjs)...
+PASS append_journal_entry_with_diffhash_and_otel
+PASS replay_journal_wave_transitions
+PASS crash_mid_wave_recovery_simulation
+PASS resume_detects_drift_when_diffhash_diverges
+PASS journal_auto_rotation_at_512kb
+JOURNAL SUMMARY: 5/5 passed
+✔ Finished journal in 2050ms [PASS]
+
+▶ Running suite: consistency (hooks/consistency.test.mjs)...
+PASS agents_count_14
+PASS skills_count_22
+PASS no_stale_counters_in_docs
+PASS all_agents_registered_in_trigger
+PASS version_alignment
+PASS license_alignment
+PASS agent_frontmatter_and_unique_names
+PASS skill_frontmatter_and_unique_names
+PASS markdown_reference_links_integrity
+PASS third_party_notices_attribution
+PASS wave2_artifacts_and_adr_integrity
+PASS specialized_agent_cards_size_budget
+PASS wave3_artifacts_and_contracts_integrity
+PASS cognitive_skill_registered
+PASS doc_lint_verify_scripts_pass
+PASS donor_skills_references_and_attribution_integrity
+PASS fleet_core_protocol_size_and_orchestrator_references_integrity
+PASS anti_drift_changelog_readme_and_dynamic_skills_locks
+PASS council_critic_artifact_first_clause_present
+PASS eval_cards_schema_valid
+PASS no_a2a_in_roadmap
+PASS test_run_does_not_mutate_live_hermes_dir
+PASS eval_006_schema_valid
+CONSISTENCY SUMMARY: 23/23 passed
+✔ Finished consistency in 73626ms [PASS]
+
+====================================================
+ 📊 HERMES FLEET TEST EXECUTION SUMMARY (Rule 13)
+====================================================
+ Timestamp: 2026-11-18T11:41:35.153Z
+ Summary written to: %USER%\.gemini\config\plugins\hermes-fleet\.hermes\test-summary.json
+
+| Suite Name | Passed | Total | Status |
+| :--- | :--- | :--- | :--- |
+| context-injector     |     20 |    20 | ✅ PASS |
+| clean-edits-guard    |    313 |   313 | ✅ PASS |
+| qa-gate              |    128 |   128 | ✅ PASS |
+| rule-engine          |     20 |    20 | ✅ PASS |
+| session-report       |      6 |     6 | ✅ PASS |
+| eval-harness         |     71 |    71 | ✅ PASS |
+| contract-validator   |      9 |     9 | ✅ PASS |
+| doc-lint             |     15 |    15 | ✅ PASS |
+| refinery             |      9 |     9 | ✅ PASS |
+| journal              |      5 |     5 | ✅ PASS |
+| consistency          |     23 |    23 | ✅ PASS |
+----------------------------------------------------
+| TOTAL                |    619 |   619 | ✅ ALL PASS |
+====================================================
+
+✅ [HERMES TEST RUNNER] All test suites passed successfully.
+
+Hermes Fleet v4.7.2 installed successfully!
+1. Open a new chat in Google Antigravity.
+2. Trigger with: /hermes or @dmitry, @elena, @kritik, @viktor, @stanislav
+==========================================

@@ -1,0 +1,25 @@
+{
+  "taskHash": "9fe7459b736b9959",
+  "conversationId": "5e6e845e-f662-4f5f-8272-9e1339360ac1",
+  "planHash": "a47c5c1ec8d915d8a605cea33d30416a6b5a4fa9e474fc8c06ee9a309ddcbf45",
+  "previousPlanHash": "17c73563d7963e52cdec35ed84f109ea26cf58ac7d37af52c43d06ab1af18ffb",
+  "rubricHash": "e97851a6dab4e673f9f6445a5b0d4c4398276ba2427c3938c17d8f9c3f999705",
+  "previousRubricHash": "2bd86911f016f917e192bc822bb575da11c15a902cedddfe6190f2df75773ed8",
+  "status": "confirmed",
+  "confirmedAt": "2026-11-18T10:57:09.055Z",
+  "version": 2,
+  "confirmedAskStepIdx": 845,
+  "confirmedAskToolCallId": null,
+  "reqIds": [
+    "REQ-1",
+    "REQ-2",
+    "REQ-3",
+    "REQ-4",
+    "REQ-5",
+    "REQ-6",
+    "REQ-7",
+    "REQ-8",
+    "REQ-9",
+    "REQ-10"
+  ]
+}

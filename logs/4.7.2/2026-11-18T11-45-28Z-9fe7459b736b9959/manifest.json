@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "version": "4.7.2",
+  "exportedAt": "2026-11-18T11:45:28.282Z",
+  "nodeVersion": "v22.23.4",
+  "platform": "win32",
+  "taskHash": "9fe7459b736b9959",
+  "releaseCommitHash": "ed7c679d5ccd2beca318bdaba93bb5e896c1ee9c",
+  "releaseTreeHash": "1b589d77bf01fd33a3a7ce351c8ceed3133ef324",
+  "verdictDiffHash": "bfeda1bdb8d72eb2",
+  "gateModes": {
+    "councilGate": {
+      "mode": "ask",
+      "source": "config:.hermes/config.json"
+    },
+    "planGate": {
+      "mode": "ask",
+      "source": "default"
+    },
+    "gradeGate": {
+      "mode": "strict",
+      "source": "default"
+    },
+    "xray": {
+      "mode": "advisory",
+      "source": "default"
+    },
+    "qaVerdictMode": {
+      "mode": "artifact",
+      "source": "default"
+    }
+  },
+  "includeTranscript": false,
+  "maxFileBytes": 2097152,
+  "files": {
+    "test-summary.json": {
+      "status": "present",
+      "source": ".hermes/test-summary.json",
+      "size": 1265,
+      "sha256": "2e2bcff0492b80aa564a60d44ee4480335ebf335f2bcddc9aa3dee2444e40d45"
+    },
+    "gate-log.jsonl": {
+      "status": "present",
+      "source": ".hermes/gate-log.jsonl",
+      "size": 144009,
+      "sha256": "f32eca131f3bd733805e536e50bfe68bb3bded83a1b5a0ae787b4f8dfd5f2a49"
+    },
+    "council-state.json": {
+      "status": "present",
+      "source": ".hermes/council-state.json",
+      "size": 544,
+      "sha256": "2581e09d1309ee17d51f83c3b085b07d7d8d61e06c4fcfefe7837c54ce02a1b9"
+    },
+    "council-outcomes.jsonl": {
+      "status": "present",
+      "source": ".hermes/council-outcomes.jsonl",
+      "size": 2348,
+      "sha256": "9e66ff52c28dcddb9939c1c8215520b65252e1d0e5a65e956d9e2699e4f41f7a"
+    },
+    "council-cost.jsonl": {
+      "status": "absent",
+      "source": ".hermes/council-cost.jsonl"
+    },
+    "progress-journal.jsonl": {
+      "status": "present",
+      "source": ".hermes/progress-journal.jsonl",
+      "size": 816,
+      "sha256": "8e9f9485e1e149e6b60a90d46cc8cf8f8f21d765044a73274d62f68fbb850d06"
+    },
+    "lessons.jsonl": {
+      "status": "present",
+      "source": ".hermes/lessons.jsonl",
+      "size": 2671,
+      "sha256": "d6550e9281b53bdb522d9208416929f22f737439072f71d0ebb8451f9670ec6b"
+    },
+    "qa-verdict.json": {
+      "status": "present",
+      "source": ".hermes/qa-verdict.json",
+      "size": 731,
+      "sha256": "23368d1a07b4d4b23906ad09a22a8f412e26a99aada7f84941e89b9c44ab97b1"
+    },
+    "security-verdict.json": {
+      "status": "absent",
+      "source": ".hermes/security-verdict.json"
+    },
+    "plan-state.json": {
+      "status": "present",
+      "source": ".hermes/plan-state.json",
+      "size": 743,
+      "sha256": "3c9676ff73ef5b81f16619f7f4d08c2b6cdb85f7c7b4f5b6b0e757259a37dfba"
+    },
+    "plan-ledger.jsonl": {
+      "status": "present",
+      "source": ".hermes/plan-ledger.jsonl",
+      "size": 953,
+      "sha256": "c126c1d52a1e999ed57ef1ac0b2e92f5238c6e33e7ad9b22bb8542bee6118b3a"
+    },
+    "rubric.json": {
+      "status": "present",
+      "source": ".hermes/rubric.json",
+      "size": 8580,
+      "sha256": "266922d206c361513c999aef67ea35c64a8c37e575444acc2b93ded961a83de7"
+    },
+    "grade-report.json": {
+      "status": "present",
+      "source": ".hermes/grade-report.json",
+      "size": 1915,
+      "sha256": "6ddd3598efe73b6ce5d1c4f99db686e17dbf2bc1078b177aa23792830a24f041"
+    },
+    "grade-ledger.jsonl": {
+      "status": "present",
+      "source": ".hermes/grade-ledger.jsonl",
+      "size": 2065,
+      "sha256": "6738f40945261fc422166558c91e606db34efaea530a5f71692ef45889103e69"
+    },
+    "team-stop.json": {
+      "status": "absent",
+      "source": ".hermes/team-stop.json"
+    },
+    "eval-results.jsonl": {
+      "status": "absent",
+      "source": ".hermes/eval-results.jsonl"
+    },
+    "xray-report.json": {
+      "status": "present",
+      "source": ".hermes/xray-report.json",
+      "size": 175164,
+      "sha256": "a5d0325ff8e0bff2b3865555101a21a736c5ac30a6d3297433f94359a1d0ccde"
+    },
+    "debt-ledger.jsonl": {
+      "status": "present",
+      "source": ".hermes/debt-ledger.jsonl",
+      "size": 91661,
+      "sha256": "307d4ff29c012e69037758501a8206f17f29571d89ec6f82fdf37f9f1ccd071d"
+    },
+    "plan.md.txt": {
+      "status": "present",
+      "source": ".hermes/plan.md",
+      "size": 9069,
+      "sha256": "4f5c646b0ded355534b31c3ca48652c2e1e2f597fed219b0f64e82627d06d13f"
+    },
+    "decisions.md.txt": {
+      "status": "present",
+      "source": ".hermes/decisions.md",
+      "size": 4369,
+      "sha256": "ac0ca327da51c7a1834618d91cfedf96766670b29017ef8923e0f44bd9ab1e39"
+    },
+    "npm-test.log": {
+      "status": "present",
+      "source": "cli:npm-test",
+      "size": 45111,
+      "sha256": "69a559cf91236cbc7bdc0c3401862ddb0157044dc73b9c2860911b5a5ad2e36d"
+    },
+    "verify.log": {
+      "status": "present",
+      "source": "cli:verify",
+      "size": 45115,
+      "sha256": "8997932ea7b8d73115af31820434cbf3d66204aa02e8ed53d70675e1a56a7032"
+    },
+    "install.log": {
+      "status": "present",
+      "source": "cli:install",
+      "size": 45764,
+      "sha256": "34c9a5fb72d40f56ae558d66857e2ca66da42edf80402a1c8f23aec9041c8a53"
+    },
+    "transcript-shape.jsonl": {
+      "status": "present",
+      "source": "transcript:shape_only",
+      "size": 167910,
+      "sha256": "7e6f48002af6f05919311ceca99231b05b21376eb156cef28af22a8e6fe7cf72"
+    },
+    "git-state.json": {
+      "status": "present",
+      "source": "mechanical:git",
+      "size": 190,
+      "sha256": "a6764a1c7d404b1b0364b8f275280b9a7b54c87867253333039d6cf458be760a"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+# 🏛️ Решения круглого стола — Hermes Fleet v4.7.2 «Рентген» (TASK-019)
+
+**Дата:** 2026-11-18
+**Режим совета:** 3-стадийный круглый стол NGT/Дельфи (`@dmitry`, `@kritik`, `@anna`).
+**Итог тайного ранжирования (R3, метод Борда):**
+1. **Вариант 1 — 9/9 баллов** (1-е место единогласно: `@dmitry`, `@kritik`, `@anna`)
+2. **Вариант 2 — 6/9 баллов** (2-е место единогласно)
+3. **Вариант 3 — 3/9 баллов** (3-е место единогласно)
+
+**Несогласие (Dissent):** нет (`@kritik` выдал `🟢 [CONVERGED]` после устранения 4 критических рисков в R2).
+
+## Авторство принятого решения (для council-learning)
+- **Ведущий автор архитектуры:** `@dmitry` (`1a216091-699c-45d3-a7a7-7dabc5ad3107`) — 2-pass сканер `scripts/xray-scan.mjs`, тонкий `hooks/xray-ledger.mjs`, остаточный бюджет Stop-хука (`Math.min(5000, Math.max(500, 7500 - elapsedMs))`), `truncated`-safe `fixed`, `resolvePluginRoot`/`resolvePluginScript`, иммутабельные run-каталоги и `manifest.gateModes`.
+- **Ключевые соавторы:**
+  - `@kritik` (`c9775d77-b723-4df2-a2ce-024b0f30496c`) — 3-точечная защита от угона Step 0 и Post-Edit Token Economy (`clean-edits-guard.mjs:2608,2631`, `qa-gate.mjs:479`), разделение Write Fail-Closed vs Advisory Read Fail-Open на 21 защищённом пути, хирургический 4-условный `xray_delete_without_zero_ref_proof_deny`, zero-scores/zero-codes линт окна и `eval-006.json`.
+  - `@anna` (`af19eebc-d966-4e38-ac5a-92f28e651af4`) — `skills/hermes/references/xray-protocol.md` (`+0 B` на ядре), CI-ловушка `consistency.test.mjs:191` (запрет фейковых markdown-ссылок в code blocks), синхронный апдейт `19 → 21` в `known-boundaries.md` и `consistency.test.mjs`, закрытие дыр Quick Code Index, `TASK-019`/`TASK-020`/`TASK-021`.
+
+## Зафиксированный контракт v4.7.2
+1. `scripts/xray-scan.mjs` (pure stdlib ESM, без сети): находка `{ id, rule, class, category, path, line, symbol, evidence, impact, refs }`, где `class: 'fact' | 'hypothesis'`, `category: 'dead' | 'stub' | 'fragile'`, `impact: 'lies_to_user' | 'brick_risk' | 'resource_waste' | 'cosmetic'`, бюджет `<=2000` файлов / `<=2 МБ` / `10s` (CLI) и остаточный `<=5s` (Stop), адаптеры JS/ES5 + HTML/CSS + generic (C#/XAML честно вне скоупа).
+2. `hooks/xray-ledger.mjs`: защита `.hermes/xray-report.json` и `.hermes/debt-ledger.jsonl` от записи агента (`DEFAULT_PROTECTED_VERDICT_PATHS` = 21 путь = 19 + 2), при этом чтение в advisory-путях строго fail-open (`try/catch` + `xray_error` в `gate-log.jsonl`). Статусы долга: `open | debt | accepted | fixed`.
+3. `hooks/consent-validator.mjs`: единые `isXrayWindowAskArgs`, `lintXrayWindowText` (≤5 пунктов, 3 корзины, 0 внутренних кодов, 0 процентов/скоров), `classifyXrayWindowConsent` (опции `[Почини сейчас]`, `[Запиши в долг]`, `[Не трогай]` с negation-guard и partial-scope).
+4. `hooks/clean-edits-guard.mjs` + `hooks/qa-gate.mjs` + `hooks/context-injector.mjs`: advisory X-ray строго на `allow`-ветке Stop (никогда не даёт `deny`); `context-injector.mjs` подгружает ≤3 долгов `open`/`debt` в бюджете ≤1024 B отдельно от `lessons.jsonl`; 3-точечный `!isXrayWindowAskArgs`; хирургический 4-условный `xray_delete_without_zero_ref_proof_deny`; `xray_fix_now_requires_plan_revision_deny`.
+5. `hooks/workspace.mjs` + `scripts/export-logs.mjs` + `.gitignore`: `resolvePluginRoot`/`resolvePluginScript`, чтение версии из `resolvePluginRoot()/plugin.json`, `manifest.gateModes` с `source`, атомарный отказ от перезаписи `outDir`, экспорт `xray-report.json` и `debt-ledger.jsonl`, `!logs/**/*.log`.
