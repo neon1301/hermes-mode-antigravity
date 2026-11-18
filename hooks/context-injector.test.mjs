@@ -275,6 +275,45 @@ const cases = [
         lastUserInput: '/hermes start feature'
       });
     }
+  },
+  {
+    name: 'xray_debt_injected_within_budget',
+    check: (res) => {
+      const msg = String(res.injectSteps?.[0]?.systemMessage?.systemMessage || '');
+      const marker = '## 🩺 Открытый долг продукта';
+      const idx = msg.indexOf(marker);
+      if (idx < 0) return false;
+      const debtSection = msg.slice(idx);
+      const byteLen = Buffer.byteLength(debtSection, 'utf-8');
+      const bulletCount = debtSection.split(/\r?\n/).filter((l) => l.startsWith('- [')).length;
+      return byteLen <= 1024
+        && bulletCount >= 1
+        && bulletCount <= 3
+        && debtSection.includes('src/target.js')
+        && !debtSection.includes('acceptedRiskFn')
+        && !debtSection.includes('fixedOldFn');
+    },
+    run: () => {
+      const debtDir = path.join(tmpDir, 'proj_debt', '.hermes');
+      fs.mkdirSync(debtDir, { recursive: true });
+      const rows = [
+        { id: 'd1', status: 'open', path: 'src/target.js', line: 12, symbol: 'pollLoop', rule: 'fragile.unstopped_timer', impact: 'resource_waste', evidence: 'src/target.js:12', source: 'mechanical', ts: '2026-11-18T00:00:00Z' },
+        { id: 'd2', status: 'debt', path: 'src/other1.js', line: 5, symbol: 'emptyErr', rule: 'stub.empty_catch', impact: 'brick_risk', evidence: 'src/other1.js:5', source: 'user_ask_question:xray', ts: '2026-11-18T00:01:00Z' },
+        { id: 'd3', status: 'open', path: 'src/other2.js', line: 9, symbol: 'alwaysOk', rule: 'stub.always_true_return', impact: 'lies_to_user', evidence: 'src/other2.js:9', source: 'mechanical', ts: '2026-11-18T00:02:00Z' },
+        { id: 'd4', status: 'debt', path: 'src/other3.js', line: 20, symbol: 'fourthItem', rule: 'stub.todo_fixme', impact: 'cosmetic', evidence: 'src/other3.js:20', source: 'mechanical', ts: '2026-11-18T00:03:00Z' },
+        { id: 'd5', status: 'accepted', path: 'src/target.js', line: 30, symbol: 'acceptedRiskFn', rule: 'fragile.unstopped_timer', impact: 'lies_to_user', evidence: 'src/target.js:30', source: 'user_ask_question:xray', ts: '2026-11-18T00:04:00Z' },
+        { id: 'd6', status: 'fixed', path: 'src/target.js', line: 40, symbol: 'fixedOldFn', rule: 'dead.unused_symbol', impact: 'lies_to_user', evidence: 'src/target.js:40', source: 'mechanical', ts: '2026-11-18T00:05:00Z' }
+      ];
+      fs.writeFileSync(
+        path.join(debtDir, 'debt-ledger.jsonl'),
+        rows.map((r) => JSON.stringify(r)).join('\n') + '\n{BROKEN_JSON_LINE\n',
+        'utf-8'
+      );
+      return runInjector({
+        cwd: path.join(tmpDir, 'proj_debt'),
+        lastUserInput: '/hermes исправь src/target.js'
+      });
+    }
   }
 ];
 

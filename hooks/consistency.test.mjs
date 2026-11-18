@@ -317,10 +317,10 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 11 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 22,
-    'context-injector': 19,
-    'clean-edits-guard': 290,
-    'qa-gate': 126,
+    'consistency': 23,
+    'context-injector': 20,
+    'clean-edits-guard': 313,
+    'qa-gate': 128,
     'rule-engine': 20,
     'session-report': 6,
     'eval-harness': 71,
@@ -645,7 +645,7 @@ await test('eval_cards_schema_valid', () => {
   }
 });
 
-// 21. REQ-9 (v4.7.1): No A2A in README Roadmaps, A2A rejected in backlog/boundaries, 19 protected paths
+// 21. REQ-9 (v4.7.1) + REQ-3 (v4.7.2): No A2A in README Roadmaps, A2A rejected in backlog/boundaries, 21 protected paths
 await test('no_a2a_in_roadmap', async () => {
   for (const doc of ['README.md', 'README.ru.md']) {
     const content = fs.readFileSync(path.join(rootDir, doc), 'utf-8');
@@ -660,12 +660,12 @@ await test('no_a2a_in_roadmap', async () => {
     throw new Error('docs/backlog.md must record A2A as HOLD/REJECTED citing Worse Together');
   }
   const boundaries = fs.readFileSync(path.join(rootDir, 'docs', 'known-boundaries.md'), 'utf-8');
-  if (!/Worse Together/i.test(boundaries) || !/19/.test(boundaries)) {
-    throw new Error('docs/known-boundaries.md must document A2A rejection (Worse Together) and 19 protected paths');
+  if (!/Worse Together/i.test(boundaries) || !/21/.test(boundaries)) {
+    throw new Error('docs/known-boundaries.md must document A2A rejection (Worse Together) and 21 protected paths');
   }
   const cv = await import('./consent-validator.mjs');
-  if (!Array.isArray(cv.DEFAULT_PROTECTED_VERDICT_PATHS) || cv.DEFAULT_PROTECTED_VERDICT_PATHS.length !== 19) {
-    throw new Error(`Expected 19 protected paths in DEFAULT_PROTECTED_VERDICT_PATHS, got ${cv.DEFAULT_PROTECTED_VERDICT_PATHS?.length}`);
+  if (!Array.isArray(cv.DEFAULT_PROTECTED_VERDICT_PATHS) || cv.DEFAULT_PROTECTED_VERDICT_PATHS.length !== 21) {
+    throw new Error(`Expected 21 protected paths in DEFAULT_PROTECTED_VERDICT_PATHS, got ${cv.DEFAULT_PROTECTED_VERDICT_PATHS?.length}`);
   }
 });
 
@@ -709,6 +709,45 @@ await test('test_run_does_not_mutate_live_hermes_dir', async () => {
     }
   } finally {
     fs.rmSync(seededWs, { recursive: true, force: true });
+  }
+});
+
+// 23. REQ-7d, REQ-8 & REQ-10 (v4.7.2): eval-006 schema valid, scripts/xray-scan.mjs & xray-protocol.md present, logs/ excluded from install
+await test('eval_006_schema_valid', () => {
+  const eval6Path = path.join(rootDir, 'docs', 'evals', 'eval-006.json');
+  if (!fs.existsSync(eval6Path)) throw new Error('docs/evals/eval-006.json is missing');
+  const card = JSON.parse(fs.readFileSync(eval6Path, 'utf-8'));
+  if (card.id !== 'eval-006') throw new Error(`eval-006.json id mismatch: ${card.id}`);
+  for (const field of ['source_incident', 'prompt', 'rubric', 'answer_key', 'pass_threshold', 'run_protocol']) {
+    if (card[field] === undefined || card[field] === null) {
+      throw new Error(`eval-006.json missing required field '${field}'`);
+    }
+  }
+  if (!/2f600cf/i.test(card.source_incident) || !/dogfood/i.test(card.source_incident)) {
+    throw new Error('eval-006.json source_incident must reference tailscale 2f600cf and dogfood findings');
+  }
+  const stripped = card.run_protocol?.stripped_fields;
+  if (!Array.isArray(stripped) || !stripped.includes('answer_key')) {
+    throw new Error('eval-006.json run_protocol.stripped_fields must include answer_key');
+  }
+  // Verify scripts/xray-scan.mjs & xray-protocol.md are shipped in rootDir (self-test checks installed copy too!)
+  const xrayScanPath = path.join(rootDir, 'scripts', 'xray-scan.mjs');
+  if (!fs.existsSync(xrayScanPath)) {
+    throw new Error('scripts/xray-scan.mjs missing from plugin payload');
+  }
+  const xrayProtoPath = path.join(rootDir, 'skills', 'hermes', 'references', 'xray-protocol.md');
+  if (!fs.existsSync(xrayProtoPath)) {
+    throw new Error('skills/hermes/references/xray-protocol.md missing');
+  }
+  const xrayProto = fs.readFileSync(xrayProtoPath, 'utf-8');
+  if (!/fail-open/i.test(xrayProto) || !/C#\s*\/\s*XAML/i.test(xrayProto)) {
+    throw new Error('xray-protocol.md must document fail-open rationale and C#/XAML out-of-scope boundary');
+  }
+  // Verify install.ps1 and install.sh include scripts and exclude logs/
+  const ps1 = fs.readFileSync(path.join(rootDir, 'install.ps1'), 'utf-8');
+  const sh = fs.readFileSync(path.join(rootDir, 'install.sh'), 'utf-8');
+  if (!/"scripts"/.test(ps1) || !/"logs"/.test(ps1) || !/"scripts"/.test(sh) || !/\/logs/.test(sh)) {
+    throw new Error('install.ps1 / install.sh must copy scripts/ and clean/exclude logs/');
   }
 });
 

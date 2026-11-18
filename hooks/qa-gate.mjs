@@ -16,12 +16,15 @@ import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
 import { computeWorkingTreeDiffHash, resolveBaseRef, getHermesConfig } from './qa-runner.mjs';
-import { CorruptArtifactError, resolveTaskContext } from './consent-validator.mjs';
+import { CorruptArtifactError, isXrayWindowAskArgs, resolveTaskContext } from './consent-validator.mjs';
 import { recordMechanicalLesson } from './lessons-ledger.mjs';
 import { bindSubagentsFromSteps, splitSystemDeliveries } from './subagent-binding.mjs';
 import { evaluateGradeGate } from './grade-gate.mjs';
 import { computeCanonicalPlanHash } from './plan-gate.mjs';
+import { readXrayConfig } from './xray-ledger.mjs';
+import { runXrayScan } from '../scripts/xray-scan.mjs';
 
+const hookStartMs = Date.now();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
@@ -144,6 +147,43 @@ function logGateDecision({ decision, reason, missing, bindingConfidence, source,
 function allow(meta = {}) {
   logGateDecision({ decision: 'allow', ...meta });
   process.stdout.write(JSON.stringify({ decision: 'allow' }));
+}
+
+/**
+ * Advisory fail-open X-ray scan on Stop allow path (REQ-6, v4.7.2).
+ * NEVER blocks Stop and NEVER alters the `allow` decision.
+ * Errors or insufficient timeout headroom are logged honestly as `xray_error` in gate-log.jsonl.
+ */
+function runAdvisoryXrayFailOpen(taskHash) {
+  if (!isHermesSession) return;
+  try {
+    const cfg = readXrayConfig(activeWorkspaceDir);
+    if (cfg.mode === 'off') return;
+    if (process.env.HERMES_XRAY_FORCE_ERROR === '1') {
+      throw new Error('simulated_xray_scanner_failure');
+    }
+    const elapsedMs = Date.now() - hookStartMs;
+    const residualMs = Math.min(5000, 7500 - elapsedMs);
+    if (residualMs < 400) {
+      logGateDecision({
+        decision: 'warn',
+        reason: `xray_error: Stop hook timeout headroom exhausted (${elapsedMs}ms elapsed) — skipped fail-open`,
+        source: 'xray:fail_open'
+      });
+      return;
+    }
+    runXrayScan(activeWorkspaceDir, {
+      timeboxMs: residualMs,
+      writeArtifacts: true,
+      taskHash: taskHash || 'unknown'
+    });
+  } catch (err) {
+    logGateDecision({
+      decision: 'warn',
+      reason: `xray_error: ${err?.message || 'scanner failed'} (fail-open advisory)`,
+      source: 'xray:fail_open'
+    });
+  }
 }
 
 function blockStop(reason, meta = {}) {
@@ -476,7 +516,7 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
   for (const tc of collectToolCalls(s)) {
     const name = String(tc?.name || '').toLowerCase();
     const args = tc?.args || {};
-    if (name === 'ask_question' && lastWriteIdx >= 0) {
+    if (name === 'ask_question' && lastWriteIdx >= 0 && !isXrayWindowAskArgs(JSON.stringify(args))) {
       postEditAskIdx = stepIdx;
       postEditAskAnswer = '';
       postEditAskToolCallId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
@@ -650,6 +690,7 @@ const isEconomySkipRequested = postEditAskIdx > lastWriteIdx && hasPositiveSkip 
 // EXCEPT confirmed-plan tasks with an active Grade Gate (REQ-3: confirmed plan always requires grade PASS or validated user override).
 if (isEconomySkipRequested && (editedUiFiles.size === 0 || hasUxPass) && (!gradeEval.active || gradeEval.passed)) {
   cleanupCounter(counterFile);
+  runAdvisoryXrayFailOpen(qaTaskHash);
   allow({ bindingConfidence: primaryL2BindingConfidence });
   process.exit(0);
 }
@@ -1006,6 +1047,7 @@ if (missing.length === 0) {
     process.exit(0);
   }
   cleanupCounter(counterFile);
+  runAdvisoryXrayFailOpen(qaTaskHash);
   allow({ bindingConfidence: primaryL2BindingConfidence });
   process.exit(0);
 }
@@ -1059,6 +1101,7 @@ if (!isLoopRequested && attempt >= MAX_RETURNS) {
     });
     process.exit(0);
   }
+  runAdvisoryXrayFailOpen(qaTaskHash);
   allow();
   process.exit(0);
 }

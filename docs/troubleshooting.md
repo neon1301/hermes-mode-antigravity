@@ -142,4 +142,33 @@ For Standard/Complex tasks with new behavior, Plan Gate operates independently o
 1. For **`grade_*`**: invoke a free read-only specialist with `.hermes/rubric.json`, `.hermes/*`, and `git diff` (see `skills/hermes/references/independent-grading-protocol.md`). On `NEEDS_HUMAN` or 3/3 `REWORK` ceiling, request a validated user choice via `ask_question` («Принять как есть» is logged in `.hermes/grade-ledger.jsonl` without flipping `overall` to `PASS`).
 2. For **`team_stop_active`**: use read-only council/diagnostics or emergency `manage_subagents(kill/kill_all)` to inspect/halt workers, then call `ask_question` («Разблокировать команду») for validated user unblock (`consent-validator.mjs`). Mechanical `PASS` never clears a hard-stop.
 3. For **`l2_binding_uncertain`**: re-invoke the L2 auditor or grader as a single `invoke_subagent` call.
-4. For **`plan_ask_mirror_invalid` / `logs_direct_write_deny`**: rewrite the plan confirmation question in plain Russian («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») keeping IDs in `.hermes/plan.md`; export run logs strictly via `node scripts/export-logs.mjs` (see `skills/hermes/references/log-export-protocol.md`).
+4. For **`plan_ask_mirror_invalid` / `logs_direct_write_deny`**: rewrite the plan confirmation question in plain Russian («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») keeping IDs in `.hermes/plan.md`; export run logs strictly via `scripts/export-logs.mjs` from the installed plugin root (see `skills/hermes/references/log-export-protocol.md`).
+
+---
+
+## 6. Advisory X-Ray Scanner, Product Debt Book & Portable Foreign-Repo CLI («Рентген» — v4.7.2)
+
+### Portable One-Command Invocation (Works in Any Foreign Repo)
+Both `scripts/xray-scan.mjs` and `scripts/export-logs.mjs` ship inside the installed plugin payload (`resolvePluginRoot()` / `resolvePluginScript()` in `hooks/workspace.mjs`) and run cleanly against any external workspace (e.g. `tailscale-webos`):
+```powershell
+# Windows PowerShell
+node "$env:USERPROFILE\.gemini\config\plugins\hermes-fleet\scripts\xray-scan.mjs" --workspace=.
+node "$env:USERPROFILE\.gemini\config\plugins\hermes-fleet\scripts\export-logs.mjs" --workspace=.
+```
+```bash
+# Linux / macOS / Git Bash
+node "${AGY_PLUGIN_DIR:-$HOME/.gemini/config/plugins/hermes-fleet}/scripts/xray-scan.mjs" --workspace=.
+node "${AGY_PLUGIN_DIR:-$HOME/.gemini/config/plugins/hermes-fleet}/scripts/export-logs.mjs" --workspace=.
+```
+
+### Meaning of the 3 Plain-Russian Buckets
+1. **«Мусор (можно удалить, доказано)» (`dead`):** unused symbol, HTML element, CSS `#id`, or unreferenced file with proven `refs=0` across code, string dispatches (`getElementById`, Luna/service names), configs, packaging/IPK, docs, and tests.
+2. **«Недоделка (риск для тебя)» (`stub`):** empty `catch {}`, always-true/constant returns, `TODO`/`FIXME`, unreachable branches.
+3. **«Костыль (работает, но хрупко)» (`fragile`):** unstopped `setInterval`, duplicate listeners, polling with side effects, retry/sleep error masking, or repeated literals (`>=3` places).
+
+### Closing or Accepting Product Debt (21 Built-In Protected Paths)
+- `.hermes/xray-report.json` and `.hermes/debt-ledger.jsonl` are protected from direct agent edits (`21 = 19 + 2`).
+- **`[Почини сейчас]`:** triggers mandatory plan revision `v(N+1)` + reconfirmation + fresh `.hermes/rubric.json` (`xray_fix_now_requires_plan_revision_deny` blocks silent scope expansion). Once fixed, rescanning mechanically records `status: "fixed"`.
+- **`[Запиши в долг]`:** records `status: "debt"`; up to 3 relevant `open`/`debt` items (`<=1024 B`) are injected on session start separately from `.hermes/lessons.jsonl`.
+- **`[Не трогай]`:** records `status: "accepted"` + reason; stays visible as accepted risk in reports and stops nagging.
+- **Fail-open guarantee:** X-ray NEVER blocks `Stop` or normal edits (`xray: "advisory" | "off"`, no `enforce`); scanner errors or Stop timeout headroom exhaustion log `xray_error` in `.hermes/gate-log.jsonl` and allow completion. Run directories under `logs/` are immutable (`EEXIST` refusal) and `manifest.json` records effective `gateModes` + `source`.

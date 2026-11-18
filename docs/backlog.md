@@ -84,7 +84,7 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-006] Convoy Stall & Distributed Deadlock Detection Hook
 * **Priority:** P3
-* **Target Version:** Post-v4.7.1 Evaluation
+* **Target Version:** Post-v4.7.2 Evaluation
 * **Scope & Context:**
   Dynamic detection of circular dependency chains (`Worker A awaits Worker B awaits Worker A`) in multi-agent swarms using `.hermes/tasks.json` dependency graph.
 
@@ -251,3 +251,31 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 * **Priority:** P3
 * **Status:** ❌ HOLD / REJECTED (v4.7.1)
 * **Rationale:** Explicitly crossed out from the roadmap based on the *Worse Together* study (2026-11-11): centralized coordinator topology outperforms peer-to-peer agent communication by **10–45 percentage points**. Hermes Fleet commits to the Lead-relay coordinator architecture reinforced by direct artifact inspection (REQ-6) and independent read-only grading (REQ-2). History in `CHANGELOG.md [4.7.0]` is preserved untouched; roadmap entries in `README.md` and `README.ru.md` have been cleaned up.
+
+---
+
+### [TASK-019] Hermes Fleet v4.7.2 «Рентген» — Mechanical X-Ray Scanner, Product Debt Book & Portability Tails (REQ-0..REQ-10)
+* **Priority:** P1 / P2
+* **Target Version:** v4.7.2
+* **Status:** ✅ COMPLETED in v4.7.2
+* **Resolution:**
+  - Added pure-stdlib deterministic 2-pass scanner `scripts/xray-scan.mjs` (JS/ES5, HTML/CSS, generic adapters; budgets `<=2000` files, `<=2 MiB`/file, `10s` CLI / residual `<=5s` Stop; honest `truncated: true`; zero fabricated quality scores) and thin state module `hooks/xray-ledger.mjs`.
+  - Expanded built-in immutable protected paths from **19 to 21** (`+.hermes/xray-report.json`, `+.hermes/debt-ledger.jsonl`) in `hooks/consent-validator.mjs` (`DEFAULT_PROTECTED_VERDICT_PATHS` + dynamic `buildProtectedShellRegex()`); write-tamper remains fail-closed while advisory reads are strictly fail-open (`xray_error` in `gate-log.jsonl`).
+  - Wired repo-wide zero-ref proof and surgical 4-condition deletion lock (`xray_delete_without_zero_ref_proof_deny`), plain-Russian advisory window (`<=5` items, 3 buckets, zero internal codes/scores, `[Почини сейчас]` -> mandatory plan revision `v(N+1)`, `[Запиши в долг]` -> `debt`, `[Не трогай]` -> `accepted`), 3-point `!isXrayWindowAskArgs` anti-hijack (`clean-edits-guard.mjs` Step 0 & Post-Edit, `qa-gate.mjs` Post-Edit), and `context-injector.mjs` separate product debt injection (`<=3` `open`/`debt`, `<=1024 B`, never mixed with `lessons.jsonl`).
+  - Closed v4.7.1 portability & black-box tails: `resolvePluginRoot()` / `resolvePluginScript()` in `hooks/workspace.mjs`, `manifest.gateModes` with `source` & immutable run directories (`EEXIST` refusal) + plugin-root `plugin.json` version resolution in `scripts/export-logs.mjs`, `!logs/**/*.log` in `.gitignore`, dogfood report on this repo, `docs/evals/eval-006.json`, `skills/hermes/references/xray-protocol.md` (`+0 B` on `fleet-protocol.md`), and `25+` new deterministic locks across the existing 11 test suites.
+
+---
+
+### [TASK-020] Dedicated C# / XAML Adapter for X-Ray Scanner
+* **Priority:** P2
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  C# / XAML (`.cs`, `.xaml`) are intentionally excluded from `v4.7.2` regex/lexer scanning because reflection, DI registration, partial classes, `x:Name`, and XAML `DataTemplate` bindings require a Roslyn / MSBuild symbol graph to avoid destructive false positives.
+
+---
+
+### [TASK-021] Evaluation of Optional `xray: "enforce"` Blocking Mode
+* **Priority:** P3
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  `v4.7.2` ships strictly `xray: "advisory" | "off"` (fail-open). Any future opt-in blocking mode requires empirical false-positive telemetry across real-world repositories first.

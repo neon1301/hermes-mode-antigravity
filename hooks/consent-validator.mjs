@@ -18,7 +18,7 @@ export const SECRET_ASSIGN_RE = /\b(?:password|passwd|pwd|api[_-]?key|secret[_-]
 export const CONN_SECRET_RE = /(["'`])[^"'`\n]*\b(?:Password|Pwd)\s*=\s*(?!\$\{|<|\{|env\.|process\.env|changeme|example|placeholder)[^;"'`\n\s]{6,}(?:;[^"'`\n]*)?\1/i;
 
 /**
- * Single source of truth for all 19 immutable built-in protected paths (v4.7.1).
+ * Single source of truth for all 21 immutable built-in protected paths (v4.7.2).
  * Config/env `protectedVerdictPaths` can only EXTEND (union) this list, never weaken it.
  */
 export const DEFAULT_PROTECTED_VERDICT_PATHS = Object.freeze([
@@ -40,7 +40,9 @@ export const DEFAULT_PROTECTED_VERDICT_PATHS = Object.freeze([
   '.hermes/grade-report.json',
   '.hermes/grade-ledger.jsonl',
   '.hermes/team-stop.json',
-  '.hermes/eval-results.jsonl'
+  '.hermes/eval-results.jsonl',
+  '.hermes/xray-report.json',
+  '.hermes/debt-ledger.jsonl'
 ]);
 
 /**
@@ -522,4 +524,131 @@ export function classifyGradeOverrideConsent(answerText, options = []) {
   }
 
   return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer };
+}
+
+// --- X-Ray Advisory Window Lint & Consent Classifier (REQ-4, v4.7.2) ---
+
+export const XRAY_WINDOW_QUESTION_RE = /(?:рентген|мусор\s*\(можно\s+удалить|недоделк[аи]\s*\(риск\s+для\s+тебя|костыл[ьи]\s*\(работает,\s*но\s+хрупко|почини\s+сейчас|запиши\s+в\s+долг|не\s+трогай|x-?ray\s+(?:наш[её]л|отч[её]т|findings|advisory))/i;
+
+export const XRAY_INTERNAL_CODES_RE = /\b(?:REQ-\d+|FINDING-\d+|HIGH-\d+|MEDIUM-\d+|LOW-\d+|TASK-\d+|EVAL-\d+|XRAY-\d+|XR-\d+|CWE-\d+|RULE[-_ ]?\d+|(?:dead|stub|fragile)[._][a-z0-9_]+|lies_to_user|brick_risk|resource_waste|xray_[a-z0-9_]+|rule9_hardcode|doc_drift|orphan_file)\b/i;
+
+export const XRAY_FABRICATED_SCORE_RE = /(?:\b\d{1,3}\s*%|\b\d+(?:\.\d+)?\s*\/\s*(?:10|100)\b|здоровь[ея]\s+кода|качество\s*:\s*[A-F]\b|\b(?:quality|health|code)\s*score\b)/i;
+
+const XRAY_NEG_WORDS = `(?:не|не\\s+надо|не\\s+нужно|нельзя|никогда|ничего\\s+не|отмена|отклоняю|don'?t|do\\s+not|not|never|no|reject|cancel)`;
+const XRAY_FIX_VERBS = `(?:почини(?:ть)?\\s+сейчас|чини(?:ть)?\\s+сейчас|почини(?:ть)?|исправ(?:ь|ить)|прав(?:ь|ить)|удаля(?:й|ть)|удали(?:ть)?|fix\\s+now|fix\\s+it|apply\\s+fix)`;
+
+const XRAY_FIX_NEGATION_RE = new RegExp(
+  `(?:${BOUNDARY_PRE}${XRAY_NEG_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${XRAY_FIX_VERBS}${BOUNDARY_POST})|` +
+  `(?:${BOUNDARY_PRE}${XRAY_FIX_VERBS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${XRAY_NEG_WORDS}${BOUNDARY_POST})`,
+  'i'
+);
+
+const XRAY_FIX_NOW_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:почини(?:ть)?\\s+сейчас|исправ(?:ь|ить)\\s+сейчас|бер[её]м\\s+в\\s+работу|взять\\s+в\\s+работу|fix\\s+now)${BOUNDARY_POST}`,
+  'i'
+);
+
+const XRAY_DEFER_DEBT_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:запиши\\s+в\\s+долг|записать\\s+в\\s+долг|в\\s+долг|отложить\\s+в\\s+долг|record\\s+debt|defer\\s+to\\s+debt|add\\s+to\\s+debt)${BOUNDARY_POST}`,
+  'i'
+);
+
+const XRAY_ACCEPT_RISK_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:не\\s+трогай|не\\s+трогать|оставь\\s+как\\s+есть|принять\\s+как\\s+норму|leave\\s+alone|do\\s+not\\s+touch|don'?t\\s+touch|accept\\s+risk)${BOUNDARY_POST}`,
+  'i'
+);
+
+export function isXrayWindowAskArgs(argsStr) {
+  const s = String(argsStr || '');
+  if (!XRAY_WINDOW_QUESTION_RE.test(s)) return false;
+  // Never collide with Step 0, Council Gate, Plan Gate, or Grade Override windows
+  if (/(?:какую\s+модел|уровень\s+ума|посоветоваться\s+с\s+(?:советом|работниками)|собраться\s+за\s+столом|убрать\s+лишнее|добавить\s+сво[её]|план\s+[^\r\n]{0,40}подходит)/i.test(s)) {
+    return false;
+  }
+  const hasXrayOption = /(?:почини\s+сейчас|запиши\s+в\s+долг|не\s+трогай|fix\s+now|record\s+debt|leave\s+alone)/i.test(s);
+  const hasXrayBucket = /(?:мусор\s*\(можно\s+удалить|недоделк[аи]\s*\(риск\s+для\s+тебя|костыл[ьи]\s*\(работает,\s*но\s+хрупко)/i.test(s);
+  return hasXrayOption || hasXrayBucket;
+}
+
+export function lintXrayWindowText(questionText, { maxItems = 5 } = {}) {
+  const text = String(questionText || '').trim();
+  const errors = [];
+
+  const codeMatch = text.match(XRAY_INTERNAL_CODES_RE);
+  if (codeMatch) {
+    errors.push(`Внутренний код «${codeMatch[0]}» запрещён в окне Рентгена — описывайте находки простым русским языком.`);
+  }
+
+  const scoreMatch = text.match(XRAY_FABRICATED_SCORE_RE);
+  if (scoreMatch) {
+    errors.push(`Выдуманная оценка/процент качества «${scoreMatch[0]}» запрещена (Rule 13) — показывайте только факты и счётчики.`);
+  }
+
+  // Count finding bullet/numbered items (excluding overflow line "ещё N в отчёте")
+  const lines = text.split(/\r?\n/);
+  let itemCount = 0;
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+    if (/^(?:ещ[её]\s+\d+\s+в\s+отч[её]те|and\s+\d+\s+more\s+in\s+report)/i.test(trimmed)) continue;
+    if (/^(?:\d+[.)]\s+|[-*•]\s+)/.test(trimmed)) {
+      itemCount++;
+    }
+  }
+  if (itemCount > maxItems) {
+    errors.push(`В окне Рентгена показано ${itemCount} пунктов (лимит <= ${maxItems}). Остальное оставьте в отчёте со строкой «ещё N в отчёте».`);
+  }
+
+  return { ok: errors.length === 0, errors, itemCount };
+}
+
+export function classifyXrayWindowConsent(answerText, options = []) {
+  const raw = String(answerText || '').trim();
+  if (!raw) {
+    return { decision: 'unconfirmed', selectedOptionText: '', reason: '', partialItems: [] };
+  }
+
+  const { selectedOptionText, isNumericSelection, strippedAnswer } = resolveSelectedOptionText(raw, options);
+  if (isNumericSelection && !selectedOptionText) {
+    return { decision: 'unconfirmed', selectedOptionText: '', reason: '', partialItems: [] };
+  }
+
+  // Extract explicit partial item selection if present (e.g. "почини только #1, #2 не трогай")
+  const partialItems = [];
+  for (const m of strippedAnswer.matchAll(/#(\d+)/g)) {
+    const num = Number.parseInt(m[1], 10);
+    if (Number.isInteger(num) && num >= 1) partialItems.push(num);
+  }
+
+  // Check explicit option text first for non-fix options ("Не трогай" contains "не", so match it before generic negation)
+  const target = isNumericSelection ? selectedOptionText : `${selectedOptionText} ${strippedAnswer}`;
+  const isPureAcceptOption =
+    XRAY_ACCEPT_RISK_RE.test(selectedOptionText) &&
+    !XRAY_FIX_NOW_RE.test(strippedAnswer) &&
+    !XRAY_DEFER_DEBT_RE.test(strippedAnswer);
+  if (isPureAcceptOption) {
+    return { decision: 'accept_risk', selectedOptionText, reason: strippedAnswer || selectedOptionText, partialItems };
+  }
+
+  const isPureDeferOption =
+    XRAY_DEFER_DEBT_RE.test(target) &&
+    !XRAY_FIX_NOW_RE.test(strippedAnswer);
+  if (isPureDeferOption) {
+    return { decision: 'defer_debt', selectedOptionText, reason: strippedAnswer || selectedOptionText, partialItems };
+  }
+
+  // Negation guard: "не чини сейчас", "ничего не удаляй", "не надо править" NEVER mean fix_now
+  if (XRAY_FIX_NEGATION_RE.test(strippedAnswer) || XRAY_FIX_NEGATION_RE.test(selectedOptionText)) {
+    return { decision: 'negated', selectedOptionText, reason: strippedAnswer, partialItems };
+  }
+
+  if (XRAY_ACCEPT_RISK_RE.test(target) && !XRAY_FIX_NOW_RE.test(target)) {
+    return { decision: 'accept_risk', selectedOptionText, reason: strippedAnswer || selectedOptionText, partialItems };
+  }
+
+  if (XRAY_FIX_NOW_RE.test(target)) {
+    return { decision: 'fix_now', selectedOptionText, reason: strippedAnswer || selectedOptionText, partialItems };
+  }
+
+  return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer, partialItems };
 }

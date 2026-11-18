@@ -5,6 +5,7 @@ import { detectHermesInSteps, isCognitiveTrigger, isHermesTrigger, parseJsonl, r
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { getEffectiveReputationScore, REPUTATION_POLICY } from './council-learning.mjs';
 import { loadLessonsForInjection } from './lessons-ledger.mjs';
+import { loadDebtForInjection } from './xray-ledger.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -245,6 +246,16 @@ try {
     const lessonsBlock = loadLessonsForInjection(workspaceDir, { maxEntries: 5, maxBytes: 2048 });
     if (lessonsBlock) {
       content += lessonsBlock;
+    }
+
+    // REQ-5 (v4.7.2): Separate product debt book (.hermes/debt-ledger.jsonl), <=3 entries, <=1024 B, never mixed with lessons
+    const debtBlock = loadDebtForInjection(workspaceDir, {
+      userPrompt: payload?.lastUserInput || '',
+      maxEntries: 3,
+      maxBytes: 1024
+    });
+    if (debtBlock) {
+      content += debtBlock;
     }
   }
 

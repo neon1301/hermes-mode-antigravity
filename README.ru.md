@@ -2,13 +2,13 @@
 
 ![Hermes Fleet Enterprise — Архитектурная топология мультиагентной сети](assets/banner.svg)
 
-# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.7.1)
+# 🏛️ Hermes Fleet Enterprise для Google Antigravity (v4.7.2)
 
 > Команда из 14 автономных ИИ-специалистов и 22 промышленных скиллов для Google Antigravity, которая не даёт агенту чинить 1 из 4 мест, самоподписываться и хардкодить.
 
-[![Version](https://img.shields.io/badge/version-4.7.1-blue.svg)](plugin.json)
+[![Version](https://img.shields.io/badge/version-4.7.2-blue.svg)](plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-592%2F592%20passed-brightgreen.svg)](.hermes/test-summary.json)
+[![Tests](https://img.shields.io/badge/tests-619%2F619%20passed-brightgreen.svg)](.hermes/test-summary.json)
 [![Platform](https://img.shields.io/badge/platform-Google%20Antigravity-orange.svg)](https://antigravity.google)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-blue.svg)](package.json)
 
@@ -212,7 +212,9 @@ flowchart LR
 
 Реальные задачи из [`docs/backlog.md`](docs/backlog.md) и `.hermes/tasks.json` (поведенческий eval-набор в [`docs/evals/README.md`](docs/evals/README.md)):
 
-- **[TASK-006] (P3, Post-v4.7.1):** Хук динамического обнаружения тупиков (Convoy stall) и распределённых взаимных блокировок в графе задач.
+- **[TASK-006] (P3, Post-v4.7.2):** Хук динамического обнаружения тупиков (Convoy stall) и распределённых взаимных блокировок в графе задач.
+- **[TASK-020] (P2, Post-v4.7.2):** Выделенный адаптер C# / XAML для сканера «Рентген» (граф символов Roslyn/MSBuild).
+- **[TASK-021] (P3, Post-v4.7.2):** Оценка опционального блокирующего режима `xray: "enforce"` после эмпирической телеметрии ложных срабатываний.
 
 ---
 
@@ -221,7 +223,7 @@ flowchart LR
 В Hermes встроен **автономный локальный CI-гейт (Zero Billing Dependency)**:
 
 ```bash
-# Запуск всех 11 тестовых сьютов локально (592 теста)
+# Запуск всех 11 тестовых сьютов локально (619 тестов)
 npm test
 
 # Windows PowerShell Local CI

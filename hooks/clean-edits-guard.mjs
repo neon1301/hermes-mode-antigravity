@@ -12,7 +12,7 @@ import {
   readTranscriptSlices
 } from './hermes-trigger.mjs';
 import { evaluateRules } from './rule-engine.mjs';
-import { resolveWorkspaceDir } from './workspace.mjs';
+import { resolvePluginScript, resolveWorkspaceDir } from './workspace.mjs';
 import {
   detectDomains,
   extractCriteriaSnapshot,
@@ -22,14 +22,18 @@ import {
 } from './council-learning.mjs';
 import {
   buildProtectedShellRegex,
+  classifyXrayWindowConsent,
   CONN_SECRET_RE,
   CorruptArtifactError,
   DEFAULT_PROTECTED_VERDICT_PATHS,
+  extractAskQuestionOptions,
   extractAuthenticAskAnswer,
   isGradeOverrideAskArgs,
   isStrictTestPath,
   isTeamStopUnblockAskArgs,
+  isXrayWindowAskArgs,
   KNOWN_SECRET_PREFIX_RE,
+  lintXrayWindowText,
   readGateModeConfig,
   readProtectedJsonlStrict,
   readProtectedJsonStrict,
@@ -56,6 +60,13 @@ import {
   verifyTeamStopGate
 } from './team-stop.mjs';
 import { hasActiveReworkForTask } from './grade-gate.mjs';
+import {
+  checkXrayDeleteZeroRefProof,
+  normalizeXrayRelPath,
+  readXrayReportSafe,
+  recordXrayUserDecision
+} from './xray-ledger.mjs';
+import { quickLiveHasRefs } from '../scripts/xray-scan.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -2206,6 +2217,84 @@ if (!isSubagent) {
     logGateDecision,
     deny
   });
+
+  // REQ-4 (v4.7.2): Synchronize authentic X-ray window user decisions & enforce plan revision v(N+1) on [Почини сейчас]
+  try {
+    const stepsForXray = transcriptData.combinedSteps || [];
+    const scanStart = Math.max(0, taskContext.taskStartIdx || 0);
+    let latestXrayAskIdx = -1;
+    let latestXrayTcId = '';
+    for (let i = scanStart; i < stepsForXray.length; i++) {
+      for (const tc of collectToolCalls(stepsForXray[i])) {
+        if (String(tc?.name || '').toLowerCase() !== 'ask_question') continue;
+        if (isXrayWindowAskArgs(JSON.stringify(tc?.args || ''))) {
+          latestXrayAskIdx = i;
+          latestXrayTcId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+        }
+      }
+    }
+    if (latestXrayAskIdx >= 0) {
+      const { options } = extractAskQuestionOptions(stepsForXray[latestXrayAskIdx]);
+      const answer = extractAuthenticAskAnswer(stepsForXray, latestXrayAskIdx, latestXrayTcId);
+      if (answer.trim()) {
+        const xConsent = classifyXrayWindowConsent(answer, options);
+        if (xConsent.decision === 'defer_debt') {
+          recordXrayUserDecision({
+            activeWorkspaceDir,
+            status: 'debt',
+            reason: xConsent.reason,
+            source: 'user_ask_question:xray'
+          });
+        } else if (xConsent.decision === 'accept_risk') {
+          recordXrayUserDecision({
+            activeWorkspaceDir,
+            status: 'accepted',
+            reason: xConsent.reason,
+            source: 'user_ask_question:xray'
+          });
+        } else if (xConsent.decision === 'fix_now' && isNonMetaWrite) {
+          // Enforce standard plan revision v(N+1) + reconfirmation strictly AFTER the X-ray window
+          const ps = readProtectedJsonStrict(path.join(activeWorkspaceDir, '.hermes', 'plan-state.json'), '.hermes/plan-state.json')?.data || null;
+          const revisedAfterXray = Boolean(
+            ps &&
+            ps.status === 'confirmed' &&
+            ps.taskHash === taskContext.taskHash &&
+            Number.isInteger(ps.confirmedAskStepIdx) &&
+            ps.confirmedAskStepIdx > latestXrayAskIdx
+          );
+          if (!revisedAfterXray) {
+            deny(
+              `⛔ Hermes «Рентген» (xray_fix_now_requires_plan_revision_deny): запись кода (${toolName}) заблокирована после выбора «Почини сейчас». Молча расширять подтверждённый план нельзя — добавьте выбранные пункты в .hermes/plan.md (ревизия v(N+1)) и получите новое подтверждение [Делай] через ask_question (с пересборкой .hermes/rubric.json).\n[EN: Hermes X-Ray (xray_fix_now_requires_plan_revision_deny): code write (${toolName}) blocked after [Fix now]. Update .hermes/plan.md to v(N+1) and obtain fresh user confirmation via ask_question before editing code.]`,
+              { toolName, rule: 'xray_fix_now_requires_plan_revision_deny', taskHash: taskContext.taskHash, source: 'user_ask_question:xray' }
+            );
+            process.exit(0);
+          }
+        } else if (xConsent.decision === 'negated' && isNonMetaWrite && FILE_WRITE_TOOLS.has(toolName)) {
+          // Deny editing a file flagged in X-ray report right after user negated [Почини сейчас] (unless authorized by newer plan)
+          const rawTarget = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
+          const normTarget = normalizeXrayRelPath(rawTarget, activeWorkspaceDir).toLowerCase();
+          const { data: xRep } = readXrayReportSafe(activeWorkspaceDir);
+          const ps = readProtectedJsonStrict(path.join(activeWorkspaceDir, '.hermes', 'plan-state.json'), '.hermes/plan-state.json')?.data || null;
+          const confirmedAfterXray = Boolean(ps && ps.status === 'confirmed' && Number.isInteger(ps.confirmedAskStepIdx) && ps.confirmedAskStepIdx > latestXrayAskIdx);
+          const targetInXray = Boolean(
+            xRep &&
+            Array.isArray(xRep.findings) &&
+            xRep.findings.some((f) => normalizeXrayRelPath(f.path, activeWorkspaceDir).toLowerCase() === normTarget)
+          );
+          if (targetInXray && !confirmedAfterXray) {
+            deny(
+              `⛔ Hermes «Рентген» (xray_consent_negated_deny): пользователь отклонил починку в окне Рентгена (зафиксировано отрицание «${xConsent.reason.slice(0, 80)}»). Правка файла ${rawTarget} из отчёта Рентгена запрещена без явного согласия и ревизии плана.\n[EN: Hermes X-Ray (xray_consent_negated_deny): user negated X-ray fix consent. Editing X-ray flagged file ${rawTarget} is blocked without explicit approval.]`,
+              { toolName, rule: 'xray_consent_negated_deny', taskHash: taskContext.taskHash, source: 'user_ask_question:xray_negated' }
+            );
+            process.exit(0);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if (err instanceof CorruptArtifactError) throw err;
+    // Fail-open on advisory X-ray state sync errors (REQ-6)
+  }
 } else {
   verifySubagentPlanIntegrity({
     toolName,
@@ -2221,7 +2310,7 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
   const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
 
   // REQ-5 (P1) / REQ-1 (v4.2.1) / REQ-1 (v4.6.2) / REQ-1 & REQ-4 (v4.7.0) / REQ-1..REQ-7 (v4.7.1):
-  // Immutable built-in 19 protected paths (imported from consent-validator.mjs); config/env can only EXTEND (union), never weaken.
+  // Immutable built-in 21 protected paths (imported from consent-validator.mjs); config/env can only EXTEND (union), never weaken.
   const protectedVerdictSet = new Set(DEFAULT_PROTECTED_VERDICT_PATHS);
   try {
     const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');
@@ -2300,7 +2389,7 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     process.exit(0);
   }
 
-  // REQ-10 (v4.7.1): logs/ is mechanical exporter output ONLY (not part of the 19 protected .hermes/ paths,
+  // REQ-10 (v4.7.1): logs/ is mechanical exporter output ONLY (not part of the 21 protected .hermes/ paths,
   // but direct agent write_file/edit_file into logs/ is strictly denied — use scripts/export-logs.mjs)
   const isLogsOutputPath =
     normRel === 'logs' ||
@@ -2311,11 +2400,90 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     normBare.startsWith('logs/') ||
     /(?:^|\/)logs\//.test(normCanonFull);
   if (isLogsOutputPath) {
+    const portableExportScript = resolvePluginScript('scripts/export-logs.mjs');
     deny(
-      `Hermes Black Box (REQ-10): прямая запись или редактирование каталога logs/ (${targetPath}) инструментом модели ${toolName} запрещены. Артефакты в logs/ формирует исключительно механический экспортёр node scripts/export-logs.mjs.\n[EN: Hermes Black Box (REQ-10): direct model write/edit to logs/ (${targetPath}) via ${toolName} is forbidden. Only node scripts/export-logs.mjs may populate logs/.]`,
+      `Hermes Black Box (REQ-10): прямая запись или редактирование каталога logs/ (${targetPath}) инструментом модели ${toolName} запрещены. Артефакты в logs/ формирует исключительно механический экспортёр node "${portableExportScript}" --workspace=.\n[EN: Hermes Black Box (REQ-10): direct model write/edit to logs/ (${targetPath}) via ${toolName} is forbidden. Only node "${portableExportScript}" --workspace=. may populate logs/.]`,
       { toolName, rule: 'logs_direct_write_deny' }
     );
     process.exit(0);
+  }
+
+  // REQ-2 (v4.7.2): Surgical zero-ref deletion guard for symbols removed via edit_file / replace_file_content / write_file
+  if (SOURCE_CODE_EXT_RE.test(targetPath) && !isMetaOrArtifactPath(targetPath)) {
+    const extractDeclNames = (text) => {
+      const names = new Set();
+      for (const m of String(text || '').matchAll(/\b(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g)) {
+        names.add(m[1]);
+      }
+      for (const m of String(text || '').matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)) {
+        names.add(`#${m[1].trim()}`);
+      }
+      return names;
+    };
+    let removedSymbols = [];
+    let isFileCleared = false;
+    if (toolName === 'edit_file' && typeof args.Target === 'string') {
+      const oldNames = extractDeclNames(args.Target);
+      const newNames = extractDeclNames(args.Replacement || '');
+      removedSymbols = [...oldNames].filter((n) => !newNames.has(n));
+    } else if (toolName === 'replace_file_content' && typeof args.TargetContent === 'string') {
+      const oldNames = extractDeclNames(args.TargetContent);
+      const newNames = extractDeclNames(args.ReplacementContent || '');
+      removedSymbols = [...oldNames].filter((n) => !newNames.has(n));
+    } else if (toolName === 'multi_replace_file_content' && Array.isArray(args.ReplacementChunks)) {
+      const removedSet = new Set();
+      for (const ch of args.ReplacementChunks) {
+        if (typeof ch?.TargetContent !== 'string') continue;
+        const oldNames = extractDeclNames(ch.TargetContent);
+        const newNames = extractDeclNames(ch.ReplacementContent || '');
+        for (const n of oldNames) {
+          if (!newNames.has(n)) removedSet.add(n);
+        }
+      }
+      removedSymbols = [...removedSet];
+    } else if ((toolName === 'write_file' || toolName === 'write_to_file') && (args.Overwrite === true || args.overwrite === true || toolName === 'write_to_file')) {
+      const nextContent = String(args.Content || args.CodeContent || '');
+      if (nextContent.trim().length === 0) isFileCleared = true;
+      try {
+        const absFile = path.isAbsolute(targetPath) ? targetPath : path.resolve(activeWorkspaceDir, targetPath);
+        if (fs.existsSync(absFile)) {
+          const oldNames = extractDeclNames(fs.readFileSync(absFile, 'utf-8'));
+          const newNames = extractDeclNames(nextContent);
+          removedSymbols = [...oldNames].filter((n) => !newNames.has(n));
+        }
+      } catch {}
+    }
+    if (removedSymbols.length > 0 || isFileCleared) {
+      let planMdText = '';
+      let planConfirmed = false;
+      try {
+        const ps = readXrayReportSafe(activeWorkspaceDir).data ? (() => {
+          const psp = path.join(activeWorkspaceDir, '.hermes', 'plan-state.json');
+          return fs.existsSync(psp) ? JSON.parse(fs.readFileSync(psp, 'utf-8')) : null;
+        })() : null;
+        if (ps && ps.status === 'confirmed') {
+          planConfirmed = true;
+          const pmp = path.join(activeWorkspaceDir, '.hermes', 'plan.md');
+          if (fs.existsSync(pmp)) planMdText = fs.readFileSync(pmp, 'utf-8');
+        }
+      } catch {}
+      const delCheck = checkXrayDeleteZeroRefProof({
+        activeWorkspaceDir,
+        targetPath,
+        removedSymbols,
+        isFileDelete: isFileCleared,
+        planMdText,
+        planConfirmed,
+        liveRefChecker: (sym, rel) => quickLiveHasRefs(activeWorkspaceDir, sym.replace(/^#/, ''), rel)
+      });
+      if (!delCheck.allowed) {
+        deny(
+          `⛔ Hermes «Рентген» (xray_delete_without_zero_ref_proof_deny): ${delCheck.reason}\n[EN: Hermes X-Ray (xray_delete_without_zero_ref_proof_deny): deletion of ${targetPath} blocked because zero-ref proof is missing.]`,
+          { toolName, rule: 'xray_delete_without_zero_ref_proof_deny', taskHash: activeTaskHash }
+        );
+        process.exit(0);
+      }
+    }
   }
 
   if (PATCH_FILE_RE.test(targetPath)) {
@@ -2451,11 +2619,47 @@ if (toolName === 'run_command') {
   }
   const SHELL_LOGS_WRITE_RE = /(?:(?:^|[;&|\n]\s*)\b(?:set-content|out-file|add-content|tee(?:-object)?|new-item|ni|touch|cp|copy-item|mv|move-item|rm|remove-item)\b[^\n|;&]*(?:^|[\s"'`(/\\])logs[\\/]|(?:^|[^<>=])>{1,2}\s*["']?[^"'\s|;&>]*logs[\\/])/i;
   if (SHELL_LOGS_WRITE_RE.test(cmd)) {
+    const portableExportScript = resolvePluginScript('scripts/export-logs.mjs');
     deny(
-      'Hermes Black Box (REQ-10): прямая запись в каталог logs/ через shell запрещена. Используйте исключительно node scripts/export-logs.mjs.\n[EN: Hermes Black Box (REQ-10): direct shell writes to logs/ are forbidden. Use node scripts/export-logs.mjs exclusively.]',
+      `Hermes Black Box (REQ-10): прямая запись в каталог logs/ через shell запрещена. Используйте исключительно node "${portableExportScript}" --workspace=.\n[EN: Hermes Black Box (REQ-10): direct shell writes to logs/ are forbidden. Use node "${portableExportScript}" --workspace=. exclusively.]`,
       { toolName, rule: 'logs_direct_write_deny' }
     );
     process.exit(0);
+  }
+
+  // REQ-2 (v4.7.2): Block shell deletion (rm / del / Remove-Item / unlink / git rm) of packaged or unproven X-ray files
+  const SHELL_DELETE_FILE_RE = /(?:^|[;&|\n]\s*)(?:(?:git\s+rm)|(?:rm|del|erase|unlink|remove-item|ri))\b(?:\s+[-/][a-z0-9]+)*\s+["']?([^"'\s|;&]+)["']?/gi;
+  for (const dm of cmd.matchAll(SHELL_DELETE_FILE_RE)) {
+    const delTarget = dm[1];
+    if (!delTarget || isMetaOrArtifactPath(delTarget)) continue;
+    let planMdText = '';
+    let planConfirmed = false;
+    try {
+      const psp = path.join(activeWorkspaceDir, '.hermes', 'plan-state.json');
+      if (fs.existsSync(psp)) {
+        const ps = JSON.parse(fs.readFileSync(psp, 'utf-8'));
+        if (ps && ps.status === 'confirmed') {
+          planConfirmed = true;
+          const pmp = path.join(activeWorkspaceDir, '.hermes', 'plan.md');
+          if (fs.existsSync(pmp)) planMdText = fs.readFileSync(pmp, 'utf-8');
+        }
+      }
+    } catch {}
+    const delCheck = checkXrayDeleteZeroRefProof({
+      activeWorkspaceDir,
+      targetPath: delTarget,
+      isFileDelete: true,
+      planMdText,
+      planConfirmed,
+      liveRefChecker: (sym, rel) => quickLiveHasRefs(activeWorkspaceDir, sym, rel)
+    });
+    if (!delCheck.allowed) {
+      deny(
+        `⛔ Hermes «Рентген» (xray_delete_without_zero_ref_proof_deny): ${delCheck.reason}\n[EN: Hermes X-Ray (xray_delete_without_zero_ref_proof_deny): shell deletion of ${delTarget} blocked without zero-ref proof.]`,
+        { toolName, rule: 'xray_delete_without_zero_ref_proof_deny', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
   }
   for (const mut of SHELL_MUTATE_PATTERNS) {
     if (mut.re.test(cmd)) {
@@ -2605,7 +2809,8 @@ if (requiresStep0Handshake) {
             const isPlanAsk = isPlanAskArgs(argsStr);
             const isTeamStopAsk = isTeamStopUnblockAskArgs(argsStr);
             const isGradeAsk = isGradeOverrideAskArgs(argsStr);
-            return !isCouncilAsk && !isPlanAsk && !isTeamStopAsk && !isGradeAsk;
+            const isXrayAsk = isXrayWindowAskArgs(argsStr);
+            return !isCouncilAsk && !isPlanAsk && !isTeamStopAsk && !isGradeAsk && !isXrayAsk;
           })
         );
         if (!hasHandshake) {
@@ -2628,7 +2833,7 @@ if (requiresStep0Handshake) {
           for (const tc of collectToolCalls(turnSteps[i])) {
             const tcName = String(tc?.name || '').toLowerCase();
             const tcArgs = tc?.args || {};
-            if (tcName === 'ask_question' && lastWriteIdx >= 0) {
+            if (tcName === 'ask_question' && lastWriteIdx >= 0 && !isXrayWindowAskArgs(JSON.stringify(tcArgs))) {
               postEditAskIdx = i;
             }
             if (FILE_WRITE_TOOLS.has(tcName)) {
@@ -2738,6 +2943,18 @@ if (toolName === 'ask_question') {
           'Rewrite ask_question as a plain-language 4-section mirror without internal IDs.'
         ),
         { toolName, rule: 'plan_ask_mirror_invalid', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+  }
+  // REQ-4 (v4.7.2): X-ray advisory window must be plain Russian, <=5 items, zero internal codes, zero fabricated quality scores
+  if (isXrayWindowAskArgs(askArgsStr)) {
+    const qText = extractPlanAskQuestionText(args);
+    const xrayCheck = lintXrayWindowText(qText, { maxItems: 5 });
+    if (!xrayCheck.ok) {
+      deny(
+        `⛔ Hermes «Рентген» (xray_window_plain_ru_no_internal_codes): окно Рентгена заблокировано до показа пользователю. ${xrayCheck.errors.join(' ')}\n[EN: Hermes X-Ray (xray_window_plain_ru_no_internal_codes): X-ray ask_question blocked before display: ${xrayCheck.errors.join(' ')}]`,
+        { toolName, rule: 'xray_window_plain_ru_no_internal_codes', taskHash: activeTaskHash }
       );
       process.exit(0);
     }

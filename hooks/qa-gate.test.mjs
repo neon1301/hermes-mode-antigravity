@@ -3662,6 +3662,89 @@ try {
       fs.rmSync(ws, { recursive: true, force: true });
     }
   });
+
+  // 23. REQ-6 (v4.7.2): X-ray NEVER denies Stop; scanner error fails open and logs honest xray_error in gate-log.jsonl
+  runV471Test('xray_never_denies_and_scanner_error_fail_open', () => {
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-v472-xray-failopen-'));
+    try {
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const appFile = path.join(ws, 'src', 'app.js');
+      // Deliberately plant X-ray findings (unused symbol + empty catch + unstopped timer) + corrupt debt-ledger
+      fs.writeFileSync(appFile, 'function deadHelper() { try { return 1; } catch {} }\nsetInterval(() => {}, 1000);\n', 'utf-8');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(path.join(ws, '.hermes', 'debt-ledger.jsonl'), '{CORRUPT_DEBT_LINE\n', 'utf-8');
+      const viktorUuid = '11111111-1111-1111-1111-111111111111';
+      // 1) Normal advisory scan with real findings + corrupt debt-ledger MUST ALLOW (never block Stop)
+      const resNormal = runQaHookIsolated({
+        ws,
+        convId: 'c_v472_xray_norm',
+        steps: [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix app' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: appFile } }] },
+          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'v1', args: { TypeName: 'viktor' } }] },
+          { step_index: 3, source: 'SYSTEM', type: 'GENERIC', tool_call_id: 'v1', content: `{"conversationId": "${viktorUuid}"}` },
+          { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="${viktorUuid}">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>` }
+        ]
+      });
+      if (resNormal.decision !== 'allow') {
+        throw new Error(`Advisory X-ray with findings must NEVER deny Stop, got: ${JSON.stringify(resNormal)}`);
+      }
+      const xrayRepPath = path.join(ws, '.hermes', 'xray-report.json');
+      if (!fs.existsSync(xrayRepPath)) {
+        throw new Error('Advisory X-ray did not write .hermes/xray-report.json on Stop allow');
+      }
+      // 2) Forced scanner failure MUST fail-open (allow) AND record honest xray_error in gate-log.jsonl
+      const resErr = runQaHookIsolated({
+        ws,
+        convId: 'c_v472_xray_err',
+        env: { HERMES_XRAY_FORCE_ERROR: '1' },
+        steps: [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes fix app err' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: appFile } }] },
+          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'invoke_subagent', id: 'v2', args: { TypeName: 'viktor' } }] },
+          { step_index: 3, source: 'SYSTEM', type: 'GENERIC', tool_call_id: 'v2', content: `{"conversationId": "${viktorUuid}"}` },
+          { step_index: 4, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: `<SYSTEM_MESSAGE sender="${viktorUuid}">[QA PASS] [SECURITY PASS]</SYSTEM_MESSAGE>` }
+        ]
+      });
+      if (resErr.decision !== 'allow') {
+        throw new Error(`X-ray scanner error MUST fail-open (allow), got: ${JSON.stringify(resErr)}`);
+      }
+      const gateLog = fs.readFileSync(path.join(ws, '.hermes', 'gate-log.jsonl'), 'utf-8');
+      if (!gateLog.includes('xray_error')) {
+        throw new Error(`Expected honest xray_error entry in gate-log.jsonl, got: ${gateLog}`);
+      }
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  // 24. Roundtable R2 catch: X-ray advisory ask_question MUST NOT overwrite postEditAskAnswer in qa-gate.mjs:479
+  runV471Test('xray_window_does_not_overwrite_stop_post_edit_answer', () => {
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-v472-xray-no-overwrite-'));
+    try {
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const appFile = path.join(ws, 'src', 'app.js');
+      fs.writeFileSync(appFile, 'export const x = 1;\n', 'utf-8');
+      const res = runQaHookIsolated({
+        ws,
+        convId: 'c_v472_xray_no_ov',
+        steps: [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak app' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: appFile } }] },
+          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'pe1', args: { questions: [{ question: 'Запустить сотрудников на проверку?', options: ['(Recommended) Без проверки', 'Да'] }] } }] },
+          { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'pe1', content: 'Created At: 2026-11-18T10:00:00Z\nCompleted At: 2026-11-18T10:00:05Z\nA1: (Recommended) Без проверки' },
+          // Follow-up X-ray advisory window MUST NOT overwrite postEditAskAnswer
+          { step_index: 4, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'xr1', args: { questions: [{ question: 'Рентген нашёл проблему.\nКостыль (работает, но хрупко):\n1. Таймер без остановки (src/app.js:1)', options: ['Почини сейчас', 'Запиши в долг', 'Не трогай'] }] } }] },
+          { step_index: 5, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'xr1', content: 'Created At: 2026-11-18T10:00:10Z\nCompleted At: 2026-11-18T10:00:12Z\nA1: Запиши в долг' }
+        ]
+      });
+      if (res.decision !== 'allow') {
+        throw new Error(`X-ray window after Post-Edit economy skip must NOT erase postEditAskAnswer, got: ${JSON.stringify(res)}`);
+      }
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
 } finally {
   process.chdir(originalCwd);
   fs.rmSync(isolatedQaWs, { recursive: true, force: true });

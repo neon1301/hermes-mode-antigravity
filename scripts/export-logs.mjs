@@ -24,11 +24,59 @@ import { fileURLToPath } from 'node:url';
 import {
   CONN_SECRET_RE,
   KNOWN_SECRET_PREFIX_RE,
+  readGateModeConfig,
   SECRET_ASSIGN_RE
 } from '../hooks/consent-validator.mjs';
 import { collectToolCalls, parseJsonl } from '../hooks/hermes-trigger.mjs';
+import { resolvePluginRoot } from '../hooks/workspace.mjs';
+import { VALID_PLAN_GATE_MODES } from '../hooks/plan-gate.mjs';
+import { VALID_GRADE_GATE_MODES } from '../hooks/grade-gate.mjs';
+import { VALID_XRAY_MODES } from '../hooks/xray-ledger.mjs';
 
 export const MAX_EXPORT_BYTES = 2 * 1024 * 1024; // 2 MiB per-file cap
+
+const VALID_COUNCIL_GATE_MODES = new Set(['ask', 'auto', 'off']);
+const VALID_QA_VERDICT_MODES = new Set(['artifact', 'legacy']);
+
+/**
+ * Collects effective gate modes and their exact source (`config` / `env` / `default`)
+ * without leaking raw `.hermes/config.json` contents (REQ-7a, v4.7.2).
+ */
+export function collectGateModes(workspaceDir) {
+  const pick = (res) => ({ mode: res.mode, source: res.source });
+  return {
+    councilGate: pick(readGateModeConfig(workspaceDir, {
+      key: 'councilGate',
+      envVar: 'HERMES_COUNCIL_GATE',
+      validModes: VALID_COUNCIL_GATE_MODES,
+      defaultMode: 'ask'
+    })),
+    planGate: pick(readGateModeConfig(workspaceDir, {
+      key: 'planGate',
+      envVar: 'HERMES_PLAN_GATE',
+      validModes: VALID_PLAN_GATE_MODES,
+      defaultMode: 'ask'
+    })),
+    gradeGate: pick(readGateModeConfig(workspaceDir, {
+      key: 'gradeGate',
+      envVar: 'HERMES_GRADE_GATE',
+      validModes: VALID_GRADE_GATE_MODES,
+      defaultMode: 'strict'
+    })),
+    xray: pick(readGateModeConfig(workspaceDir, {
+      key: 'xray',
+      envVar: 'HERMES_XRAY',
+      validModes: VALID_XRAY_MODES,
+      defaultMode: 'advisory'
+    })),
+    qaVerdictMode: pick(readGateModeConfig(workspaceDir, {
+      key: 'qaVerdictMode',
+      envVar: 'HERMES_QA_VERDICT_MODE',
+      validModes: VALID_QA_VERDICT_MODES,
+      defaultMode: 'artifact'
+    }))
+  };
+}
 
 export const PROTECTED_HERMES_EXPORT_SOURCES = Object.freeze([
   { src: 'test-summary.json', dst: 'test-summary.json' },
@@ -47,6 +95,8 @@ export const PROTECTED_HERMES_EXPORT_SOURCES = Object.freeze([
   { src: 'grade-ledger.jsonl', dst: 'grade-ledger.jsonl' },
   { src: 'team-stop.json', dst: 'team-stop.json' },
   { src: 'eval-results.jsonl', dst: 'eval-results.jsonl' },
+  { src: 'xray-report.json', dst: 'xray-report.json' },
+  { src: 'debt-ledger.jsonl', dst: 'debt-ledger.jsonl' },
   // Text mirrors (.txt — strictly NO .md files under logs/)
   { src: 'plan.md', dst: 'plan.md.txt' },
   { src: 'decisions.md', dst: 'decisions.md.txt' }
@@ -238,9 +288,13 @@ export function exportRunLogs({
   const absWs = path.resolve(workspaceDir);
   const hermesDir = path.join(absWs, '.hermes');
 
-  // Resolve plugin version from plugin.json if not explicitly supplied
-  const pluginMeta = readJsonSafe(path.join(absWs, 'plugin.json'));
-  const resolvedVersion = String(version || pluginMeta?.version || '0.0.0').replace(/[^a-zA-Z0-9._-]/g, '_');
+  // Resolve plugin version: prefer workspace plugin.json when present (e.g. plugin repo/tests),
+  // falling back to installed plugin root's plugin.json in foreign repos (e.g. tailscale-webos) instead of '0.0.0'
+  const pluginRoot = resolvePluginRoot(absWs);
+  const pluginMeta = readJsonSafe(path.join(absWs, 'plugin.json')) || readJsonSafe(path.join(pluginRoot, 'plugin.json'));
+  const resolvedVersion = String(version || pluginMeta?.version || '0.0.0')
+    .replace(/\.\.+/g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '_') || '0.0.0';
 
   // Resolve taskHash from protected plan-state.json / council-state.json if not explicitly supplied
   const planState = readJsonSafe(path.join(hermesDir, 'plan-state.json'));
@@ -257,7 +311,16 @@ export function exportRunLogs({
   const utcSlug = formatUtcSlug(exportedAtDate);
   const runDirName = `${utcSlug}-${resolvedTaskHash}`;
   const outDir = path.join(absWs, 'logs', resolvedVersion, runDirName);
-  fs.mkdirSync(outDir, { recursive: true });
+  // REQ-7b (v4.7.2): Run directories under logs/ are IMMUTABLE — atomic leaf mkdir refuses overwrite on EEXIST
+  fs.mkdirSync(path.dirname(outDir), { recursive: true });
+  try {
+    fs.mkdirSync(outDir);
+  } catch (err) {
+    if (err && err.code === 'EEXIST') {
+      throw new Error(`Immutable log run directory already exists and cannot be overwritten: ${path.relative(absWs, outDir).replace(/\\/g, '/')}`);
+    }
+    throw err;
+  }
 
   const manifestFiles = {};
 
@@ -325,7 +388,8 @@ export function exportRunLogs({
   const gitState = collectGitState(absWs);
   writeManagedFile('git-state.json', JSON.stringify(gitState, null, 2) + '\n', 'mechanical:git');
 
-  // 5. Write manifest.json last (summarizing all exported & absent files)
+  // 5. Write manifest.json last (summarizing all exported & absent files + effective gateModes)
+  const gateModes = collectGateModes(absWs);
   const manifest = {
     schemaVersion: 1,
     version: resolvedVersion,
@@ -336,6 +400,7 @@ export function exportRunLogs({
     releaseCommitHash: gitState.commit,
     releaseTreeHash: gitState.tree,
     verdictDiffHash,
+    gateModes,
     includeTranscript: Boolean(includeTranscript),
     maxFileBytes,
     files: manifestFiles

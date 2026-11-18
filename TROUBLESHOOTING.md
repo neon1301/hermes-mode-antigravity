@@ -25,6 +25,13 @@ This guide explains the most common guard and gate notices, why they occur, and 
 | `grade_override_negated` | User negated «Принять как есть» override | Rework unresolved items or obtain explicit validated user choice |
 | `team_stop_active` | Hard-stop `.hermes/team-stop.json` active (`sec_l1_pattern` / `tamper_protected` / `plan_tampered`) | Diagnose (read-only council allowed) and obtain validated user unblock via `ask_question` |
 | `l2_binding_uncertain` | Multiple L2 `invoke_subagent` calls in one step without `tool_call_id` | Re-invoke L2 auditor / grader as a single `invoke_subagent` call |
+| `plan_ask_mirror_invalid` | Plan confirmation `ask_question` contained internal IDs (`REQ-*`/`FINDING-*`) | Rewrite plan prompt in plain Russian with 4 mirror sections |
+| `logs_direct_write_deny` | Agent attempted direct write into `logs/` | Use portable `scripts/export-logs.mjs` from installed plugin root |
+| `xray_window_plain_ru_no_internal_codes` | X-ray advisory window had internal codes, scores/`%`, or `>5` items | Show `<=5` plain-Russian items in 3 buckets + `ещё N в отчёте` |
+| `xray_delete_without_zero_ref_proof_deny` | Attempted delete of X-ray flagged code/packaged file without `refs=0` proof | Verify zero refs across repo or authorize deletion explicitly in plan |
+| `xray_fix_now_requires_plan_revision_deny` | Code edit after `[Почини сейчас]` before plan revision `v(N+1)` | Update `.hermes/plan.md` to `v(N+1)` and confirm `[Делай]` via `ask_question` |
+| `xray_consent_negated_deny` | User negated X-ray fix («не чини сейчас» / «ничего не удаляй») | Leave flagged file untouched unless explicitly re-approved in plan |
+| `xray_error` | Advisory X-ray scanner failed or hit Stop headroom (fail-open) | Session is NOT blocked; re-run `scripts/xray-scan.mjs --workspace=.` manually |
 
 ---
 
@@ -211,4 +218,28 @@ This guide explains the most common guard and gate notices, why they occur, and 
 * **`grade_*` / `l2_binding_uncertain` (Stop):** Задачи с подтверждённым планом требуют `hermes-grade` `PASS` от независимого read-only грейдера вне `councilRoster ∪ writeWorkers ∪ {Lead}` (не обходится `qaVerdictMode="legacy"`, экономией или `MAX_RETURNS = 2`). При `NEEDS_HUMAN` или 3/3 `REWORK` откройте `ask_question` для валидированного решения пользователя; при `l2_binding_uncertain` перевызовите L2-аудитора одиночным `invoke_subagent`.
 * **`team_stop_active` (PreToolUse):** Записывается в `.hermes/team-stop.json` при жёстких нарушениях (`sec_l1_pattern`, `tamper_protected`, `plan_tampered`). Блокирует записи Lead и субагентов (разрешая read-only совет, чтение и `manage_subagents(kill/kill_all)`). Снимается только валидированным ответом пользователя в `ask_question` (механический `PASS` стоп не снимает).
 * **`--fast-path` на сложной задаче / `plan_ask_mirror_invalid`:** Флаг `--fast-path` работает только для тривиальных правок/опечаток (для ручного отключения гейтов человеком используйте `.hermes/config.json` или env). Окно подтверждения плана `ask_question` должно показывать 4 блока понятного зеркала простым языком без `REQ-*`/`FINDING-*`/`HIGH-*`.
-* **`logs_direct_write_deny` (`REQ-10`):** Прямая запись агента в `logs/` запрещена — артефакты выгружаются строго механическим скриптом `node scripts/export-logs.mjs` (см. `skills/hermes/references/log-export-protocol.md`).
+* **`logs_direct_write_deny` (`REQ-10`):** Прямая запись агента в `logs/` запрещена — артефакты выгружаются строго механическим скриптом `scripts/export-logs.mjs` от корня установленного плагина (см. `skills/hermes/references/log-export-protocol.md`).
+
+---
+
+### 12. `«Рентген» (v4.7.2): переносимый запуск в любом чужом репо, 3 корзины и закрытие долга`
+* **Одна команда запуска в любом репозитории (включая `tailscale-webos` и другие внешние проекты):**
+  - **Windows PowerShell:**
+    ```powershell
+    node "$env:USERPROFILE\.gemini\config\plugins\hermes-fleet\scripts\xray-scan.mjs" --workspace=.
+    node "$env:USERPROFILE\.gemini\config\plugins\hermes-fleet\scripts\export-logs.mjs" --workspace=.
+    ```
+  - **Linux / macOS / Git Bash:**
+    ```bash
+    node "${AGY_PLUGIN_DIR:-$HOME/.gemini/config/plugins/hermes-fleet}/scripts/xray-scan.mjs" --workspace=.
+    node "${AGY_PLUGIN_DIR:-$HOME/.gemini/config/plugins/hermes-fleet}/scripts/export-logs.mjs" --workspace=.
+    ```
+* **Что значат 3 корзины окна Рентгена (строго ≤5 пунктов, без внутренних кодов и процентов):**
+  1. **«Мусор (можно удалить, доказано)»** — неиспользуемый символ/элемент/файл с доказанным `refs=0` по всему репо (не точка входа и не в упаковке).
+  2. **«Недоделка (риск для тебя)»** — пустые `catch {}`, функции-заглушки `return true`, `TODO`/`FIXME`, недостижимые ветки.
+  3. **«Костыль (работает, но хрупко)»** — `setInterval` без `clearInterval`, повторные слушатели, опрос с побочными эффектами, повторение одного литерала ≥3 раз.
+* **Как закрыть или принять долг (`.hermes/debt-ledger.jsonl` защищён — 21 встроенный путь, руками агент его не правит):**
+  - **`[Почини сейчас]`** → добавьте выбранный пункт в `.hermes/plan.md` (ревизия `v(N+1)`), подтвердите `[Делай]`, исправьте код — при следующем скане исчезнувшая находка перейдёт в `status: "fixed"` механически.
+  - **`[Запиши в долг]`** → фиксируется `status: "debt"`, до 3 релевантных открытых долгов (≤1 КБ) всплывают в стартовом контексте отдельно от `lessons.jsonl`.
+  - **`[Не трогай]`** → фиксируется `status: "accepted"` с причиной; риск честно виден в отчёте, но больше не напоминает.
+* **Advisory fail-open:** Рентген никогда не блокирует `Stop` и обычные записи; при сбое или нехватке времени в `gate-log.jsonl` пишется `xray_error`, а сессия завершается свободно. Конфиг человека: `.hermes/config.json` → `"xray": "advisory" | "off"` (`HERMES_XRAY`). Подробнее: `skills/hermes/references/xray-protocol.md`.

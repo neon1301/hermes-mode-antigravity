@@ -14,6 +14,17 @@ import {
   REPUTATION_POLICY,
   syncCouncilOutcomeAndReputation
 } from './council-learning.mjs';
+import { runXrayScan } from '../scripts/xray-scan.mjs';
+import {
+  buildXrayAdvisoryWindow,
+  computeFindingId,
+  foldDebtLedgerState,
+  readDebtLedgerSafe,
+  recordXrayUserDecision
+} from './xray-ledger.mjs';
+import { classifyXrayWindowConsent, lintXrayWindowText } from './consent-validator.mjs';
+import { resolvePluginRoot, resolvePluginScript } from './workspace.mjs';
+import { exportRunLogs } from '../scripts/export-logs.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const hookPath = path.join(__dirname, 'clean-edits-guard.mjs');
@@ -5722,6 +5733,533 @@ const cases = [
         throw new Error(`Unexpected transcript-shape.jsonl structure: ${JSON.stringify(rows)}`);
       }
     }
+  },
+  // =====================================================================
+  // Hermes Fleet v4.7.2 «Рентген» (TASK-019) — 23 deterministic locks
+  // =====================================================================
+  {
+    name: 'xray_dead_symbol_zero_refs_detected',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-dead-sym');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'utils.js'), 'export function liveFn() { return 1; }\nfunction orphanHelper() { return 42; }\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: true });
+      const hit = report.findings.find((f) => f.rule === 'dead.unused_symbol' && f.symbol === 'orphanHelper');
+      if (!hit || hit.class !== 'fact' || hit.refs?.count !== 0 || hit.refs?.safeToDelete !== true) {
+        throw new Error(`Expected dead.unused_symbol fact with refs=0 safeToDelete=true for orphanHelper, got: ${JSON.stringify(report.findings)}`);
+      }
+      if (report.findings.some((f) => f.symbol === 'liveFn')) {
+        throw new Error('Exported public API liveFn must NOT be flagged as dead');
+      }
+    }
+  },
+  {
+    name: 'xray_dynamic_string_call_not_dead',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-dyn-str');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'svc.js'), 'function handleStatus() { return { ok: true, ts: Date.now() }; }\nservice.register("handleStatus", () => {});\n', 'utf-8');
+      fs.writeFileSync(path.join(ws, 'index.html'), '<button id="connectBtn">Go</button>\n', 'utf-8');
+      fs.writeFileSync(path.join(ws, 'src', 'ui.js'), 'const b = document.getElementById("connectBtn"); console.log(b);\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: false });
+      if (report.findings.some((f) => f.symbol === 'handleStatus' || f.symbol === '#connectBtn')) {
+        throw new Error(`String-dispatched handleStatus / getElementById connectBtn must NOT be flagged dead: ${JSON.stringify(report.findings)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_element_never_assigned_detected',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-el-unassigned');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'index.html'), '<button id="ghostButton">Click</button>\n', 'utf-8');
+      fs.writeFileSync(path.join(ws, 'src', 'app.js'), 'let ghostPanel;\nconsole.log(typeof ghostPanel);\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: false });
+      const htmlHit = report.findings.find((f) => f.rule === 'dead.unreferenced_element' && f.symbol === '#ghostButton');
+      const jsHit = report.findings.find((f) => f.rule === 'dead.element_never_assigned' && f.symbol === 'ghostPanel');
+      if (!htmlHit || htmlHit.class !== 'fact' || htmlHit.refs?.safeToDelete !== true || !jsHit || jsHit.class !== 'fact') {
+        throw new Error(`Expected both unreferenced HTML element #ghostButton (class=fact, safeToDelete=true) and unassigned ghostPanel (class=fact), got: ${JSON.stringify(report.findings)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_empty_catch_and_always_true_detected',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-stubs');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, 'src', 'stubby.js'),
+        'export function fakeCheck() { return true; }\nexport function risky() { try { return JSON.parse("{}"); } catch (e) {} }\n',
+        'utf-8'
+      );
+      const { report } = runXrayScan(ws, { writeArtifacts: false });
+      const hasEmptyCatch = report.findings.some((f) => f.rule === 'stub.empty_catch');
+      const hasAlwaysTrue = report.findings.some((f) => f.rule === 'stub.always_true_return' && f.symbol === 'fakeCheck');
+      if (!hasEmptyCatch || !hasAlwaysTrue) {
+        throw new Error(`Expected stub.empty_catch and stub.always_true_return, got: ${JSON.stringify(report.findings)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_unstopped_timer_detected',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-timer');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'poll.js'), 'export function startPoll() { setInterval(() => console.log("tick"), 3000); }\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: false });
+      if (!report.findings.some((f) => f.rule === 'fragile.unstopped_timer')) {
+        throw new Error(`Expected fragile.unstopped_timer finding, got: ${JSON.stringify(report.findings)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_duplicate_literal_detected',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-duplit');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, 'src', 'cfg.js'),
+        'export const a = "tailscale-v1.104.2";\nexport const b = "tailscale-v1.104.2";\nexport const c = "tailscale-v1.104.2";\n',
+        'utf-8'
+      );
+      const { report } = runXrayScan(ws, { writeArtifacts: false });
+      if (!report.findings.some((f) => f.rule === 'fragile.duplicate_literal' && f.symbol.includes('tailscale-v1.104.2'))) {
+        throw new Error(`Expected fragile.duplicate_literal finding for repeated literal >=3, got: ${JSON.stringify(report.findings)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_delete_without_zero_ref_proof_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-del-deny');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'helper.js'), 'function sharedHelper() { return 1; }\n', 'utf-8');
+      fs.writeFileSync(path.join(ws, 'src', 'caller.js'), 'console.log("sharedHelper");\n', 'utf-8');
+      // Report flags sharedHelper WITHOUT safeToDelete proof (refs.count = 1, class = hypothesis)
+      fs.writeFileSync(path.join(ws, '.hermes', 'xray-report.json'), JSON.stringify({
+        taskHash: 't1',
+        scanVersion: '4.7.2',
+        truncated: false,
+        protectedFiles: [],
+        findings: [{
+          id: computeFindingId({ rule: 'dead.unused_symbol', path: 'src/helper.js', symbol: 'sharedHelper' }),
+          rule: 'dead.unused_symbol',
+          class: 'hypothesis',
+          category: 'dead',
+          path: 'src/helper.js',
+          line: 1,
+          symbol: 'sharedHelper',
+          evidence: 'src/helper.js:1',
+          impact: 'resource_waste',
+          refs: { count: 1, sample: ['src/caller.js:1'], protectedBy: ['cross_process_string'], safeToDelete: false }
+        }]
+      }), 'utf-8');
+      const tp = path.join(tmpDir, 't-v472-del-deny.jsonl');
+      const prompt = '/hermes --fast-path fix typo';
+      fs.writeFileSync(tp, [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${prompt}\n</USER_REQUEST>` },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: High' }
+      ].map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: prompt,
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'edit_file', args: { Path: path.join(ws, 'src', 'helper.js'), Target: 'function sharedHelper() { return 1; }', Replacement: '' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/xray_delete_without_zero_ref_proof_deny/i.test(res.reason || '')) {
+        throw new Error(`Deleting symbol without refs=0 proof MUST DENY, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_packaged_file_not_deleted',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-pkg-file');
+      fs.mkdirSync(path.join(ws, 'service'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'appinfo.json'), JSON.stringify({ id: 'app.test', main: 'index.html', icon: 'service/worker.js' }), 'utf-8');
+      fs.writeFileSync(path.join(ws, 'service', 'worker.js'), 'console.log("worker");\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: true });
+      if (report.findings.some((f) => f.rule === 'dead.unused_file' && f.path === 'service/worker.js')) {
+        throw new Error('Packaged file referenced by appinfo.json must NEVER be flagged dead.unused_file');
+      }
+      const tp = path.join(tmpDir, 't-v472-pkg-file.jsonl');
+      const prompt = '/hermes --fast-path fix typo';
+      fs.writeFileSync(tp, [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${prompt}\n</USER_REQUEST>` },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: High' }
+      ].map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: prompt,
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'run_command', args: { CommandLine: 'rm service/worker.js' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/xray_delete_without_zero_ref_proof_deny/i.test(res.reason || '')) {
+        throw new Error(`Deleting packaged file service/worker.js via shell MUST DENY, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_report_protected_from_agent_write_deny',
+    expected: 'deny',
+    payload: { toolCall: { name: 'write_file', args: { Path: '.hermes/xray-report.json', Content: '{"findings":[]}' } } }
+  },
+  {
+    name: 'xray_debt_ledger_protected_and_hook_only',
+    expected: 'deny',
+    payload: { toolCall: { name: 'edit_file', args: { Path: '.hermes/debt-ledger.jsonl', Target: 'open', Replacement: 'fixed' } } }
+  },
+  {
+    name: 'xray_finding_id_stable_no_duplicates',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-stable-id');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const fPath = path.join(ws, 'src', 'mod.js');
+      fs.writeFileSync(fPath, 'function unusedStable() { return 7; }\n', 'utf-8');
+      const r1 = runXrayScan(ws, { writeArtifacts: true });
+      const id1 = r1.report.findings.find((f) => f.symbol === 'unusedStable')?.id;
+      // Shift line numbers by prepending 3 comment lines -> ID must remain identical & ledger must NOT duplicate
+      fs.writeFileSync(fPath, '// shifted 1\n// shifted 2\n// shifted 3\nfunction unusedStable() { return 7; }\n', 'utf-8');
+      const r2 = runXrayScan(ws, { writeArtifacts: true });
+      const id2 = r2.report.findings.find((f) => f.symbol === 'unusedStable')?.id;
+      if (!id1 || id1 !== id2) {
+        throw new Error(`Finding ID must survive line shifts: id1=${id1}, id2=${id2}`);
+      }
+      const { records } = readDebtLedgerSafe(ws);
+      const openRows = records.filter((r) => r.id === id1 && r.status === 'open');
+      if (openRows.length !== 1) {
+        throw new Error(`Repeat scan must NOT duplicate open debt entries, got ${openRows.length}`);
+      }
+    }
+  },
+  {
+    name: 'xray_fixed_detected_on_rescan',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-fixed-rescan');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const fPath = path.join(ws, 'src', 'mod.js');
+      fs.writeFileSync(fPath, 'function goneSoon() { return 1; }\n', 'utf-8');
+      const r1 = runXrayScan(ws, { writeArtifacts: true });
+      const id = r1.report.findings.find((f) => f.symbol === 'goneSoon')?.id;
+      if (!id) throw new Error('Initial scan did not detect goneSoon');
+      // Fix the file so finding disappears
+      fs.writeFileSync(fPath, 'export function activeNow() { return 1; }\n', 'utf-8');
+      runXrayScan(ws, { writeArtifacts: true });
+      const { records } = readDebtLedgerSafe(ws);
+      const state = foldDebtLedgerState(records);
+      if (state.get(id)?.status !== 'fixed') {
+        throw new Error(`Disappeared finding must mechanically transition to status="fixed", got: ${JSON.stringify(state.get(id))}`);
+      }
+    }
+  },
+  {
+    name: 'xray_window_plain_ru_no_internal_codes',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'ask_question',
+        args: {
+          questions: [{
+            question: 'Рентген нашёл проблемы:\nНедоделка (риск для тебя):\n1. Найдено dead.unused_symbol (REQ-1, FINDING-7) в src/app.js:12',
+            options: ['Почини сейчас', 'Запиши в долг', 'Не трогай']
+          }]
+        }
+      }
+    }
+  },
+  {
+    name: 'xray_window_max_five_items',
+    expected: 'deny',
+    payload: {
+      toolCall: {
+        name: 'ask_question',
+        args: {
+          questions: [{
+            question: 'Рентген нашёл скрытые проблемы:\nКостыль (работает, но хрупко):\n1. Таймер без остановки (src/a.js:1)\n2. Таймер без остановки (src/b.js:1)\n3. Таймер без остановки (src/c.js:1)\n4. Таймер без остановки (src/d.js:1)\n5. Таймер без остановки (src/e.js:1)\n6. Лишний шестой пункт (src/f.js:1)',
+            options: ['Почини сейчас', 'Запиши в долг', 'Не трогай']
+          }]
+        }
+      }
+    }
+  },
+  {
+    name: 'xray_consent_negated_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const c1 = classifyXrayWindowConsent('Не чини сейчас, ничего не удаляй', ['Почини сейчас', 'Запиши в долг', 'Не трогай']);
+      if (c1.decision !== 'negated') {
+        throw new Error(`Negated X-ray answer must classify as negated, got: ${JSON.stringify(c1)}`);
+      }
+      const ws = path.join(tmpDir, 'ws-v472-neg-consent');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const fPath = path.join(ws, 'src', 'bad.js');
+      fs.writeFileSync(fPath, 'function unusedX() { return 1; }\n', 'utf-8');
+      runXrayScan(ws, { writeArtifacts: true });
+      const tp = path.join(tmpDir, 't-v472-neg-consent.jsonl');
+      const prompt = '/hermes --fast-path fix typo';
+      fs.writeFileSync(tp, [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${prompt}\n</USER_REQUEST>` },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: High' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'xr1', args: { questions: [{ question: 'Рентген нашёл скрытые проблемы:\nМусор (можно удалить, доказано):\n1. Неиспользуемая функция (src/bad.js:1)', options: ['Почини сейчас', 'Запиши в долг', 'Не трогай'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'Не чини сейчас, ничего не удаляй' }
+      ].map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: prompt,
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'edit_file', args: { Path: fPath, Target: 'return 1;', Replacement: 'return 2;' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/xray_consent_negated_deny/i.test(res.reason || '')) {
+        throw new Error(`Editing X-ray flagged file after negated consent MUST DENY, got: ${JSON.stringify(res)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_fix_now_requires_plan_revision_deny',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-fixnow-rev');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      const prompt = '/hermes реализуй модуль авторизации';
+      const taskHash = crypto.createHash('sha256').update(prompt).digest('hex').slice(0, 16);
+      const planMd = '# План\n## ВОТ ЧТО Я ПОНЯЛ\n- **REQ-1:** КОГДА вход — СИСТЕМА ДОЛЖНА проверить токен. Проверка: auth.test.\n## ВОТ ЧТО Я ДОБАВЛЮ САМ\n- Ничего сверх твоей просьбы.\n## ЧЕГО Я НЕ ДЕЛАЮ\n- Без UI.\n## СПРОШУ ТОЛЬКО ОДНО-ДВА\n- Вопросов нет.\n';
+      fs.writeFileSync(path.join(ws, '.hermes', 'plan.md'), planMd, 'utf-8');
+      const normPlan = planMd.replace(/\r\n/g, '\n').split('\n').map((l) => l.replace(/[ \t]+$/g, '')).join('\n').trim();
+      const planHash = crypto.createHash('sha256').update(normPlan, 'utf-8').digest('hex');
+      fs.writeFileSync(path.join(ws, '.hermes', 'council-state.json'), JSON.stringify({ taskHash, status: 'APPROVED', mode: 'solo' }), 'utf-8');
+      fs.writeFileSync(path.join(ws, '.hermes', 'plan-state.json'), JSON.stringify({ taskHash, status: 'confirmed', version: 1, planHash, confirmedAskStepIdx: 3 }), 'utf-8');
+      const tp = path.join(tmpDir, 't-v472-fixnow-rev.jsonl');
+      fs.writeFileSync(tp, [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: `<USER_REQUEST>\n${prompt}\n</USER_REQUEST>` },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'hs', args: {} }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: High' },
+        { step_index: 3, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'pl1', args: { questions: [{ question: 'План v1 подходит?', options: ['Делай', 'Убрать лишнее', 'Добавить своё'] }] } }] },
+        { step_index: 4, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'Делай' },
+        { step_index: 5, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'xr1', args: { questions: [{ question: 'Рентген нашёл скрытые проблемы:\nНедоделка (риск для тебя):\n1. Пустой перехват ошибки (src/auth.js:5)', options: ['Почини сейчас', 'Запиши в долг', 'Не трогай'] }] } }] },
+        { step_index: 6, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'xr1', content: 'Created At: 2026-11-18T10:00:00Z\nCompleted At: 2026-11-18T10:00:05Z\nA1: Почини сейчас' }
+      ].map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      // Writing code directly without revising plan.md to v2 MUST DENY
+      const resCode = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: prompt,
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: path.join(ws, 'src', 'auth.js'), Content: 'export const ok = 1;\n' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (resCode.decision !== 'deny' || !/xray_fix_now_requires_plan_revision_deny/i.test(resCode.reason || '')) {
+        throw new Error(`Code write after [Почини сейчас] without plan revision v(N+1) MUST DENY, got: ${JSON.stringify(resCode)}`);
+      }
+      // Updating .hermes/plan.md (meta-path) MUST still be ALLOWED so Lead can revise to v2
+      const resPlan = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: prompt,
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'write_file', args: { Path: path.join(ws, '.hermes', 'plan.md'), Content: planMd + '\n', Overwrite: true } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (resPlan.decision !== 'allow') {
+        throw new Error(`Updating .hermes/plan.md for revision v2 after [Почини сейчас] must ALLOW, got: ${JSON.stringify(resPlan)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_accepted_risk_stops_nagging',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-accept-risk');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'index.js'), 'export function run() { setInterval(() => {}, 5000); }\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: true });
+      const win1 = buildXrayAdvisoryWindow(ws);
+      if (!win1.shouldShow || win1.shown.length !== 1) {
+        throw new Error(`Expected 1 finding shown before accept, got: ${JSON.stringify(win1)}`);
+      }
+      recordXrayUserDecision({ activeWorkspaceDir: ws, findingIds: [report.findings[0].id], status: 'accepted', reason: 'intended_daemon_timer' });
+      const win2 = buildXrayAdvisoryWindow(ws);
+      if (win2.shouldShow !== false || win2.acceptedCount !== 1) {
+        throw new Error(`Accepted risk must stop nagging (shouldShow=false, acceptedCount=1), got: ${JSON.stringify(win2)}`);
+      }
+    }
+  },
+  {
+    name: 'xray_scan_budget_truncated_honest',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-trunc');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      for (let i = 0; i < 6; i++) {
+        fs.writeFileSync(path.join(ws, 'src', `f${i}.js`), `function dead${i}() { return ${i}; }\n`, 'utf-8');
+      }
+      const { report } = runXrayScan(ws, { maxFiles: 3, writeArtifacts: false });
+      if (report.truncated !== true || report.truncatedReason !== 'max_files' || report.counts.filesScanned !== 3) {
+        throw new Error(`Expected honest truncated=true, truncatedReason=max_files, filesScanned=3, got: ${JSON.stringify({ truncated: report.truncated, truncatedReason: report.truncatedReason, counts: report.counts })}`);
+      }
+      if (report.findings.some((f) => f.refs?.safeToDelete === true)) {
+        throw new Error('Truncated scan MUST NEVER mark any finding safeToDelete=true');
+      }
+    }
+  },
+  {
+    name: 'xray_no_fabricated_quality_scores',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-noscore');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'src', 'a.js'), 'function unusedOne() { return 1; }\n', 'utf-8');
+      const { report } = runXrayScan(ws, { writeArtifacts: true });
+      const rawJson = JSON.stringify(report);
+      if (/"(?:score|qualityScore|healthScore|percent|percentage|grade)"/i.test(rawJson)) {
+        throw new Error(`Report must NEVER contain fabricated quality score fields: ${rawJson}`);
+      }
+      const badWin = lintXrayWindowText('Рентген: здоровье кода 82% (7/10)\n1. Мелкий недочёт (src/a.js:1)');
+      if (badWin.ok) {
+        throw new Error('lintXrayWindowText must reject fabricated percentages and quality scores');
+      }
+    }
+  },
+  {
+    name: 'export_manifest_contains_gate_modes_and_source',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-export-modes');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      fs.writeFileSync(path.join(ws, '.hermes', 'config.json'), JSON.stringify({ councilGate: 'off', xray: 'off' }), 'utf-8');
+      const res = exportRunLogs({ workspaceDir: ws, timestamp: '2026-11-18T12:00:00Z' });
+      const gm = res.manifest.gateModes;
+      if (!gm || gm.councilGate?.mode !== 'off' || gm.councilGate?.source !== 'config:.hermes/config.json') {
+        throw new Error(`Expected councilGate off from config in manifest.gateModes, got: ${JSON.stringify(gm)}`);
+      }
+      if (gm.xray?.mode !== 'off' || gm.xray?.source !== 'config:.hermes/config.json') {
+        throw new Error(`Expected xray off from config in manifest.gateModes, got: ${JSON.stringify(gm)}`);
+      }
+      if (gm.planGate?.mode !== 'ask' || gm.planGate?.source !== 'default') {
+        throw new Error(`Expected planGate default ask in manifest.gateModes, got: ${JSON.stringify(gm)}`);
+      }
+      if (fs.existsSync(path.join(res.outDir, 'config.json'))) {
+        throw new Error('Raw .hermes/config.json must STILL never be exported into logs/');
+      }
+    }
+  },
+  {
+    name: 'logs_run_dir_immutable_no_overwrite',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-immut');
+      fs.mkdirSync(path.join(ws, '.hermes'), { recursive: true });
+      const fixedTs = '2026-11-18T12:34:56Z';
+      exportRunLogs({ workspaceDir: ws, version: '4.7.2', taskHash: 'immut1234', timestamp: fixedTs });
+      let threw = false;
+      try {
+        exportRunLogs({ workspaceDir: ws, version: '4.7.2', taskHash: 'immut1234', timestamp: fixedTs });
+      } catch (err) {
+        threw = /already exists|immutable/i.test(err.message);
+      }
+      if (!threw) {
+        throw new Error('Second exportRunLogs to the exact same run directory MUST fail (immutable logs/ run dir)');
+      }
+    }
+  },
+  {
+    name: 'plugin_scripts_resolve_from_installed_root_in_foreign_repo',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const foreignRepo = path.join(tmpDir, 'foreign-tailscale-repo');
+      fs.mkdirSync(path.join(foreignRepo, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(foreignRepo, 'src', 'index.js'), 'function deadTailscaleFn() { return 1; }\n', 'utf-8');
+      const pluginRoot = resolvePluginRoot();
+      const xrayScript = resolvePluginScript('scripts/xray-scan.mjs', { pluginRoot });
+      const exportScript = resolvePluginScript('scripts/export-logs.mjs', { pluginRoot });
+      if (!fs.existsSync(xrayScript) || !fs.existsSync(exportScript)) {
+        throw new Error(`Resolved plugin scripts do not exist: ${xrayScript}, ${exportScript}`);
+      }
+      // Run both scripts from foreignRepo cwd (NO scripts/ and NO plugin.json in foreignRepo!)
+      const scanOut = JSON.parse(execFileSync('node', [xrayScript, `--workspace=${foreignRepo}`], { cwd: foreignRepo, encoding: 'utf-8' }));
+      if (!scanOut.ok || scanOut.counts.totalFindings < 1) {
+        throw new Error(`Foreign-repo xray-scan failed: ${JSON.stringify(scanOut)}`);
+      }
+      const expOut = JSON.parse(execFileSync('node', [exportScript, `--workspace=${foreignRepo}`], { cwd: foreignRepo, encoding: 'utf-8' }));
+      if (!expOut.ok || expOut.outDir.includes('0.0.0')) {
+        throw new Error(`Foreign-repo export-logs must resolve real plugin version (not 0.0.0): ${JSON.stringify(expOut)}`);
+      }
+      // Path traversal must be rejected
+      let rejectedTraversal = false;
+      try { resolvePluginScript('../outside.mjs', { pluginRoot }); } catch { rejectedTraversal = true; }
+      if (!rejectedTraversal) throw new Error('resolvePluginScript must reject path traversal');
+    }
+  },
+  {
+    name: 'xray_window_does_not_hijack_step0_or_post_edit',
+    expected: 'allow',
+    payload: { toolCall: { name: 'run_command', args: { CommandLine: 'git status' } } },
+    verify: () => {
+      const ws = path.join(tmpDir, 'ws-v472-no-hijack');
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const tp = path.join(tmpDir, 't-v472-no-hijack.jsonl');
+      // Transcript has ONLY an X-ray ask_question (NO Step 0 Model Handshake!) -> run_command MUST still DENY for Step 0
+      fs.writeFileSync(tp, [
+        { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes check repo' },
+        { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'xr1', args: { questions: [{ question: 'Рентген нашёл проблемы:\nКостыль (работает, но хрупко):\n1. Таймер (src/a.js:1)', options: ['Почини сейчас', 'Запиши в долг', 'Не трогай'] }] } }] },
+        { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'Запиши в долг' }
+      ].map((s) => JSON.stringify(s)).join('\n') + '\n', 'utf-8');
+      const res = JSON.parse(execFileSync('node', [hookPath], {
+        input: JSON.stringify({
+          lastUserInput: '/hermes check repo',
+          workspacePaths: [ws],
+          transcriptPath: tp,
+          toolCall: { name: 'run_command', args: { CommandLine: 'git status' } }
+        }),
+        encoding: 'utf-8'
+      }));
+      if (res.decision !== 'deny' || !/Step 0 Model Handshake/i.test(res.reason || '')) {
+        throw new Error(`X-ray ask_question MUST NOT fulfill Step 0 Model Handshake, got: ${JSON.stringify(res)}`);
+      }
+    }
   }
 ];
 
@@ -5794,6 +6332,8 @@ const gradeReportFile = path.join(isolatedTestWs, '.hermes', 'grade-report.json'
 const gradeLedgerFile = path.join(isolatedTestWs, '.hermes', 'grade-ledger.jsonl');
 const teamStopFile = path.join(isolatedTestWs, '.hermes', 'team-stop.json');
 const evalResultsFile = path.join(isolatedTestWs, '.hermes', 'eval-results.jsonl');
+const xrayReportFile = path.join(isolatedTestWs, '.hermes', 'xray-report.json');
+const debtLedgerFile = path.join(isolatedTestWs, '.hermes', 'debt-ledger.jsonl');
 
 const perCaseHermesCleanupFiles = [
   councilStateFile,
@@ -5809,7 +6349,9 @@ const perCaseHermesCleanupFiles = [
   gradeReportFile,
   gradeLedgerFile,
   teamStopFile,
-  evalResultsFile
+  evalResultsFile,
+  xrayReportFile,
+  debtLedgerFile
 ];
 
 try {

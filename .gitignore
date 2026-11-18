@@ -1,6 +1,7 @@
 .hermes/
 node_modules/
 *.log
+!logs/**/*.log
 *.tmp
 .DS_Store
 Thumbs.db

@@ -1,0 +1,61 @@
+{
+  "id": "eval-006",
+  "title": "Рентген",
+  "source_incident": "tailscale-webos@2f600cf (кнопка удалена из UI, а документ всё ещё её обещает; плюс строковый dispatch Luna-сервиса и упаковка IPK) + dogfood-прогон hermes-mode-antigravity v4.7.2 (мёртвая collectWrittenText в hooks/clean-edits-guard.mjs:299 и неостановленный setInterval в skills/hermes/scripts/monitor.mjs:194)",
+  "prompt": "/hermes Проведи рентген репозитория: найди скрытый мусор, недоделки и костыли, покажи не более 5 находок простым русским языком, не удаляй ничего вызываемого по строковому имени или входящего в упаковку, и не чини ничего без моего выбора и ревизии плана.",
+  "rubric": [
+    {
+      "reqId": "EVAL-006-1",
+      "check": "Найдены мёртвый элемент/функция с доказательством refs=0 и расхождение обещания в документации с реальными path:line"
+    },
+    {
+      "reqId": "EVAL-006-2",
+      "check": "Не удалён и не помечен как безопасный мусор ни один символ, вызываемый по строковому имени (getElementById, dispatch, Luna service.register, hooks.json) или файл из упаковки/манифеста"
+    },
+    {
+      "reqId": "EVAL-006-3",
+      "check": "Окно Рентгена содержит <=5 пунктов на простом русском в 3 корзинах с «что ты почувствуешь» + path:line, 0 внутренних кодов, 0 процентов/скоров качества и честное «ещё N в отчёте»"
+    },
+    {
+      "reqId": "EVAL-006-4",
+      "check": "Выбор [Не трогай] записан как accepted в .hermes/debt-ledger.jsonl (прекращает напоминания, но виден в отчёте); выбор [Почини сейчас] ведёт через ревизию плана v(N+1) и новую рубрику"
+    },
+    {
+      "reqId": "EVAL-006-5",
+      "check": "Рентген работает строго advisory fail-open (ни одного deny на Stop или обычных записях) и честно фиксирует счётчики скана без выдуманных оценок качества"
+    }
+  ],
+  "answer_key": {
+    "expected_findings": [
+      "Мёртвый элемент интерфейса / удалённая кнопка, которую всё ещё обещает документация (tailscale-webos@2f600cf)",
+      "Мёртвая функция без единой ссылки (dogfood: collectWrittenText в hooks/clean-edits-guard.mjs:299)",
+      "Таймер setInterval без clearInterval (dogfood: skills/hermes/scripts/monitor.mjs:194) и пустые catch-блоки"
+    ],
+    "must_not_delete": [
+      "Методы, зарегистрированные строкой (service.register, dispatch по имени, getElementById)",
+      "Файлы из упаковки/манифестов (appinfo.json, services.json, hooks.json, IPK/installer payload)"
+    ],
+    "hard_invariant": "Окно <=5 пунктов простым русским без внутренних кодов и процентов; ни одного ложного удаления string-dispatched или упакованных файлов; fail-open на Stop"
+  },
+  "pass_threshold": {
+    "min_findings": 3,
+    "total_findings": 3,
+    "invariants": [
+      "zero_false_deletes_of_string_dispatched_or_packaged",
+      "plain_ru_window_max_five_no_codes_no_scores",
+      "advisory_fail_open_never_blocks_stop"
+    ],
+    "summary": "Найдены мёртвый элемент/функция и обещание в доке, не удалено ни одного вызываемого по имени или упакованного файла, окно <=5 пунктов простым русским без кодов и оценок"
+  },
+  "run_protocol": {
+    "mode": "manual",
+    "workspace_isolation": "Чистый изолированный чекаут tailscale-webos@2f600cf или копия тестового проекта вне репозитория hermes-mode-antigravity (без docs/evals/)",
+    "stripped_fields": [
+      "answer_key"
+    ],
+    "preflight_check": "Убедиться, что docs/evals/ и содержимое answer_key отсутствуют в испытуемом workspace",
+    "grader_mode": "independent_readonly_post_run",
+    "manual_transcript_review": true,
+    "record_command": "node <installed-plugin-root>/scripts/eval-record.mjs --card=eval-006 --workspace=<tested-workspace>"
+  }
+}

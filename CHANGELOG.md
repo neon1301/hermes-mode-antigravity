@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.7.2] - 2026-11-18
+
+### «Рентген» — Mechanical X-Ray Scanner, Product Debt Book & Portability Tails (TASK-019)
+- **Deterministic Static Scanner (`scripts/xray-scan.mjs`, REQ-1, P1):**
+  - Added pure-stdlib zero-network 2-pass scanner with deterministic rules across 3 categories (`dead`, `stub`, `fragile`), deterministic impact ranking (`lies_to_user > brick_risk > resource_waste > cosmetic`), finding schema `{ id, rule, class, category, path, line, symbol, evidence, impact, refs }` (`class: "fact" | "hypothesis"`), shared `validateEvidenceRef` path:line verification, and JS/ES5 + HTML/CSS + generic adapters (C#/XAML honestly tracked in `filesSkippedUnsupported` and deferred to `TASK-020`).
+  - Enforced strict scan budgets (`<=2000` files, `<=2 MiB`/file, `10s` CLI / residual `<=5s` Stop with `>=2.5s` headroom before 10s Stop hook timeout), skipping `node_modules`/`.git`/binaries/minified lines, emitting honest `truncated: true` + `truncatedReason` and strictly zero fabricated quality scores or percentages (Rule 13).
+- **Repo-Wide Zero-Ref Proof & Surgical Deletion Guard (REQ-2, P1):**
+  - Built repo-wide reference index across imports/calls, dynamic string names (`getElementById`, `querySelector`, `service.register`, `dispatch`, `luna://`), CSS selectors, JSON/configs, packaging/IPK/manifests (`package.json`, `plugin.json`, `hooks.json`, `appinfo.json`, `services.json`, `install.ps1`/`install.sh`), docs, and tests. Never marks entrypoints, public APIs, cross-process string calls, or packaged files as safe to delete.
+  - Added surgical 4-condition `xray_delete_without_zero_ref_proof_deny` lock in `hooks/clean-edits-guard.mjs` + `hooks/xray-ledger.mjs`.
+- **Protected Artifacts (21 = 19 + 2) & Append-Only Product Debt Book (REQ-3, REQ-5, P1/P2):**
+  - Expanded `DEFAULT_PROTECTED_VERDICT_PATHS` in `hooks/consent-validator.mjs` from **19 to 21** (`+.hermes/xray-report.json`, `+.hermes/debt-ledger.jsonl`), automatically protected from both file-write and shell tamper (`buildProtectedShellRegex()`).
+  - Added `hooks/xray-ledger.mjs`: stable `id = sha256(rule + normalizedPath + symbol)` (zero duplicates on rescan), mechanical `fixed` transition when findings disappear on rescan (guarded against `truncated: true`), and fail-open advisory reads (`readXrayReportSafe` / `readDebtLedgerSafe`).
+  - Wired separate product debt injection (`<=3` relevant `open`/`debt` items, `<=1024 B`, skipping `accepted` and `fixed`, never mixed with `.hermes/lessons.jsonl`) into `hooks/context-injector.mjs`.
+- **Plain-Russian Advisory Window, Plan Revision Enforcement & Anti-Hijack (REQ-4, REQ-6, P1):**
+  - Centralized `isXrayWindowAskArgs`, `lintXrayWindowText` (`<=5` items, zero internal codes, zero percentages/quality scores), and `classifyXrayWindowConsent` (`[Почини сейчас]`, `[Запиши в долг]`, `[Не трогай]` with option-text binding and Cyrillic negation-guard) in `hooks/consent-validator.mjs`.
+  - `[Почини сейчас]` requires standard plan revision `v(N+1)` + reconfirmation + fresh `.hermes/rubric.json` (`xray_fix_now_requires_plan_revision_deny`); `[Не трогай]` records `status: "accepted"` and stops nagging while keeping accepted risks visible in reports.
+  - Excluded `isXrayWindowAskArgs` from Step 0 Handshake (`clean-edits-guard.mjs`) and Post-Edit Token Economy (`clean-edits-guard.mjs` + `qa-gate.mjs`).
+  - Wired fail-open advisory X-ray strictly on the Stop `allow` path in `hooks/qa-gate.mjs` (`xray: "advisory" | "off"`, no `enforce`; errors/timeouts log honest `xray_error` in `gate-log.jsonl` and never block Stop or normal writes).
+- **v4.7.1 Tails, Foreign-Repo Portability, Dogfood, `eval-006` & Docs (REQ-7..REQ-10):**
+  - Added `resolvePluginRoot()` and `resolvePluginScript()` in `hooks/workspace.mjs`; fixed `scripts/export-logs.mjs` to resolve plugin version from plugin root in foreign repos, emit `manifest.gateModes` (`mode` + `source`, never raw `config.json`), include `xray-report.json` & `debt-ledger.jsonl`, and enforce immutable run directories (`EEXIST` refusal). Added `!logs/**/*.log` to `.gitignore`.
+  - Added `skills/hermes/references/xray-protocol.md` (`+0 B` on `fleet-protocol.md`, `12 176 B` LF / `12 275 B` CRLF), `docs/evals/eval-006.json`, updated `docs/known-boundaries.md`, `TROUBLESHOOTING.md`, `docs/troubleshooting.md`, `docs/backlog.md`, `README.md`, `README.ru.md`, and all 7 version targets; added 27 new deterministic test locks across the existing 11 test suites.
+
+---
+
 ## [4.7.1] - 2026-11-18
 
 ### «Инспектор» — Independent Grader, Team Stop, Behavioral Evals & TASK-005 Closure (TASK-018)
