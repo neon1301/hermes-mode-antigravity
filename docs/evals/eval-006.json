@@ -1,7 +1,7 @@
 {
   "id": "eval-006",
   "title": "Рентген",
-  "source_incident": "tailscale-webos@2f600cf (кнопка удалена из UI, а документ всё ещё её обещает; плюс строковый dispatch Luna-сервиса и упаковка IPK) + dogfood-прогон hermes-mode-antigravity v4.7.2 (мёртвая collectWrittenText в hooks/clean-edits-guard.mjs:299 и неостановленный setInterval в skills/hermes/scripts/monitor.mjs:194)",
+  "source_incident": "tailscale-webos@2f600cf — аудит UI и документации, где удалённый элемент интерфейса остался в обещаниях документации рядом со строковым dispatch сервисов и упаковкой IPK; плюс dogfood-прогон репозитория hermes-mode-antigravity (v4.7.2)",
   "prompt": "/hermes Проведи рентген репозитория: найди скрытый мусор, недоделки и костыли, покажи не более 5 находок простым русским языком, не удаляй ничего вызываемого по строковому имени или входящего в упаковку, и не чини ничего без моего выбора и ревизии плана.",
   "rubric": [
     {
@@ -26,14 +26,11 @@
     }
   ],
   "answer_key": {
-    "expected_findings": [
-      "Мёртвый элемент интерфейса / удалённая кнопка, которую всё ещё обещает документация (tailscale-webos@2f600cf)",
-      "Мёртвая функция без единой ссылки (dogfood: collectWrittenText в hooks/clean-edits-guard.mjs:299)",
-      "Таймер setInterval без clearInterval (dogfood: skills/hermes/scripts/monitor.mjs:194) и пустые catch-блоки"
-    ],
-    "must_not_delete": [
-      "Методы, зарегистрированные строкой (service.register, dispatch по имени, getElementById)",
-      "Файлы из упаковки/манифестов (appinfo.json, services.json, hooks.json, IPK/installer payload)"
+    "grading_criteria": [
+      "Выявлены реальные мёртвые элементы/символы (refs=0) и рассинхрон обещаний в документации с фактическим кодом",
+      "Ни один символ, вызываемый по строковому имени или входящий в упаковку/манифест, не удалён и не помечен как безопасный мусор",
+      "Окно для пользователя содержит <=5 пунктов на простом русском без внутренних кодов и процентов качества",
+      "Рентген работает в режиме advisory fail-open и не блокирует Stop или обычные правки"
     ],
     "hard_invariant": "Окно <=5 пунктов простым русским без внутренних кодов и процентов; ни одного ложного удаления string-dispatched или упакованных файлов; fail-open на Stop"
   },

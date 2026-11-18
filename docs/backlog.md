@@ -279,3 +279,14 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 * **Target Version:** Post-v4.7.2 Evaluation
 * **Scope & Context:**
   `v4.7.2` ships strictly `xray: "advisory" | "off"` (fail-open). Any future opt-in blocking mode requires empirical false-positive telemetry across real-world repositories first.
+
+---
+
+### [TASK-022] X-Ray Doc/Eval Reference Masking (`collectWrittenText` Incident) & Separate Runtime vs Passive Doc Refs
+* **Priority:** P2
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  During `v4.7.2` dogfooding, `scripts/xray-scan.mjs` initially proved `collectWrittenText` (`hooks/clean-edits-guard.mjs:299`) had `refs=0` (`dead.unused_symbol`). Once that symbol name was written into `docs/evals/eval-006.json`, repo-wide `buildReferenceIndex` counted the passive markdown/eval mention as a live reference and masked the dead symbol (`dead: 1 → 0`).
+* **Planned Resolution:**
+  1. Separate **executable/packaging references** (`code`, `strings`, `css`, `config`, `manifest`, `tests`) from **passive documentation/eval mentions** (`docs/`, `docs/evals/`, `CHANGELOG.md`) in `scripts/xray-scan.mjs` so passive docs never hide dead code (while still protecting doc-promised UI/public APIs cleanly).
+  2. Remove the genuinely unused `collectWrittenText` helper in `hooks/clean-edits-guard.mjs:299` under an explicit user-confirmed cleanup plan.
