@@ -290,3 +290,34 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 * **Planned Resolution:**
   1. Separate **executable/packaging references** (`code`, `strings`, `css`, `config`, `manifest`, `tests`) from **passive documentation/eval mentions** (`docs/`, `docs/evals/`, `CHANGELOG.md`) in `scripts/xray-scan.mjs` so passive docs never hide dead code (while still protecting doc-promised UI/public APIs cleanly).
   2. Remove the genuinely unused `collectWrittenText` helper in `hooks/clean-edits-guard.mjs:299` under an explicit user-confirmed cleanup plan.
+
+---
+
+### [TASK-023] Mechanical Writer for `.hermes/security-verdict.json`
+* **Priority:** P2
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  `hooks/consent-validator.mjs:26` protects `.hermes/security-verdict.json` (`tamper_protected`), and `hooks/qa-gate.mjs:951-990` validates it strictly as a fallback when `!hasSecurityPass`. However, unlike `hooks/qa-runner.mjs` (writes `.hermes/qa-verdict.json`) and `hooks/grade-gate.mjs` (writes `.hermes/grade-report.json`), no hook or runner currently writes `.hermes/security-verdict.json` mechanically. As a result, `security-verdict.json` remains `absent` in exported `logs/` bundles even when `@viktor` delivers an authentic `[SECURITY PASS]` in the transcript.
+* **Planned Resolution:**
+  Have `hooks/qa-gate.mjs` (on Stop, after verifying authentic single-bound `@viktor` `[SECURITY PASS]` delivery containing `currentDiffHash`) mechanically persist `.hermes/security-verdict.json` conforming to `skills/compliance-policy-as-code/references/schemas/security-verdict.schema.json`.
+
+---
+
+### [TASK-024] Stale `.hermes/council-state.json` on Resumed Chats Without a New `/hermes` Trigger
+* **Priority:** P2
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  In `hooks/clean-edits-guard.mjs`, `taskStartIdx` is anchored by scanning backwards for the latest `/hermes` user turn. When a new large task (such as `v4.7.2` «Рентген») is started in a resumed chat without repeating `/hermes`, `taskHash` stays pinned to the earlier smoke task (`9fe7459b736b9959`, step 708), causing `.hermes/council-state.json` to remain frozen at the prior `APPROVED (solo)` state even after a full 3-stage NGT/Delphi roundtable is executed and recorded in `.hermes/decisions.md`.
+* **Planned Resolution:**
+  Detect fresh task boundaries / newly initiated roundtable rounds in `hooks/clean-edits-guard.mjs` so `.hermes/council-state.json` transitions cleanly to the active task's `taskHash`, `mode`, `roster`, and `roundsCompleted` without leaking prior smoke-task metadata into exported logs.
+
+---
+
+### [TASK-025] Mechanical `verify-before-claim` Release Tag Check & Lesson Rule
+* **Priority:** P2
+* **Target Version:** Post-v4.7.2 Evaluation
+* **Scope & Context:**
+  During `v4.7.2` delivery, a release report claimed tag `v4.7.2` was pushed without verifying remote state via `git ls-remote --tags origin "refs/tags/v4.7.2*"` (the remote tag was a lightweight tag on `ed7c679` rather than an annotated tag on `412c6d2`). Because `.hermes/lessons.jsonl` is strictly hook-only (`tamper_protected`, `source: "mechanical"`), post-mortem lessons outside gate denies currently live in `.hermes/instincts.md` rather than `.hermes/lessons.jsonl`.
+* **Planned Resolution:**
+  1. Add a lightweight release verification helper (`scripts/verify-release-tag.mjs` or `export-logs.mjs` check) that runs `git ls-remote --tags origin "refs/tags/<tag>*"` and asserts annotated tag object (`tag`) + dereferenced commit match (`^{}`).
+  2. Add a corresponding `RULE_HINTS` entry (`release_tag_unverified`) in `hooks/lessons-ledger.mjs` so unverified tag/release claims are recorded mechanically in `.hermes/lessons.jsonl`.
