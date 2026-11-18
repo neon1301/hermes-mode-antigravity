@@ -20,7 +20,17 @@ export const RULE_HINTS = Object.freeze({
   tamper_protected: 'Прямая правка защищённых артефактов .hermes/* запрещена — ими управляют только хуки/раннер или пользователь.',
   sec_l1_pattern: 'Сработал Layer 1 Security паттерн (pickle/eval/innerHTML/interlock) — устраните небезопасный вызов.',
   council_gate: 'Перед первой записью задачи завершите Council Gate через ask_question и дождитесь доставок специалистов.',
-  rule12_tier_mismatch: 'Соблюдайте выбранный в Шаге 0 уровень модели субагента (Rule 12).'
+  rule12_tier_mismatch: 'Соблюдайте выбранный в Шаге 0 уровень модели субагента (Rule 12).',
+  grade_rework_ceiling: 'Достигнут потолок доработок (3/3) — обязателен диалог ask_question с пользователем.',
+  grade_conflict_of_interest: 'Грейдер обязан быть read-only специалистом вне совета, воркеров и Lead.',
+  grade_evidence_invalid: 'Каждое evidence в hermes-grade должно ссылаться на реальный файл и валидный диапазон строк в workspace.',
+  grade_hash_mismatch: 'taskHash, planHash и rubricHash в hermes-grade должны совпадать с актуальными подтверждёнными артефактами.',
+  grade_incomplete_coverage: 'Грейдер обязан покрыть 100% reqId из .hermes/rubric.json без пропусков.',
+  grade_overall_mismatch: 'Поле overall в hermes-grade должно строго соответствовать вердиктам items (UNKNOWN → NEEDS_HUMAN, NOT_FULFILLED → REWORK).',
+  l2_binding_uncertain: 'Мульти-запуск L2-аудитора без tool_call_id отклонён (bindingConfidence="uncertain") — перевызовите одиночным invoke_subagent.',
+  team_stop_active: 'Команда остановлена (.hermes/team-stop.json) — разблокировка только через валидированный ответ пользователя в ask_question.',
+  plan_ask_mirror_invalid: 'Окно подтверждения плана (ask_question) должно содержать 4 блока понятного зеркала простым языком («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») без внутренних кодов REQ-*/FINDING-*/HIGH-*/TASK-*.',
+  logs_direct_write_deny: 'Каталог logs/ наполняется исключительно механическим экспортёром node scripts/export-logs.mjs — прямая запись агента запрещена.'
 });
 
 function sanitizeText(str) {

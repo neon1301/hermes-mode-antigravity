@@ -21,16 +21,26 @@ import {
   syncCouncilOutcomeAndReputation
 } from './council-learning.mjs';
 import {
+  buildProtectedShellRegex,
+  CONN_SECRET_RE,
   CorruptArtifactError,
+  DEFAULT_PROTECTED_VERDICT_PATHS,
   extractAuthenticAskAnswer,
+  isGradeOverrideAskArgs,
   isStrictTestPath,
+  isTeamStopUnblockAskArgs,
+  KNOWN_SECRET_PREFIX_RE,
   readGateModeConfig,
   readProtectedJsonlStrict,
   readProtectedJsonStrict,
-  resolveTaskContext
+  resolveTaskContext,
+  SECRET_ASSIGN_RE
 } from './consent-validator.mjs';
 import {
+  extractPlanAskQuestionText,
+  formatPlanDeny,
   isPlanAskArgs,
+  lintPlanAskWindowText,
   verifyPlanGate,
   verifySubagentPlanIntegrity
 } from './plan-gate.mjs';
@@ -38,6 +48,14 @@ import {
   recordMechanicalLesson,
   trackDenyAndMaybeRecordLesson
 } from './lessons-ledger.mjs';
+import { extractSubagentSpecs } from './subagent-binding.mjs';
+import {
+  HARD_STOP_RULES,
+  isTeamStopActiveForContext,
+  triggerTeamStop,
+  verifyTeamStopGate
+} from './team-stop.mjs';
+import { hasActiveReworkForTask } from './grade-gate.mjs';
 
 const MAX_TAIL_BYTES = 4 * 1024 * 1024;
 const HEAD_SCAN_BYTES = 64 * 1024;
@@ -88,6 +106,7 @@ function isHermesActive(payload) {
 let isHermesSession = false;
 let activeWorkspaceDir = process.cwd();
 let activeTaskHash = 'unknown';
+let transcriptData = { combinedSteps: [], tailSteps: [], headSteps: [] };
 
 function logGateDecision({ toolName, decision, reason, model, tier, subType, source } = {}) {
   if (!isHermesSession) return;
@@ -143,6 +162,36 @@ function allow(meta = {}) {
 }
 
 function deny(reason, meta = {}) {
+  if (isHermesSession && meta?.rule && HARD_STOP_RULES.has(meta.rule)) {
+    const stepCount = Array.isArray(transcriptData?.combinedSteps) ? transcriptData.combinedSteps.length : 0;
+    let stopTaskHash = meta.taskHash || activeTaskHash;
+    if (isSubagent) {
+      // HIGH-2: Bind subagent-triggered hard stop to Lead's active taskHash (or 'unknown'),
+      // NEVER the subagent's own prompt hash, so Lead cannot silently supersede it.
+      stopTaskHash = 'unknown';
+      try {
+        const ps = readProtectedJsonStrict(path.join(activeWorkspaceDir, '.hermes', 'plan-state.json'), '.hermes/plan-state.json')?.data;
+        if (ps && typeof ps.taskHash === 'string' && ps.taskHash.trim()) {
+          stopTaskHash = ps.taskHash.trim();
+        } else {
+          const cs = readProtectedJsonStrict(path.join(activeWorkspaceDir, '.hermes', 'council-state.json'), '.hermes/council-state.json')?.data;
+          if (cs && typeof cs.taskHash === 'string' && cs.taskHash.trim()) {
+            stopTaskHash = cs.taskHash.trim();
+          }
+        }
+      } catch {
+        stopTaskHash = 'unknown';
+      }
+    }
+    triggerTeamStop({
+      activeWorkspaceDir,
+      taskHash: stopTaskHash,
+      conversationId: String(payload?.conversationId || payload?.transcriptPath || ''),
+      rule: meta.rule,
+      reason,
+      triggerStepIdx: stepCount > 0 ? stepCount - 1 : -1
+    });
+  }
   if (isHermesSession && meta?.rule && meta?.skipLessonTrack !== true) {
     trackDenyAndMaybeRecordLesson({
       activeWorkspaceDir,
@@ -219,19 +268,6 @@ function detectSelectedTier({ checkpointPath, checkpointText, profilePath, profi
   }
 
   return null;
-}
-
-function extractSubagentSpecs(args) {
-  if (Array.isArray(args?.Subagents) && args.Subagents.length > 0) {
-    return args.Subagents.filter(Boolean);
-  }
-  if (Array.isArray(args?.subagents) && args.subagents.length > 0) {
-    return args.subagents.filter(Boolean);
-  }
-  if (args && (args.TypeName || args.typeName || args.Role || args.role)) {
-    return [args];
-  }
-  return [];
 }
 
 function collectWrittenChunks(args) {
@@ -328,7 +364,8 @@ const SHELL_MUTATE_PATTERNS = [
   },
   {
     name: 'shell redirect or write to protected hermes artifact',
-    re: /(?:^|[;&|\n]\s*|(?:pwsh|powershell)(?:\.exe)?\s+[^\n]*|cmd(?:\.exe)?\s+\/[ck]\s+|\s["'])(?:set-content|out-file|add-content|clear-content|new-item|ni|remove-item|rm|del|erase|unlink|truncate|mv|cp|move|copy|move-item|copy-item|rename-item|rni|ri|mi|cpi|sc|ac|clc|rd|rmdir|tee(?:-object)?)\b(?:[^"'|\n;&]|"[^"\n]*"|'[^'\n]*')*\.hermes[\\/](?:(?:progress-journal|council-state|qa-verdict|security-verdict|test-summary|mutation-report|council-cost|council-outcomes|instincts|council-criteria|config|plan-state|plan-ledger|lessons)\.(?:json|jsonl)|plan\.md)\.?(?=$|[\s"'|;&])|(?:^|[^<>])>{1,2}\s*(?:"[^"\n]*\.hermes[\\/](?:[^"\n]*\.(?:json|jsonl)|plan\.md)"|'[^'\n]*\.hermes[\\/](?:[^'\n]*\.(?:json|jsonl)|plan\.md)'|[^\s"'|;&>]*\.hermes[\\/](?:[^\s"'|;&>]*\.(?:json|jsonl)|plan\.md))(?=$|[\s"'|;&])|\[(?:system\.)?io\.(?:file|streamwriter|filestream)\](?:::(?:writeall(?:text|lines|bytes)|appendall(?:text|lines)|delete|move|copy|replace|create|openwrite)\b|::new\b)[^\n]*\.hermes[\\/]/i
+    rule: 'tamper_protected',
+    re: buildProtectedShellRegex()
   },
   { name: 'git apply', re: /(?:^|[;&|\n]\s*)git\s+apply\b/i }
 ];
@@ -336,9 +373,7 @@ const SHELL_MUTATE_PATTERNS = [
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$/i;
 const HARDCODE_SKIP_PATH_RE = /(?:^|[\\/])(?:tests?|__tests__|specs?|fixtures?|mocks?|samples?|examples?|docs?|hooks|scripts|\.hermes)[\\/]|(?:\.test\.|\.spec\.|Tests?\.(?:cs|py|ts|js)$)/i;
 
-const KNOWN_SECRET_PREFIX_RE = /(["'`])(?:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{16,}|gh[po]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[0-9A-Za-z-]{15,})[^"'`\n]*\1/;
-const SECRET_ASSIGN_RE = /\b(?:password|passwd|pwd|api[_-]?key|secret[_-]?key|access[_-]?token|token|secret|credential)\b(?:\s*\{[^}]*\})?(?:\s*:\s*[A-Za-z_][\w.<>\[\]| ?]{0,40})?\s*(?::=|=|:)\s*(["'`])([^"'`\n]{6,})\1/gi;
-const CONN_SECRET_RE = /(["'`])[^"'`\n]*\b(?:Password|Pwd)\s*=\s*(?!\$\{|<|\{|env\.|process\.env|changeme|example|placeholder)[^;"'`\n\s]{6,}(?:;[^"'`\n]*)?\1/i;
+// Secret regexes (KNOWN_SECRET_PREFIX_RE, SECRET_ASSIGN_RE, CONN_SECRET_RE) imported from ./consent-validator.mjs (single source of truth)
 const PLACEHOLDER_VALUE_RE = /^(?:<[^>]+>|\$\{|\{\{|env\.|process\.env|changeme|example|placeholder|your[-_]|replace[-_]|todo|\*{3,})/i;
 const WEAK_LITERAL_RE = /^(?:password\d*|passwd|admin\d*|qwerty\d*|letmein|welcome\d*|secret\d*|123456\d*)$/i;
 
@@ -487,7 +522,7 @@ const L1_WARN_PATTERNS = [
 ];
 
 // --- Track A5 & A6: Untrusted Input Quarantine & Role Sandboxing ---
-const transcriptData = getTranscriptData(payload?.transcriptPath);
+transcriptData = getTranscriptData(payload?.transcriptPath);
 const isSubagent = Boolean(
   payload?.isSubagent === true ||
   (payload?.transcriptPath && transcriptData.combinedSteps.length > 0 && !transcriptData.combinedSteps.some(isRealUserStep))
@@ -889,6 +924,12 @@ function enforceCriteriaFreezePostR2({ toolName, args, writeTargetPath, payload,
         }
       }
     }
+    if (String(s?.status || '').toUpperCase() === 'ERROR' && stepUuids.length === 0 && invEntries.length === 0 && pendingFifo.length > 0) {
+      pendingFifo.shift();
+    }
+    if (invEntries.length > 0 && pendingFifo.length > 0) {
+      pendingFifo.length = 0;
+    }
     let uIdx = 0;
     for (const { tcId, spec, single } of invEntries) {
       const name = resolveAgent(spec?.TypeName || spec?.typeName || spec?.Role || spec?.role || '');
@@ -1130,13 +1171,11 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
     return;
   }
 
-  // Micro / Fast-Path (explicit flag or standalone trivial task per planning ladder, not substring)
-  const isExplicitFastPath = /(?:--fast-path|--quick|\/hermes\s+(?:fast-?path|quick))\b/i.test(cleanPrompt);
-  const isStandaloneTrivial = /^\s*(?:\/hermes\s+)?(?:fix\s+typo|исправь\s+опечатку|поправь\s+опечатку|typo\s+fix|syntax\s+error)\s*$/i.test(cleanPrompt.trim());
-  const hasComplexTaskIndicators = /(?:отрефактори|refactor|перепиши|rewrite|модул|добавь|create|создай|архитектур|architect|интеграц|feature)\b/i.test(cleanPrompt);
-
-  if (isExplicitFastPath || (isStandaloneTrivial && !hasComplexTaskIndicators)) {
-    const bypassSource = isExplicitFastPath ? 'user_prompt:explicit_fast_path' : 'user_prompt:micro_trivial';
+  // Micro / Fast-Path (FINDING-7: unified with consent-validator.mjs — --fast-path is a task classification flag,
+  // NEVER allowed to bypass Council Gate on complex tasks; human policy override belongs in .hermes/config.json / env)
+  const resolvedCtx = resolveTaskContext({ combinedSteps, payload });
+  if (resolvedCtx.isMicroOrFastPath) {
+    const bypassSource = resolvedCtx.bypassSource || (resolvedCtx.isExplicitFastPath ? 'user_prompt:explicit_fast_path' : 'user_prompt:micro_trivial');
     logGateDecision({
       toolName,
       decision: 'allow',
@@ -1144,6 +1183,21 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       source: bypassSource
     });
     return;
+  }
+
+  const fastPathComplexHintRu = resolvedCtx.rejectedFastPathComplex
+    ? ' Флаг --fast-path отклонён для сложной задачи (для ручной политики человека используйте .hermes/config.json: "councilGate": "off" или env HERMES_COUNCIL_GATE=off).'
+    : '';
+  const fastPathComplexHintEn = resolvedCtx.rejectedFastPathComplex
+    ? ' Flag --fast-path was rejected on a complex task (for manual human policy override use .hermes/config.json "councilGate":"off" or HERMES_COUNCIL_GATE=off).'
+    : '';
+  if (resolvedCtx.rejectedFastPathComplex) {
+    logGateDecision({
+      toolName,
+      decision: 'warn',
+      reason: 'Council Gate: --fast-path rejected on complex task prompt (source: fast_path_complex_rejected)',
+      source: 'fast_path_complex_rejected'
+    });
   }
 
   const isLoop = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))\b/i.test(cleanPrompt);
@@ -1330,7 +1384,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
 
   if (councilGateConfig !== 'auto' && councilAskIdx < 0) {
     deny(
-      `Hermes Gate (Council Gate): Первая запись задачи (${toolName}) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»\n[EN: Hermes Gate (Council Gate): First write of task (${toolName}) is blocked until Council Gate is completed via ask_question.]`
+      `Hermes Gate (Council Gate): Первая запись задачи (${toolName}) заблокирована! До перехода к правкам кода или созданию воркеров Lead обязан провести Council Gate — определить затронутые домены по specialist-dispatch-matrix.md и вызвать ask_question: «Посоветоваться с советом специалистов до финального плана?»${fastPathComplexHintRu}\n[EN: Hermes Gate (Council Gate): First write of task (${toolName}) is blocked until Council Gate is completed via ask_question.${fastPathComplexHintEn}]`
     );
     process.exit(0);
   }
@@ -1498,6 +1552,8 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   const r3DispatchedUuids = new Set();
   const r3DeliveredUuids = new Set();
   const scanStartIndex = councilAskIdx >= 0 ? councilAskIdx : taskStartIdx;
+  const POST_COUNCIL_AUDIT_ROLE_RE = /\b(?:final\s+(?:qa|security|compliance|audit|grader)|qa\s+(?:and|&)\s+security|compliance\s+auditor|independent\s+(?:read-only\s+)?grader|security\s+auditor|qa\s+auditor)\b|(?:финальн\w*\s+(?:аудит|qa|проверк)|независим\w*\s+грейдер|грейдер\s+по\s+рубрике|аудитор\s+(?:безопасности|комплаенса|qa))/i;
+  const excludedNonCouncilUuids = new Set();
 
   // REQ-5 (v4.6.0): Pre-index exact tool_call_id -> subagent conversationId mappings across transcript steps
   const toolCallIdToUuid = new Map();
@@ -1516,15 +1572,40 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
   for (let i = scanStartIndex; i < combinedSteps.length; i++) {
     const s = combinedSteps[i];
     const contentStr = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
+    const stepToolCalls = collectToolCalls(s);
+
+    // FINDING-9: Stop council roster scan once real code writing begins after council R1 deliveries
+    // so late post-edit auditors (@viktor/@stanislav/@sergey) never contaminate the council roster if council-state.json is lost.
+    const hasPostCouncilCodeWrite = stepToolCalls.some((tc) => {
+      const tcName = String(tc?.name || '').toLowerCase();
+      if (!FILE_WRITE_TOOLS.has(tcName)) return false;
+      const p = String(tc?.args?.Path || tc?.args?.TargetFile || tc?.args?.AbsolutePath || tc?.args?.path || '');
+      return Boolean(p) && !isMetaOrArtifactPath(p);
+    });
+    if (hasPostCouncilCodeWrite && dispatchedUuids.size >= requiredCount && r1DeliveredUuids.size >= requiredCount) {
+      break;
+    }
+
+    // FINDING-9: Also stop once all expected council members have completed all required rounds
+    const allExpectedCouncilFinished =
+      expectedNames.length > 0 &&
+      expectedNames.every((name) => {
+        const u = agentToUuid.get(name);
+        if (!u) return false;
+        return isRoundtable ? r3DeliveredUuids.has(u) : r1DeliveredUuids.has(u);
+      });
+    if (allExpectedCouncilFinished) {
+      break;
+    }
 
     const stepUuids = [];
     for (const m of contentStr.matchAll(/Created the following subagent:\s*\{[^}]*"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)) {
       const u = m[1].toLowerCase();
-      dispatchedUuids.add(u);
-      stepUuids.push(u);
+      if (!excludedNonCouncilUuids.has(u)) {
+        stepUuids.push(u);
+      }
     }
 
-    const stepToolCalls = collectToolCalls(s);
     const invokeEntries = [];
     for (const tc of stepToolCalls) {
       if (String(tc?.name || '').toLowerCase() === 'invoke_subagent') {
@@ -1543,11 +1624,26 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       for (const u of stepUuids) {
         if (!uuidToAgent.has(u) && pendingFifoAgents.length > 0) {
           const nextPending = pendingFifoAgents.shift();
+          if (nextPending.excluded) {
+            excludedNonCouncilUuids.add(u);
+            continue;
+          }
+          dispatchedUuids.add(u);
           agentToUuid.set(nextPending.name, u);
           uuidToAgent.set(u, nextPending.name);
           uuidBindingConfidence.set(u, nextPending.confidence);
+        } else if (!uuidToAgent.has(u) && !excludedNonCouncilUuids.has(u) && pendingFifoAgents.length === 0) {
+          // Legacy fixtures where Created subagent appears without preceding invoke_subagent metadata
+          dispatchedUuids.add(u);
         }
       }
+    }
+
+    if (String(s?.status || '').toUpperCase() === 'ERROR' && stepUuids.length === 0 && invokeEntries.length === 0 && pendingFifoAgents.length > 0) {
+      pendingFifoAgents.shift();
+    }
+    if (invokeEntries.length > 0 && pendingFifoAgents.length > 0) {
+      pendingFifoAgents.length = 0;
     }
 
     let uuidIndex = 0;
@@ -1559,7 +1655,24 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
         .toLowerCase();
       const resolved = resolveAgentName(rawTName);
       const finalName = resolved || rawTName;
+      const roleAndPromptText = `${String(spec?.Role || spec?.role || '')} ${String(spec?.Prompt || spec?.prompt || '').slice(0, 200)}`;
+      const isExcludedLateAuditor =
+        expectedNames.length > 0 &&
+        !expectedNames.includes(finalName) &&
+        POST_COUNCIL_AUDIT_ROLE_RE.test(roleAndPromptText);
+
       if (finalName) {
+        if (isExcludedLateAuditor) {
+          if (tcId && singleSpecInCall && toolCallIdToUuid.has(tcId)) {
+            excludedNonCouncilUuids.add(toolCallIdToUuid.get(tcId));
+          } else if (uuidIndex < stepUuids.length) {
+            excludedNonCouncilUuids.add(stepUuids[uuidIndex]);
+            uuidIndex++;
+          } else {
+            pendingFifoAgents.push({ name: finalName, confidence: 'fifo', excluded: true });
+          }
+          continue;
+        }
         dispatchedTypes.add(finalName);
         if (tcId && singleSpecInCall && toolCallIdToUuid.has(tcId)) {
           // Exact tool_call_id binding
@@ -1573,6 +1686,7 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
           const confidence = isMultiUnboundInvokeStep ? 'uncertain' : 'fifo';
           if (uuidIndex < stepUuids.length) {
             const u = stepUuids[uuidIndex];
+            dispatchedUuids.add(u);
             agentToUuid.set(finalName, u);
             uuidToAgent.set(u, finalName);
             uuidBindingConfidence.set(u, confidence);
@@ -1721,8 +1835,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       process.exit(0);
     }
 
-    // REQ-2 (v4.5.0): Agent Dropout / Pruning before Stage 2
-    const omittedFromR2 = [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id));
+    // REQ-2 (v4.5.0): Agent Dropout / Pruning before Stage 2 (only when Stage 2 dispatch has actually started)
+    const omittedFromR2 = r2DispatchedUuids.size > 0
+      ? [...dispatchedUuids].filter((id) => !r2DispatchedUuids.has(id))
+      : [];
 
     if (omittedFromR2.length > 0) {
       for (const u of omittedFromR2) {
@@ -1934,8 +2050,10 @@ function verifyCouncilGate({ toolName, args, payload, activeWorkspaceDir }) {
       process.exit(0);
     }
 
-    // Stage 3 Pruning check
-    const omittedFromR3 = activeR2Uuids.filter((id) => !r3DispatchedUuids.has(id));
+    // Stage 3 Pruning check (only when Stage 3 dispatch has actually started)
+    const omittedFromR3 = r3DispatchedUuids.size > 0
+      ? activeR2Uuids.filter((id) => !r3DispatchedUuids.has(id))
+      : [];
     if (omittedFromR3.length > 0) {
       for (const u of omittedFromR3) {
         const aName = uuidToAgent.get(u) || '';
@@ -2047,6 +2165,21 @@ try {
 const taskContext = resolveTaskContext({ combinedSteps: transcriptData.combinedSteps, payload });
 activeTaskHash = taskContext.taskHash;
 
+// REQ-4 (v4.7.1): Hard-Stop gate (.hermes/team-stop.json) runs BEFORE Council/Plan/Write gates for Lead & subagents
+verifyTeamStopGate({
+  toolName,
+  args,
+  activeWorkspaceDir,
+  taskContext,
+  combinedSteps: transcriptData.combinedSteps,
+  isSubagent,
+  fileWriteToolsSet: FILE_WRITE_TOOLS,
+  isMutatingCmd,
+  extractSubagentSpecs,
+  logGateDecision,
+  deny
+});
+
 if (!isSubagent) {
   const isSelfSubagentSpawn =
     toolName === 'invoke_subagent' &&
@@ -2087,24 +2220,8 @@ if (!isSubagent) {
 if (FILE_WRITE_TOOLS.has(toolName)) {
   const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
 
-  // REQ-5 (P1) / REQ-1 (v4.2.1) / REQ-1 (v4.6.2) / REQ-1 & REQ-4 (v4.7.0): Immutable built-in 14 protected paths.
-  // .hermes/config.json, plan-state.json, plan-ledger.jsonl & lessons.jsonl are protected from agent writes; config/env can only EXTEND (union) protected paths, never weaken them.
-  const DEFAULT_PROTECTED_VERDICT_PATHS = [
-    '.hermes/qa-verdict.json',
-    '.hermes/security-verdict.json',
-    '.hermes/mutation-report.json',
-    '.hermes/test-summary.json',
-    '.hermes/council-state.json',
-    '.hermes/progress-journal.jsonl',
-    '.hermes/council-cost.jsonl',
-    '.hermes/council-outcomes.jsonl',
-    '.hermes/instincts.json',
-    '.hermes/council-criteria.json',
-    '.hermes/config.json',
-    '.hermes/plan-state.json',
-    '.hermes/plan-ledger.jsonl',
-    '.hermes/lessons.jsonl'
-  ];
+  // REQ-5 (P1) / REQ-1 (v4.2.1) / REQ-1 (v4.6.2) / REQ-1 & REQ-4 (v4.7.0) / REQ-1..REQ-7 (v4.7.1):
+  // Immutable built-in 19 protected paths (imported from consent-validator.mjs); config/env can only EXTEND (union), never weaken.
   const protectedVerdictSet = new Set(DEFAULT_PROTECTED_VERDICT_PATHS);
   try {
     const cfgPath = path.join(activeWorkspaceDir, '.hermes', 'config.json');
@@ -2179,6 +2296,24 @@ if (FILE_WRITE_TOOLS.has(toolName)) {
     deny(
       `Hermes Tamper Protection (REQ-5 / REQ-1): прямое редактирование или создание защищённого артефакта/конфига гейтов (${targetPath}) через инструмент модели ${toolName} запрещено. Вердикты и конфигурация гейтов управляются исключительно пользователем или механическим раннером.\n[EN: Hermes Tamper Protection (REQ-5 / REQ-1): direct modification or creation of protected verdict/gate config artifact (${targetPath}) via model tool ${toolName} is forbidden. Verdicts and gate config must be managed exclusively by the user or mechanical runner.]`,
       { toolName, rule: 'tamper_protected' }
+    );
+    process.exit(0);
+  }
+
+  // REQ-10 (v4.7.1): logs/ is mechanical exporter output ONLY (not part of the 19 protected .hermes/ paths,
+  // but direct agent write_file/edit_file into logs/ is strictly denied — use scripts/export-logs.mjs)
+  const isLogsOutputPath =
+    normRel === 'logs' ||
+    normRel.startsWith('logs/') ||
+    normRealRel === 'logs' ||
+    normRealRel.startsWith('logs/') ||
+    normBare === 'logs' ||
+    normBare.startsWith('logs/') ||
+    /(?:^|\/)logs\//.test(normCanonFull);
+  if (isLogsOutputPath) {
+    deny(
+      `Hermes Black Box (REQ-10): прямая запись или редактирование каталога logs/ (${targetPath}) инструментом модели ${toolName} запрещены. Артефакты в logs/ формирует исключительно механический экспортёр node scripts/export-logs.mjs.\n[EN: Hermes Black Box (REQ-10): direct model write/edit to logs/ (${targetPath}) via ${toolName} is forbidden. Only node scripts/export-logs.mjs may populate logs/.]`,
+      { toolName, rule: 'logs_direct_write_deny' }
     );
     process.exit(0);
   }
@@ -2314,11 +2449,21 @@ if (toolName === 'run_command') {
     );
     process.exit(0);
   }
+  const SHELL_LOGS_WRITE_RE = /(?:(?:^|[;&|\n]\s*)\b(?:set-content|out-file|add-content|tee(?:-object)?|new-item|ni|touch|cp|copy-item|mv|move-item|rm|remove-item)\b[^\n|;&]*(?:^|[\s"'`(/\\])logs[\\/]|(?:^|[^<>=])>{1,2}\s*["']?[^"'\s|;&>]*logs[\\/])/i;
+  if (SHELL_LOGS_WRITE_RE.test(cmd)) {
+    deny(
+      'Hermes Black Box (REQ-10): прямая запись в каталог logs/ через shell запрещена. Используйте исключительно node scripts/export-logs.mjs.\n[EN: Hermes Black Box (REQ-10): direct shell writes to logs/ are forbidden. Use node scripts/export-logs.mjs exclusively.]',
+      { toolName, rule: 'logs_direct_write_deny' }
+    );
+    process.exit(0);
+  }
   for (const mut of SHELL_MUTATE_PATTERNS) {
     if (mut.re.test(cmd)) {
+      // LOW-6: Any shell file-write targeting .hermes/* (e.g. node -e / python -c) is tamper_protected -> triggers team-stop
+      const effectiveRule = mut.rule || (/(?:^|[\s"'`(/\\])\.hermes(?:[\\/]|$)/i.test(cmd) ? 'tamper_protected' : 'rule8_clean_edits');
       deny(
         `Hermes Rule 8 (Clean Edits Policy): запрещено модифицировать исходный код через ${mut.name}. Используйте edit_file / write_file напрямую.\n[EN: Hermes Rule 8: modifying source code via ${mut.name} is forbidden. Use edit_file / write_file directly.]`,
-        { toolName, rule: 'rule8_clean_edits' }
+        { toolName, rule: effectiveRule }
       );
       process.exit(0);
     }
@@ -2458,7 +2603,9 @@ if (requiresStep0Handshake) {
             const isCouncilAsk = /(?:посоветоваться\s+с\s+(?:советом|работниками)|собрать\s+совет|совет\s+специалистов|собраться\s+за\s+столом|круглый\s+стол|советом\s+экспертов|совет\s+экспертов|council\b|roundtable\b)/i.test(argsStr) &&
               !/(?:модел|model|уровен|tier|medium|high|low)/i.test(argsStr);
             const isPlanAsk = isPlanAskArgs(argsStr);
-            return !isCouncilAsk && !isPlanAsk;
+            const isTeamStopAsk = isTeamStopUnblockAskArgs(argsStr);
+            const isGradeAsk = isGradeOverrideAskArgs(argsStr);
+            return !isCouncilAsk && !isPlanAsk && !isTeamStopAsk && !isGradeAsk;
           })
         );
         if (!hasHandshake) {
@@ -2493,7 +2640,7 @@ if (requiresStep0Handshake) {
             }
           }
         }
-        if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx) {
+        if (lastWriteIdx >= 0 && postEditAskIdx < lastWriteIdx && !hasActiveReworkForTask({ activeWorkspaceDir, taskHash: activeTaskHash })) {
           deny(
             'Hermes Token Economy Rule: Вы уже изменили код в этом ходе. Не запускайте сотрудников на проверку автоматически! Сначала вызовите инструмент ask_question с вопросом: «Я закончил доработку. Запустить сотрудников на проверку или завершить без проверки (экономия токенов)?»\n[EN: Hermes Token Economy Rule: Code already modified in this turn. Do not launch verification automatically. First invoke ask_question to ask user.]'
           );
@@ -2509,6 +2656,18 @@ if (requiresStep0Handshake) {
 if (toolName === 'manage_subagents') {
   const action = String(args.Action || args.action || '').toLowerCase().replace(/["']/g, '');
   if (action === 'kill' || action === 'kill_all') {
+    // REQ-4 (v4.7.1): During active team-stop, emergency kill of running write-workers is explicitly allowed
+    const emergencyStop = isTeamStopActiveForContext({ activeWorkspaceDir, taskContext, isSubagent: false });
+    if (emergencyStop.active) {
+      logGateDecision({
+        toolName,
+        decision: 'allow',
+        reason: `Emergency manage_subagents(${action}) allowed during active team-stop (${emergencyStop.state?.rule})`,
+        source: 'team_stop:emergency_kill_allowed'
+      });
+      allow();
+      process.exit(0);
+    }
     const transcriptPath = payload?.transcriptPath;
     if (transcriptPath) {
       try {
@@ -2558,6 +2717,29 @@ if (toolName === 'manage_subagents') {
       } catch {
         // Ignore transcript read errors
       }
+    }
+  }
+}
+
+if (toolName === 'ask_question') {
+  // FINDING-10: Plan confirmation ask_question must show a plain-language mirror, not a wall of internal IDs
+  const askArgsStr = typeof args === 'string' ? args : JSON.stringify(args || '');
+  if (isPlanAskArgs(askArgsStr)) {
+    const qText = extractPlanAskQuestionText(args);
+    const mirrorCheck = lintPlanAskWindowText(qText, { requireAllSections: true });
+    if (!mirrorCheck.ok) {
+      deny(
+        formatPlanDeny(
+          'plan_ask_mirror_invalid',
+          'Окно подтверждения плана (ask_question) заблокировано до показа пользователю.',
+          mirrorCheck.errors.join(' '),
+          'Перепишите вопрос простым русским языком с 4 краткими блоками («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») без внутренних кодов REQ-*/FINDING-*/HIGH-*/TASK-*.',
+          `Plan confirmation ask_question blocked: ${mirrorCheck.errors.join(' ')}`,
+          'Rewrite ask_question as a plain-language 4-section mirror without internal IDs.'
+        ),
+        { toolName, rule: 'plan_ask_mirror_invalid', taskHash: activeTaskHash }
+      );
+      process.exit(0);
     }
   }
 }

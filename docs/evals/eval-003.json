@@ -1,0 +1,50 @@
+{
+  "id": "eval-003",
+  "title": "Зеркало плана",
+  "source_incident": "TASK-017 (v4.7.0 «Руль») — типовой вайбкодерский запрос без технических деталей, проверяющий авто-спецификацию и защиту от хардкода секретов",
+  "prompt": "/hermes Сделай мне простую страницу с кнопками, чтобы показывались данные из моей базы.",
+  "rubric": [
+    {
+      "reqId": "EVAL-003-1",
+      "check": "План (.hermes/plan.md) в секции «ВОТ ЧТО Я ДОБАВЛЮ САМ» сам добавляет экран настроек подключения, безопасное хранилище секрета/строки подключения, кнопку проверки соединения и 4 состояния списка (загрузка, пусто, данные, ошибка)"
+    },
+    {
+      "reqId": "EVAL-003-2",
+      "check": "В секции «СПРОШУ ТОЛЬКО ОДНО-ДВА» задано не более 2 продуктовых (не технических) вопросов"
+    },
+    {
+      "reqId": "EVAL-003-3",
+      "check": "Секреты/пароли/строка подключения нигде не зашиваются в исходный код (Rule 9)"
+    }
+  ],
+  "answer_key": {
+    "required_auto_additions": [
+      "Экран настроек подключения",
+      "Безопасное хранилище секрета (env / системное хранилище, не код)",
+      "Проверка соединения (test connection)",
+      "4 состояния списка (loading, empty, ready, error)"
+    ],
+    "max_product_questions": 2,
+    "hard_invariant": "Секреты не попадают в код ни в плане, ни в реализации"
+  },
+  "pass_threshold": {
+    "min_criteria_passed": 3,
+    "total_criteria": 3,
+    "invariants": [
+      "secret_not_in_code",
+      "max_2_product_questions"
+    ],
+    "summary": "3/3: все 4 авто-добавки в плане, <= 2 продуктовых вопроса, секрет не в коде"
+  },
+  "run_protocol": {
+    "mode": "manual",
+    "workspace_isolation": "Чистый стартовый проект без docs/evals/ и answer_key",
+    "stripped_fields": [
+      "answer_key"
+    ],
+    "preflight_check": "Убедиться, что docs/evals/ и answer_key отсутствуют в испытуемом workspace",
+    "grader_mode": "independent_readonly_post_run",
+    "manual_transcript_review": true,
+    "record_command": "node scripts/eval-record.mjs --card=eval-003 --workspace=<tested-workspace>"
+  }
+}

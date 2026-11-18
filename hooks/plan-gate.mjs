@@ -12,6 +12,7 @@ import {
   readProtectedJsonStrict,
   resolveSelectedOptionText
 } from './consent-validator.mjs';
+import { writeRubricArtifact } from './grade-gate.mjs';
 
 export const VALID_PLAN_GATE_MODES = new Set(['ask', 'off']);
 
@@ -30,6 +31,53 @@ export function isPlanAskArgs(argsStr) {
     return false;
   }
   return true;
+}
+
+// FINDING-10: Plan confirmation ask_question must show a plain-language mirror, not a wall of internal IDs
+export const PLAN_ASK_INTERNAL_CODES_RE = /\b(?:REQ-\d+|FINDING-\d+|HIGH-\d+|MEDIUM-\d+|LOW-\d+|TASK-\d+)\b/i;
+
+export function extractPlanAskQuestionText(askArgsOrStep) {
+  if (!askArgsOrStep) return '';
+  if (typeof askArgsOrStep === 'string') return askArgsOrStep;
+  const qList = Array.isArray(askArgsOrStep?.questions) ? askArgsOrStep.questions : null;
+  if (qList) {
+    return qList.map((q) => String(q?.question || '')).filter(Boolean).join('\n');
+  }
+  // Transcript step with tool_calls
+  const tcs = collectToolCalls(askArgsOrStep);
+  for (const tc of tcs) {
+    if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+      const argsQ = tc?.args?.questions;
+      if (Array.isArray(argsQ)) {
+        return argsQ.map((q) => String(q?.question || '')).filter(Boolean).join('\n');
+      }
+    }
+  }
+  return '';
+}
+
+export function lintPlanAskWindowText(questionText, { requireAllSections = true } = {}) {
+  const text = String(questionText || '').trim();
+  const errors = [];
+  const codeMatch = text.match(PLAN_ASK_INTERNAL_CODES_RE);
+  if (codeMatch) {
+    errors.push(`Внутренний код «${codeMatch[0]}» не должен попадать в окно подтверждения плана — переведите суть на простой язык (коды оставляйте только в .hermes/plan.md).`);
+  }
+  if (requireAllSections) {
+    const hasUnderstood = /(?:понял|understood)/i.test(text);
+    const hasAdditions = /(?:добавлю\s+сам|добавк|additions|what\s+i(?:'ll|\s+will)\s+add)/i.test(text);
+    const hasNonGoals = /(?:чего\s+(?:я\s+)?не\s+делаю|не\s+делаю|не\s+трогаю|non[-\s]?goals|won'?t\s+do)/i.test(text);
+    const hasQuestions = /(?:вопрос|спрошу|questions?)/i.test(text);
+    const missing = [];
+    if (!hasUnderstood) missing.push('«Понял»');
+    if (!hasAdditions) missing.push('«Добавлю сам»');
+    if (!hasNonGoals) missing.push('«Чего не делаю»');
+    if (!hasQuestions) missing.push('«Вопросы»');
+    if (missing.length > 0) {
+      errors.push(`В окне плана отсутствуют обязательные разделы понятного зеркала: ${missing.join(', ')}.`);
+    }
+  }
+  return { ok: errors.length === 0, errors };
 }
 
 export function computeCanonicalPlanHash(mdText) {
@@ -269,6 +317,7 @@ export function lintPlanEarsLite(mdText, { workspaceDir = '' } = {}) {
   ];
 
   const EARS_ITEM_RE = /(?:КОГДА|ЕСЛИ|WHEN|IF)\s+(.+?)\s*[—–-]+\s*(?:СИСТЕМА\s+)?(?:ДОЛЖН[АЫО]|ОБЯЗАН[АЫО]?|SHALL|MUST)\s+(.+?)(?:\.\s*|\s+)(?:Проверка|Верификация|Verify|Verification)\s*:\s*(.+)$/i;
+  const parsedItems = [];
 
   for (const entry of allEarsItems) {
     const cleanItem = entry.text.replace(/\*\*/g, '').trim();
@@ -301,6 +350,15 @@ export function lintPlanEarsLite(mdText, { workspaceDir = '' } = {}) {
 
     // Convention-claim evidence check («так принято»)
     checkConventionEvidence(cleanItem, label, sourcesMap, workspaceDir, errors);
+
+    const reqMatch = cleanItem.match(/\b(REQ-\d+)\b/i);
+    parsedItems.push({
+      reqId: reqMatch ? reqMatch[1].toUpperCase() : null,
+      section: entry.section,
+      condition: cond,
+      behavior: beh,
+      verification: verify
+    });
   }
 
   const reqIds = [...new Set([...text.matchAll(/\b(REQ-\d+)\b/gi)].map((m) => m[1].toUpperCase()))];
@@ -309,7 +367,8 @@ export function lintPlanEarsLite(mdText, { workspaceDir = '' } = {}) {
     ok: errors.length === 0,
     errors,
     reqIds,
-    itemCount: allEarsItems.length
+    itemCount: allEarsItems.length,
+    items: parsedItems
   };
 }
 
@@ -501,6 +560,22 @@ export function verifyPlanGate({
     return;
   }
 
+  // FINDING-7: Explicit --fast-path on a complex task is NOT allowed to bypass Plan Gate
+  const fastPathComplexHintRu = taskContext?.rejectedFastPathComplex
+    ? ' Флаг --fast-path отклонён для сложной задачи (для ручной политики человека используйте .hermes/config.json: "planGate": "off" или env HERMES_PLAN_GATE=off).'
+    : '';
+  const fastPathComplexHintEn = taskContext?.rejectedFastPathComplex
+    ? ' Flag --fast-path was rejected on a complex task (for manual human policy override use .hermes/config.json "planGate":"off" or HERMES_PLAN_GATE=off).'
+    : '';
+  if (taskContext?.rejectedFastPathComplex) {
+    logGateDecision({
+      toolName,
+      decision: 'warn',
+      reason: 'Plan Gate: --fast-path rejected on complex task prompt (source: fast_path_complex_rejected)',
+      source: 'fast_path_complex_rejected'
+    });
+  }
+
   const hermesDir = path.join(activeWorkspaceDir, '.hermes');
   const planMdPath = path.join(hermesDir, 'plan.md');
   const planStatePath = path.join(hermesDir, 'plan-state.json');
@@ -515,9 +590,9 @@ export function verifyPlanGate({
       formatPlanDeny(
         'plan_missing',
         `Запись кода (${toolName}) заблокирована без плана.`,
-        'Файл .hermes/plan.md не создан для текущей задачи.',
+        `Файл .hermes/plan.md не создан для текущей задачи.${fastPathComplexHintRu}`,
         'Создайте .hermes/plan.md (4 секции + EARS-lite) и подтвердите план у пользователя через ask_question ([Делай] / [Убрать лишнее] / [Добавить своё]).',
-        `Write (${toolName}) blocked: .hermes/plan.md is missing.`,
+        `Write (${toolName}) blocked: .hermes/plan.md is missing.${fastPathComplexHintEn}`,
         'Create .hermes/plan.md (4 sections + EARS-lite) and confirm with user via ask_question.'
       ),
       { toolName, rule: 'plan_missing', taskHash: taskContext.taskHash }
@@ -586,11 +661,20 @@ export function verifyPlanGate({
 
         const nextVersion = (Number(existingState.version) || 1) + 1;
         const now = new Date().toISOString();
+        const { rubric, previousRubricHash } = writeRubricArtifact({
+          activeWorkspaceDir,
+          taskHash: taskContext.taskHash,
+          planHash: currentPlanHash,
+          version: nextVersion,
+          lint
+        });
         const nextState = {
           taskHash: taskContext.taskHash,
           conversationId: taskContext.convId,
           planHash: currentPlanHash,
           previousPlanHash: existingState.planHash,
+          rubricHash: rubric.rubricHash,
+          previousRubricHash: previousRubricHash || existingState.rubricHash || null,
           status: 'confirmed',
           confirmedAt: now,
           version: nextVersion,
@@ -605,12 +689,14 @@ export function verifyPlanGate({
           version: nextVersion,
           planHash: currentPlanHash,
           previousPlanHash: existingState.planHash,
+          rubricHash: rubric.rubricHash,
+          previousRubricHash: previousRubricHash || existingState.rubricHash || null,
           reason: `reconfirmed_v${nextVersion}`
         });
         logGateDecision({
           toolName,
           decision: 'allow',
-          reason: `Plan Gate approved: revised plan v${nextVersion} reconfirmed`
+          reason: `Plan Gate approved: revised plan v${nextVersion} reconfirmed (rubric v${nextVersion}, ${rubric.items.length} items)`
         });
         return;
       }
@@ -674,6 +760,24 @@ export function verifyPlanGate({
         'Re-send ask_question for the updated plan.'
       ),
       { toolName, rule: 'plan_stale', taskHash: taskContext.taskHash }
+    );
+    process.exit(0);
+  }
+
+  // FINDING-10 defense-in-depth: reject plan ask_question containing internal code walls (REQ-N / FINDING-N / HIGH-N)
+  const askQuestionText = extractPlanAskQuestionText(combinedSteps[planAskIdx]);
+  const askMirrorCodeCheck = lintPlanAskWindowText(askQuestionText, { requireAllSections: false });
+  if (!askMirrorCodeCheck.ok) {
+    deny(
+      formatPlanDeny(
+        'plan_ask_mirror_invalid',
+        `Запись кода (${toolName}) заблокирована: окно подтверждения плана содержало внутренние коды вместо понятного зеркала.`,
+        askMirrorCodeCheck.errors.join(' '),
+        'Отправьте окно подтверждения плана простым русским языком («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») без REQ-*/FINDING-*/HIGH-*.',
+        `Write (${toolName}) blocked: plan ask_question contained internal IDs instead of a plain-language mirror.`,
+        'Re-send plan ask_question as a plain-language mirror without internal IDs.'
+      ),
+      { toolName, rule: 'plan_ask_mirror_invalid', taskHash: taskContext.taskHash }
     );
     process.exit(0);
   }
@@ -772,13 +876,21 @@ export function verifyPlanGate({
     process.exit(0);
   }
 
-  // Freeze confirmed plan v1 mechanically!
+  // Freeze confirmed plan v1 mechanically + derive protected .hermes/rubric.json (REQ-1 v4.7.1)
   if (!fs.existsSync(hermesDir)) fs.mkdirSync(hermesDir, { recursive: true });
   const now = new Date().toISOString();
+  const { rubric } = writeRubricArtifact({
+    activeWorkspaceDir,
+    taskHash: taskContext.taskHash,
+    planHash: currentPlanHash,
+    version: 1,
+    lint
+  });
   const stateRecord = {
     taskHash: taskContext.taskHash,
     conversationId: taskContext.convId,
     planHash: currentPlanHash,
+    rubricHash: rubric.rubricHash,
     status: 'confirmed',
     confirmedAt: now,
     version: 1,
@@ -792,12 +904,13 @@ export function verifyPlanGate({
     taskHash: taskContext.taskHash,
     version: 1,
     planHash: currentPlanHash,
+    rubricHash: rubric.rubricHash,
     reason: 'initial_confirmation'
   });
   logGateDecision({
     toolName,
     decision: 'allow',
-    reason: `Plan Gate approved: plan v1 frozen (${lint.itemCount} EARS-lite items)`
+    reason: `Plan Gate approved: plan v1 frozen (${lint.itemCount} EARS-lite items, rubric ${rubric.rubricHash.slice(0, 12)})`
   });
 }
 

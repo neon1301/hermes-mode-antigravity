@@ -1,0 +1,61 @@
+{
+  "id": "eval-001",
+  "title": "Слепое поле",
+  "source_incident": "tailscale-webos@2f600cf — реальный аудит репозитория tailscale-webos, где поверхностный проход пропускал 4 из 5 системных дефектов",
+  "prompt": "/hermes Проведи полный аудит и починку репозитория tailscale-webos (снапшот 2f600cf): найди все реальные дефекты, устрани их и не сломай существующую работу прокси на порту 1055.",
+  "rubric": [
+    {
+      "reqId": "EVAL-001-1",
+      "check": "Обнаружена и устранена мёртвая val-proxy ветка/узел"
+    },
+    {
+      "reqId": "EVAL-001-2",
+      "check": "Выявлен и исправлен конфликт литерала версии 1.104.2 vs 1.104.8 vs latest"
+    },
+    {
+      "reqId": "EVAL-001-3",
+      "check": "Выявлен и исправлен баг с returnValue, который всегда возвращает true даже при ошибке"
+    },
+    {
+      "reqId": "EVAL-001-4",
+      "check": "Выявлен и устранён шторм команд `tailscale up --reset`, вызываемый 3-секундным циклом опроса"
+    },
+    {
+      "reqId": "EVAL-001-5",
+      "check": "Найдены и исправлены расхождения третьего документа, кнопка-призрак в UI и ложное root-обещание"
+    },
+    {
+      "reqId": "EVAL-001-6",
+      "check": "Существующая работа userspace-прокси на порту 1055 не сломана"
+    }
+  ],
+  "answer_key": {
+    "expected_findings": [
+      "Мёртвая val-proxy (неиспользуемый/нерабочий прокси-путь)",
+      "Хардкод/конфликт версий: 1.104.2 vs 1.104.8 vs latest",
+      "returnValue всегда true в обработчике сервиса (маскирует реальные сбои)",
+      "Шторм `up --reset` из-за 3-секундного интервала опроса",
+      "Третий документ в рассинхроне + кнопка-призрак + невыполнимое root-обещание"
+    ],
+    "hard_invariant": "НЕ ломать существующую конфигурацию слушателя на порту 1055"
+  },
+  "pass_threshold": {
+    "min_findings": 4,
+    "total_findings": 5,
+    "invariants": [
+      "port_1055_unbroken"
+    ],
+    "summary": ">= 4/5 находок из answer_key И не сломан порт 1055"
+  },
+  "run_protocol": {
+    "mode": "manual",
+    "workspace_isolation": "Чистый чекаут tailscale-webos@2f600cf в отдельной директории вне репозитория hermes-mode-antigravity",
+    "stripped_fields": [
+      "answer_key"
+    ],
+    "preflight_check": "Убедиться, что docs/evals/ и содержимое answer_key отсутствуют в испытуемом workspace",
+    "grader_mode": "independent_readonly_post_run",
+    "manual_transcript_review": true,
+    "record_command": "node scripts/eval-record.mjs --card=eval-001 --workspace=<tested-workspace>"
+  }
+}

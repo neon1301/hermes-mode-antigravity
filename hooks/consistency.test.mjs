@@ -317,10 +317,10 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 11 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 18,
+    'consistency': 22,
     'context-injector': 19,
-    'clean-edits-guard': 261,
-    'qa-gate': 104,
+    'clean-edits-guard': 290,
+    'qa-gate': 126,
     'rule-engine': 20,
     'session-report': 6,
     'eval-harness': 71,
@@ -584,6 +584,131 @@ await test('anti_drift_changelog_readme_and_dynamic_skills_locks', () => {
         throw new Error(`${docName} missing reference/link to actual disk skill '${skillName}'`);
       }
     }
+  }
+});
+
+// 19. REQ-6 (v4.7.1): Council Stage 2 artifact-first clause & independent-grading-protocol presence
+await test('council_critic_artifact_first_clause_present', () => {
+  const councilProtoPath = path.join(rootDir, 'skills', 'hermes', 'references', 'specialist-council-protocol.md');
+  if (!fs.existsSync(councilProtoPath)) throw new Error('specialist-council-protocol.md missing');
+  const txt = fs.readFileSync(councilProtoPath, 'utf-8');
+  if (!/git diff/i.test(txt) || !/test-summary\.json/i.test(txt) || !/Artifact-First|самостоятельно читать/i.test(txt)) {
+    throw new Error('specialist-council-protocol.md missing Stage 2 artifact-first clause requiring critic to read git diff & .hermes/test-summary.json directly');
+  }
+  const gradingProtoPath = path.join(rootDir, 'skills', 'hermes', 'references', 'independent-grading-protocol.md');
+  if (!fs.existsSync(gradingProtoPath)) {
+    throw new Error('skills/hermes/references/independent-grading-protocol.md is missing');
+  }
+});
+
+// 20. REQ-7 (v4.7.1): Eval suite cards (eval-001..005) schema & anti-contamination validation
+await test('eval_cards_schema_valid', () => {
+  const evalsDir = path.join(rootDir, 'docs', 'evals');
+  const readmePath = path.join(evalsDir, 'README.md');
+  if (!fs.existsSync(readmePath)) throw new Error('docs/evals/README.md missing');
+  const readmeTxt = fs.readFileSync(readmePath, 'utf-8');
+  if (!/answer_key/i.test(readmeTxt) || !/eval-record\.mjs/i.test(readmeTxt)) {
+    throw new Error('docs/evals/README.md missing answer_key isolation or eval-record.mjs documentation');
+  }
+  const recordScript = path.join(rootDir, 'scripts', 'eval-record.mjs');
+  if (!fs.existsSync(recordScript)) throw new Error('scripts/eval-record.mjs missing');
+
+  const requiredIds = ['eval-001', 'eval-002', 'eval-003', 'eval-004', 'eval-005'];
+  for (const id of requiredIds) {
+    const p = path.join(evalsDir, `${id}.json`);
+    if (!fs.existsSync(p)) throw new Error(`Missing eval card: docs/evals/${id}.json`);
+    const card = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    if (card.id !== id) throw new Error(`${id}.json id mismatch: ${card.id}`);
+    for (const field of ['source_incident', 'prompt', 'rubric', 'answer_key', 'pass_threshold', 'run_protocol']) {
+      if (card[field] === undefined || card[field] === null) {
+        throw new Error(`${id}.json missing required field '${field}'`);
+      }
+    }
+    if (typeof card.source_incident !== 'string' || card.source_incident.trim().length < 10) {
+      throw new Error(`${id}.json source_incident must reference a real incident/commit/task`);
+    }
+    if (typeof card.prompt !== 'string' || card.prompt.trim().length < 10) {
+      throw new Error(`${id}.json prompt must be non-empty`);
+    }
+    if (!Array.isArray(card.rubric) || card.rubric.length < 1) {
+      throw new Error(`${id}.json rubric must be a non-empty array`);
+    }
+    const stripped = card.run_protocol?.stripped_fields;
+    if (!Array.isArray(stripped) || !stripped.includes('answer_key')) {
+      throw new Error(`${id}.json run_protocol.stripped_fields must include 'answer_key'`);
+    }
+  }
+  // Verify eval-001 specifically references tailscale-webos 2f600cf
+  const e1 = JSON.parse(fs.readFileSync(path.join(evalsDir, 'eval-001.json'), 'utf-8'));
+  if (!/2f600cf/i.test(e1.source_incident) || !/1055/.test(JSON.stringify(e1))) {
+    throw new Error('eval-001.json must reference tailscale-webos@2f600cf and port 1055 invariant');
+  }
+});
+
+// 21. REQ-9 (v4.7.1): No A2A in README Roadmaps, A2A rejected in backlog/boundaries, 19 protected paths
+await test('no_a2a_in_roadmap', async () => {
+  for (const doc of ['README.md', 'README.ru.md']) {
+    const content = fs.readFileSync(path.join(rootDir, doc), 'utf-8');
+    const roadmapMatch = content.match(/##\s+🗺️[^\n]*\r?\n([\s\S]*?)(?:\r?\n---|\r?\n##\s+|$)/);
+    if (!roadmapMatch) throw new Error(`Could not locate Roadmap section in ${doc}`);
+    if (/\bA2A\b/i.test(roadmapMatch[1])) {
+      throw new Error(`${doc} Roadmap still mentions A2A (must be removed; A2A is rejected per Worse Together 2026-11-11)`);
+    }
+  }
+  const backlog = fs.readFileSync(path.join(rootDir, 'docs', 'backlog.md'), 'utf-8');
+  if (!/A2A/i.test(backlog) || !/Worse Together/i.test(backlog) || !/HOLD|REJECTED/i.test(backlog)) {
+    throw new Error('docs/backlog.md must record A2A as HOLD/REJECTED citing Worse Together');
+  }
+  const boundaries = fs.readFileSync(path.join(rootDir, 'docs', 'known-boundaries.md'), 'utf-8');
+  if (!/Worse Together/i.test(boundaries) || !/19/.test(boundaries)) {
+    throw new Error('docs/known-boundaries.md must document A2A rejection (Worse Together) and 19 protected paths');
+  }
+  const cv = await import('./consent-validator.mjs');
+  if (!Array.isArray(cv.DEFAULT_PROTECTED_VERDICT_PATHS) || cv.DEFAULT_PROTECTED_VERDICT_PATHS.length !== 19) {
+    throw new Error(`Expected 19 protected paths in DEFAULT_PROTECTED_VERDICT_PATHS, got ${cv.DEFAULT_PROTECTED_VERDICT_PATHS?.length}`);
+  }
+});
+
+// 22. FINDING-8 (v4.7.1): Running guard + qa-gate test suites MUST NOT mutate or delete live cwd/.hermes/
+await test('test_run_does_not_mutate_live_hermes_dir', async () => {
+  const os = await import('node:os');
+  const crypto = await import('node:crypto');
+  const { spawnSync } = await import('node:child_process');
+  const seededWs = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-finding8-live-'));
+  try {
+    const hermesDir = path.join(seededWs, '.hermes');
+    fs.mkdirSync(hermesDir, { recursive: true });
+    fs.writeFileSync(path.join(hermesDir, 'council-state.json'), JSON.stringify({ status: 'APPROVED', taskHash: 'live000011112222', mode: 'roundtable' }, null, 2), 'utf-8');
+    fs.writeFileSync(path.join(hermesDir, 'plan-state.json'), JSON.stringify({ status: 'confirmed', taskHash: 'live000011112222', version: 1 }, null, 2), 'utf-8');
+    fs.writeFileSync(path.join(hermesDir, 'rubric.json'), JSON.stringify({ taskHash: 'live000011112222', items: [] }, null, 2), 'utf-8');
+    fs.writeFileSync(path.join(hermesDir, 'gate-log.jsonl'), '{"decision":"allow","live":true}\n', 'utf-8');
+
+    const snapshotDir = (dir) => {
+      const entries = fs.readdirSync(dir).sort();
+      return entries.map((name) => {
+        const bytes = fs.readFileSync(path.join(dir, name));
+        return `${name}:${bytes.length}:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+      }).join('|');
+    };
+    const before = snapshotDir(hermesDir);
+
+    for (const suite of ['hooks/clean-edits-guard.test.mjs', 'hooks/qa-gate.test.mjs']) {
+      const res = spawnSync('node', [path.join(rootDir, suite)], {
+        cwd: seededWs,
+        encoding: 'utf-8',
+        env: { ...process.env }
+      });
+      if (res.status !== 0) {
+        throw new Error(`Suite ${suite} failed under seeded live cwd (exit ${res.status}): ${(res.stderr || res.stdout || '').slice(-400)}`);
+      }
+    }
+
+    const after = snapshotDir(hermesDir);
+    if (before !== after) {
+      throw new Error(`FINDING-8 regression: live cwd/.hermes/ was mutated during test run!\nBEFORE: ${before}\nAFTER:  ${after}`);
+    }
+  } finally {
+    fs.rmSync(seededWs, { recursive: true, force: true });
   }
 });
 

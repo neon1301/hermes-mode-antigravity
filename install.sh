@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Hermes Fleet Plugin Installer for Google Antigravity (v4.7.0)
+# Hermes Fleet Plugin Installer for Google Antigravity (v4.7.1)
 set -euo pipefail
 
 echo "=========================================="
-echo "  Hermes Fleet v4.7.0 Installer for Antigravity"
+echo "  Hermes Fleet v4.7.1 Installer for Antigravity"
 echo "=========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,8 +24,8 @@ fi
 
 mkdir -p "${TARGET_DIR}"
 
-# Remove stale items from earlier versions
-rm -rf "${TARGET_DIR}/rules"
+# Remove stale items from earlier versions and ensure repo-only logs/ never enter install payload
+rm -rf "${TARGET_DIR}/rules" "${TARGET_DIR}/logs"
 
 ITEMS=(
   "plugin.json"

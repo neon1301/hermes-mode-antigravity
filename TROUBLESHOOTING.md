@@ -13,6 +13,18 @@ This guide explains the most common guard and gate notices, why they occur, and 
 | `plan_lint_failed` | `.hermes/plan.md` failed EARS-lite / 4-section / convention-source lint | Fix reported sections/items/sources in `.hermes/plan.md` and re-confirm |
 | `plan_tampered` | `.hermes/plan.md` SHA-256 changed after confirmation (v1 -> v2) | Confirm updated plan v2 via a new `ask_question` (never silently overwrite) |
 | `plan_stale` | `.hermes/plan.md` edited after `ask_question` was sent (TOCTOU) | Re-send updated `.hermes/plan.md` via `ask_question` |
+| `grade_missing` | Confirmed-plan Stop blocked — no authentic PASS `.hermes/grade-report.json` | Invoke independent read-only grader outside council & write-workers |
+| `grade_conflict_of_interest` | Grader UUID belongs to council roster, write-workers, or Lead | Re-invoke a read-only specialist outside `.hermes/council-state.json` & writers |
+| `grade_hash_mismatch` | `taskHash`/`planHash`/`rubricHash` in `hermes-grade` does not match confirmed rubric | Re-run grader against current `.hermes/rubric.json` |
+| `grade_incomplete_coverage` | `hermes-grade` omitted one or more `reqId` items from `.hermes/rubric.json` | Re-run grader covering 100% of `rubric.items` |
+| `grade_evidence_invalid` | `evidence` `path:line` does not exist or line exceeds file length | Provide real existing workspace `path:line` within valid line bounds |
+| `grade_overall_mismatch` | Declared `overall` contradicts item verdicts (`UNKNOWN` can never be `PASS`) | Re-emit `overall` matching `UNKNOWN→NEEDS_HUMAN`, `NOT_FULFILLED→REWORK`, all `FULFILLED→PASS` |
+| `grade_rework_required` | Grader returned `REWORK` (cycle 1–2 of 3) | Fix `NOT_FULFILLED` items and request fresh independent grade |
+| `grade_rework_ceiling` | Reached 3/3 `REWORK` cycles on `taskHash` | Call `ask_question`: `[Продолжить доработку]` / `[Принять как есть]` / `[Остановить задачу]` |
+| `grade_needs_human` | Grader marked one or more items `UNKNOWN` | Call `ask_question`: `[Дать улику]` / `[Переделать]` / `[Принять риск как есть]` |
+| `grade_override_negated` | User negated «Принять как есть» override | Rework unresolved items or obtain explicit validated user choice |
+| `team_stop_active` | Hard-stop `.hermes/team-stop.json` active (`sec_l1_pattern` / `tamper_protected` / `plan_tampered`) | Diagnose (read-only council allowed) and obtain validated user unblock via `ask_question` |
+| `l2_binding_uncertain` | Multiple L2 `invoke_subagent` calls in one step without `tool_call_id` | Re-invoke L2 auditor / grader as a single `invoke_subagent` call |
 
 ---
 
@@ -54,6 +66,19 @@ This guide explains the most common guard and gate notices, why they occur, and 
   - **`plan_negated_consent`:** Negations («не надо план, делай сразу», «план не подтверждаю», «никакого плана») are never treated as approval. Obtain explicit `[Делай]`, or use `--fast-path` for trivial tasks / human-authored `"planGate": "off"` in `.hermes/config.json` (`HERMES_PLAN_GATE=off`).
   - **`plan_lint_failed`:** Ensure every item in «Понял» and «Добавлю сам» follows `КОГДА <условие> — СИСТЕМА ДОЛЖНА <поведение>. Проверка: <тест или артефакт>` (no empty stubs like `Проверка: ок`); for any «так принято» / `best practice` claim add `https://` URL + verbatim quote + date (inline or `## Источники` `[n]`), existing local `path:line`, or «мой выбор, не конвенция». («Добавлю сам» may be honestly empty: «Ничего сверх твоей просьбы».)
   - **`plan_tampered` / `plan_stale`:** `.hermes/plan.md` changed after confirmation or after `ask_question` was sent. Send a new `ask_question` to confirm plan `v2` cleanly.
+
+---
+
+### 1d. `Hermes «Инспектор» (Independent Grader, Team-Stop & L2 Binding — v4.7.1)`
+* **Codes:** `grade_missing`, `grade_conflict_of_interest`, `grade_hash_mismatch`, `grade_incomplete_coverage`, `grade_evidence_invalid`, `grade_overall_mismatch`, `grade_rework_required`, `grade_rework_ceiling`, `grade_needs_human`, `grade_override_negated`, `team_stop_active`, `l2_binding_uncertain`.
+* **Why it happens:**
+  - **Independent Grading (`grade_*`):** Every confirmed-plan task mechanically derives protected `.hermes/rubric.json`. Stop (`hooks/qa-gate.mjs`) requires an authentic `hermes-grade` delivery from a read-only specialist outside `councilRoster ∪ writeWorkers ∪ {Lead}` with verified `path:line` evidence and 100% `reqId` coverage (not disabled by `qaVerdictMode="legacy"`, `economy skip`, or `MAX_RETURNS = 2`).
+  - **Hard-Stop (`team_stop_active`):** Layer 1 security (`sec_l1_pattern`), protected artifact/config tamper (`tamper_protected`, file-write or shell), or `plan_tampered` activates `.hermes/team-stop.json` (`status: "active"`), halting all writes and write-worker spawns for both Lead and subagents.
+  - **L2 Binding (`l2_binding_uncertain`):** Multiple L2 auditor/grader `invoke_subagent` calls in the same step without `tool_call_id` fail closed to prevent misattributed verdicts.
+* **Resolution:**
+  - **`grade_*`:** Summon an independent read-only specialist (`@viktor`/`@stanislav` if not in council, else any other free read-only specialist) with paths to `.hermes/rubric.json`, `.hermes/*`, and `git diff` (see `skills/hermes/references/independent-grading-protocol.md`). On `NEEDS_HUMAN` or `REWORK` 3/3 ceiling, invoke `ask_question` for a validated user decision.
+  - **`team_stop_active`:** Read-only council, diagnostics, `ask_question`, and emergency `manage_subagents(kill/kill_all)` remain allowed. Resolve the root violation and obtain explicit user approval via `ask_question` («Разблокировать команду»); mechanical `PASS` never clears a hard-stop.
+  - **`l2_binding_uncertain`:** Re-invoke the auditor/grader as a single `invoke_subagent` call (or on a harness providing `tool_call_id`).
 
 ---
 
@@ -179,3 +204,11 @@ This guide explains the most common guard and gate notices, why they occur, and 
      - Убедитесь, что плагин установлен и включен: `agy plugin list` или перезапустите сессию.
      - Проверьте, что в `hooks.json` пути к скриптам относительны (`node ./hooks/...`).
      - Если ваша графическая оболочка IDE временно не поддерживает локальные command-хуки, используйте CLI `agy` либо запускайте проверки вручную через `./verify.ps1` (Windows) / `./verify.sh` (Linux/macOS) и `node hooks/session-report.mjs`.
+
+---
+
+### 11. `«Инспектор» (v4.7.1): грейдер (grade_*), стоп команды (team_stop_active), зеркало плана и «Чёрный ящик» (logs/)`
+* **`grade_*` / `l2_binding_uncertain` (Stop):** Задачи с подтверждённым планом требуют `hermes-grade` `PASS` от независимого read-only грейдера вне `councilRoster ∪ writeWorkers ∪ {Lead}` (не обходится `qaVerdictMode="legacy"`, экономией или `MAX_RETURNS = 2`). При `NEEDS_HUMAN` или 3/3 `REWORK` откройте `ask_question` для валидированного решения пользователя; при `l2_binding_uncertain` перевызовите L2-аудитора одиночным `invoke_subagent`.
+* **`team_stop_active` (PreToolUse):** Записывается в `.hermes/team-stop.json` при жёстких нарушениях (`sec_l1_pattern`, `tamper_protected`, `plan_tampered`). Блокирует записи Lead и субагентов (разрешая read-only совет, чтение и `manage_subagents(kill/kill_all)`). Снимается только валидированным ответом пользователя в `ask_question` (механический `PASS` стоп не снимает).
+* **`--fast-path` на сложной задаче / `plan_ask_mirror_invalid`:** Флаг `--fast-path` работает только для тривиальных правок/опечаток (для ручного отключения гейтов человеком используйте `.hermes/config.json` или env). Окно подтверждения плана `ask_question` должно показывать 4 блока понятного зеркала простым языком без `REQ-*`/`FINDING-*`/`HIGH-*`.
+* **`logs_direct_write_deny` (`REQ-10`):** Прямая запись агента в `logs/` запрещена — артефакты выгружаются строго механическим скриптом `node scripts/export-logs.mjs` (см. `skills/hermes/references/log-export-protocol.md`).

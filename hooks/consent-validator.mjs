@@ -10,6 +10,73 @@ import {
 export const BOUNDARY_PRE = '(?<![а-яёa-z0-9_-])';
 export const BOUNDARY_POST = '(?![а-яёa-z0-9_-])';
 
+/**
+ * Shared secret detection patterns (Rule 9 & REQ-10 log redaction — single source of truth).
+ */
+export const KNOWN_SECRET_PREFIX_RE = /(["'`])(?:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{16,}|gh[po]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[0-9A-Za-z-]{15,})[^"'`\n]*\1/;
+export const SECRET_ASSIGN_RE = /\b(?:password|passwd|pwd|api[_-]?key|secret[_-]?key|access[_-]?token|token|secret|credential)\b(?:\s*\{[^}]*\})?(?:\s*:\s*[A-Za-z_][\w.<>\[\]| ?]{0,40})?\s*(?::=|=|:)\s*(["'`])([^"'`\n]{6,})\1/gi;
+export const CONN_SECRET_RE = /(["'`])[^"'`\n]*\b(?:Password|Pwd)\s*=\s*(?!\$\{|<|\{|env\.|process\.env|changeme|example|placeholder)[^;"'`\n\s]{6,}(?:;[^"'`\n]*)?\1/i;
+
+/**
+ * Single source of truth for all 19 immutable built-in protected paths (v4.7.1).
+ * Config/env `protectedVerdictPaths` can only EXTEND (union) this list, never weaken it.
+ */
+export const DEFAULT_PROTECTED_VERDICT_PATHS = Object.freeze([
+  '.hermes/qa-verdict.json',
+  '.hermes/security-verdict.json',
+  '.hermes/mutation-report.json',
+  '.hermes/test-summary.json',
+  '.hermes/council-state.json',
+  '.hermes/progress-journal.jsonl',
+  '.hermes/council-cost.jsonl',
+  '.hermes/council-outcomes.jsonl',
+  '.hermes/instincts.json',
+  '.hermes/council-criteria.json',
+  '.hermes/config.json',
+  '.hermes/plan-state.json',
+  '.hermes/plan-ledger.jsonl',
+  '.hermes/lessons.jsonl',
+  '.hermes/rubric.json',
+  '.hermes/grade-report.json',
+  '.hermes/grade-ledger.jsonl',
+  '.hermes/team-stop.json',
+  '.hermes/eval-results.jsonl'
+]);
+
+/**
+ * Dynamically builds the shell-tamper RegExp from DEFAULT_PROTECTED_VERDICT_PATHS (+ plan.md)
+ * so file-write protection and shell tamper protection never drift.
+ */
+export function buildProtectedShellRegex(extraPaths = []) {
+  const allPaths = [...new Set([...DEFAULT_PROTECTED_VERDICT_PATHS, '.hermes/plan.md', ...extraPaths])];
+  const escapedNames = allPaths
+    .map((p) => String(p).replace(/^\.?[\\/]*\.hermes[\\/]/i, ''))
+    .filter(Boolean)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const fileGroup = `(?:${escapedNames.join('|')})`;
+  const pattern =
+    `(?:^|[;&|\\n]\\s*|(?:pwsh|powershell)(?:\\.exe)?\\s+[^\\n]*|cmd(?:\\.exe)?\\s+\\/[ck]\\s+|\\s["'])` +
+    `(?:set-content|out-file|add-content|clear-content|new-item|ni|remove-item|rm|del|erase|unlink|truncate|mv|cp|move|copy|move-item|copy-item|rename-item|rni|ri|mi|cpi|sc|ac|clc|rd|rmdir|tee(?:-object)?)\\b` +
+    `(?:[^"'|\\n;&]|"[^"\\n]*"|'[^'\\n]*')*\\.hermes[\\\\/]${fileGroup}\\.?(?=$|[\\s"'|;&])|` +
+    `(?:^|[^<>])>{1,2}\\s*(?:"[^"\\n]*\\.hermes[\\\\/](?:[^"\\n]*\\.(?:json|jsonl)|plan\\.md)"|'[^'\\n]*\\.hermes[\\\\/](?:[^'\\n]*\\.(?:json|jsonl)|plan\\.md)'|[^\\s"'|;&>]*\\.hermes[\\\\/](?:[^\\s"'|;&>]*\\.(?:json|jsonl)|plan\\.md))(?=$|[\\s"'|;&])|` +
+    `\\[(?:system\\.)?io\\.(?:file|streamwriter|filestream)\\](?:::(?:writeall(?:text|lines|bytes)|appendall(?:text|lines)|delete|move|copy|replace|create|openwrite)\\b|::new\\b)[^\\n]*\\.hermes[\\\\/]`;
+  return new RegExp(pattern, 'i');
+}
+
+export function atomicWriteJson(filePath, data) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const content = JSON.stringify(data, null, 2);
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf-8');
+    fs.renameSync(tmpPath, filePath);
+  } catch {
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+    fs.writeFileSync(filePath, content, 'utf-8');
+  }
+}
+
 export class CorruptArtifactError extends Error {
   constructor(artifactName, detail) {
     super(`Corrupt protected artifact ${artifactName}: ${detail}`);
@@ -155,8 +222,14 @@ export function resolveTaskContext({ combinedSteps = [], payload = {} } = {}) {
   const isFixWarnings = /\bfix-warnings\b/i.test(cleanPrompt);
   const isExplicitFastPath = /(?:--fast-path|--quick|\/hermes\s+(?:fast-?path|quick))\b/i.test(cleanPrompt);
   const isStandaloneTrivial = /^\s*(?:\/hermes\s+)?(?:fix\s+typo|исправь\s+опечатку|поправь\s+опечатку|typo\s+fix|syntax\s+error)\s*$/i.test(cleanPrompt.trim());
-  const hasComplexTaskIndicators = /(?:отрефактори|refactor|перепиши|rewrite|модул|добавь|create|создай|архитектур|architect|интеграц|feature)\b/i.test(cleanPrompt);
-  const isMicroOrFastPath = isExplicitFastPath || (isStandaloneTrivial && !hasComplexTaskIndicators);
+  const hasComplexTaskIndicators = new RegExp(
+    `${BOUNDARY_PRE}(?:отрефактори[а-яё]*|refactor[a-z]*|перепиши[а-яё]*|переписат[ье]|rewrite|модул[а-яё]*|добав[ьит][а-яё]*|create|создай[а-яё]*|реализуй[а-яё]*|implement[a-z]*|релиз[а-яё]*|release|архитектур[а-яё]*|architect[a-z]*|интеграц[а-яё]*|feature|миграц[а-яё]*|migration|переделай[а-яё]*|безопасност[а-яё]*|security|req-\\d+|task-\\d+|finding-\\d+)${BOUNDARY_POST}`,
+    'i'
+  ).test(cleanPrompt);
+  // FINDING-7: --fast-path is a task-classification flag (must be truthful, never disables gates on complex tasks).
+  // Human policy override belongs strictly in .hermes/config.json / env (councilGate/planGate: "off").
+  const isMicroOrFastPath = (isExplicitFastPath || isStandaloneTrivial) && !hasComplexTaskIndicators;
+  const rejectedFastPathComplex = isExplicitFastPath && hasComplexTaskIndicators;
   const isLoop = /(?:--loop|\/hermes\s+(?:loop|fix-warnings\s+--loop))\b/i.test(cleanPrompt);
 
   let bypassKind = null;
@@ -187,6 +260,7 @@ export function resolveTaskContext({ combinedSteps = [], payload = {} } = {}) {
     isStandaloneTrivial,
     hasComplexTaskIndicators,
     isMicroOrFastPath,
+    rejectedFastPathComplex,
     bypassKind,
     bypassSource,
     isLoop,
@@ -234,8 +308,11 @@ export function extractAuthenticAskAnswer(combinedSteps, askIdx, askToolCallId =
     const stepType = String(s.type || '').toUpperCase();
     const sContent = typeof s.content === 'string' ? s.content : (s.content?.text || '');
 
-    // Hard reject forged MODEL prose, PLANNER_RESPONSE, subagent messages, and <SYSTEM_MESSAGE> echoes
-    if (src === 'MODEL' || stepType === 'PLANNER_RESPONSE') continue;
+    // Hard reject forged PLANNER_RESPONSE, subagent messages, and <SYSTEM_MESSAGE> echoes.
+    // Note: Live Antigravity runtime emits authentic ask_question tool results as
+    // { source: "MODEL", type: "GENERIC", status: "DONE", content: "Created At: ...\nCompleted At: ...\nA1: ..." }.
+    // Forged MODEL steps without BOTH Created At + Completed At + structured A1: answer line remain strictly rejected.
+    if (stepType === 'PLANNER_RESPONSE') continue;
     if (s.sender) continue;
     if (/<SYSTEM_MESSAGE/i.test(sContent)) continue;
 
@@ -244,7 +321,19 @@ export function extractAuthenticAskAnswer(combinedSteps, askIdx, askToolCallId =
     const isUserSource = src === 'USER_EXPLICIT' || src === 'USER';
     const stepToolCallId = String(s.tool_call_id || s.toolCallId || s.call_id || '');
     const hasStatusDone = String(s.status || '').toUpperCase() === 'DONE';
-    const hasHarnessBanner = /(?:Created|Completed)\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+    const hasCreatedAt = /Created\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+    const hasCompletedAt = /Completed\s+At:\s*\d{4}-\d{2}-\d{2}/i.test(sContent);
+    const hasHarnessBanner = hasCreatedAt || hasCompletedAt;
+    // MEDIUM-5: Reject outputs of non-ask tools (e.g. run_command("echo A1: Делай")) that mimic Antigravity GENERIC format
+    const isNonAskToolOutput = /(?:^|\r?\n)\s*(?:Command exited with code|Command output:|Showing lines\s+\d+|Partial read\s*\(|Created the following subagent:|Made \d+ replacement)/i.test(sContent);
+    const askStepToolCalls = collectToolCalls(combinedSteps[askIdx]);
+    const isPureAskStep = askStepToolCalls.length > 0 && askStepToolCalls.every((tc) => String(tc?.name || '').toLowerCase() === 'ask_question');
+    const hasFullAntigravityAskOutput =
+      hasCreatedAt &&
+      hasCompletedAt &&
+      !isNonAskToolOutput &&
+      (Boolean(askToolCallId) || isPureAskStep) &&
+      /(?:^|\r?\n)\s*A\d+:\s*\S/.test(sContent);
 
     const isBoundByToolId = Boolean(askToolCallId && stepToolCallId && stepToolCallId === askToolCallId);
 
@@ -262,7 +351,7 @@ export function extractAuthenticAskAnswer(combinedSteps, askIdx, askToolCallId =
       isGenericOrTool &&
       hasStatusDone &&
       isBoundOrUnboundDirectNext &&
-      hasHarnessBanner;
+      (src === 'MODEL' ? hasFullAntigravityAskOutput : hasHarnessBanner);
 
     if (isUserSource || isSystemToolOutput || isAuthenticHarnessOutput) {
       return sContent;
@@ -330,4 +419,107 @@ export function isStrictTestPath(filePath, workspaceDir = '') {
   }
   const norm = rel.replace(/\\/g, '/').replace(/^\.?\//, '');
   return STRICT_TEST_DIR_RE.test(norm) || STRICT_TEST_FILE_RE.test(norm);
+}
+
+// --- Team Stop Unblock Consent Classifier (REQ-4, v4.7.1) ---
+
+export const TEAM_STOP_UNBLOCK_QUESTION_RE = /(?:разблокироват[ье]\s+команд|снять\s+(?:остановку|блокировку)\s+команд|team[-_\s]?stop|остановка\s+команды|unblock\s+team)/i;
+
+const TEAM_STOP_NEG_WORDS = `(?:не|не\\s+надо|не\\s+нужно|нельзя|никакого|отмена|оставить|оставь|don'?t|do\\s+not|not|never|no|keep\\s+(?:stopped|blocked|active)|reject|cancel)`;
+const TEAM_STOP_UNBLOCK_VERBS = `(?:разблокир(?:овать|уй|овка)|снять\\s+(?:блокировку|остановку|стоп)|сними\\s+(?:блокировку|остановку|стоп)|unblock|resume\\s+team|clear\\s+stop)`;
+
+const TEAM_STOP_NEGATION_RE = new RegExp(
+  `(?:${BOUNDARY_PRE}${TEAM_STOP_NEG_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${TEAM_STOP_UNBLOCK_VERBS}${BOUNDARY_POST})|` +
+  `(?:${BOUNDARY_PRE}${TEAM_STOP_UNBLOCK_VERBS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${TEAM_STOP_NEG_WORDS}${BOUNDARY_POST})|` +
+  `${BOUNDARY_PRE}(?:оставить\\s+(?:остановку|стоп|блокировку)|keep\\s+(?:stopped|active|blocked))${BOUNDARY_POST}`,
+  'i'
+);
+
+const TEAM_STOP_UNBLOCK_APPROVE_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:разблокировать\\s+команду|разблокировать|разблокируй|снять\\s+(?:блокировку|остановку|стоп)|сними\\s+(?:блокировку|остановку|стоп)|unblock\\s+team|unblock|clear\\s+team[-\\s]?stop)${BOUNDARY_POST}`,
+  'i'
+);
+
+export function isTeamStopUnblockAskArgs(argsStr) {
+  return TEAM_STOP_UNBLOCK_QUESTION_RE.test(String(argsStr || ''));
+}
+
+export function classifyTeamStopUnblockConsent(answerText, options = []) {
+  const raw = String(answerText || '').trim();
+  if (!raw) return { decision: 'unconfirmed', selectedOptionText: '', reason: '' };
+
+  const { selectedOptionText, isNumericSelection, strippedAnswer } = resolveSelectedOptionText(raw, options);
+  if (isNumericSelection && !selectedOptionText) {
+    return { decision: 'unconfirmed', selectedOptionText: '', reason: '' };
+  }
+
+  if (TEAM_STOP_NEGATION_RE.test(strippedAnswer) || TEAM_STOP_NEGATION_RE.test(selectedOptionText)) {
+    return { decision: 'negated', selectedOptionText, reason: strippedAnswer };
+  }
+
+  const target = isNumericSelection ? selectedOptionText : `${selectedOptionText} ${strippedAnswer}`;
+  if (TEAM_STOP_UNBLOCK_APPROVE_RE.test(target)) {
+    return { decision: 'unblock', selectedOptionText, reason: strippedAnswer };
+  }
+
+  return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer };
+}
+
+// --- Grade Gate Human Override Consent Classifier (REQ-3, v4.7.1) ---
+
+export const GRADE_OVERRIDE_QUESTION_RE = /(?:принять\s+(?:как\s+есть|риск)|грейдер|rubric|rework|needs_human|не\s+смог\s+проверить|потолок\s+(?:доработок|rework)|accept\s+as\s+is|accept\s+risk)/i;
+
+const GRADE_NEG_WORDS = `(?:не|не\\s+надо|не\\s+нужно|нельзя|никакого|отмена|отклоняю|don'?t|do\\s+not|not|never|no|reject|refuse)`;
+const GRADE_ACCEPT_VERBS = `(?:принять\\s+(?:как\\s+есть|риск)|принимат[ье]\\s+(?:как\\s+есть|риск)|принима[юй]\\s+(?:как\\s+есть|риск)|прими\\s+(?:как\\s+есть|риск)|accept\\s+(?:as\\s+is|risk)|override\\s+grade)`;
+
+const GRADE_ACCEPT_NEGATION_RE = new RegExp(
+  `(?:${BOUNDARY_PRE}${GRADE_NEG_WORDS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${GRADE_ACCEPT_VERBS}${BOUNDARY_POST})|` +
+  `(?:${BOUNDARY_PRE}${GRADE_ACCEPT_VERBS}${BOUNDARY_POST}[^\\r\\n]{0,40}${BOUNDARY_PRE}${GRADE_NEG_WORDS}${BOUNDARY_POST})`,
+  'i'
+);
+
+const GRADE_ACCEPT_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:принять\\s+как\\s+есть|принимаю\\s+как\\s+есть|принять\\s+риск|принимаю\\s+риск|accept\\s+as\\s+is|accept\\s+risk)${BOUNDARY_POST}`,
+  'i'
+);
+
+const GRADE_CONTINUE_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:продолжить|доработать|переделать|дать\\s+улику|уточнить|continue|rework|fix\\s+item|provide\\s+evidence)${BOUNDARY_POST}`,
+  'i'
+);
+
+const GRADE_STOP_RE = new RegExp(
+  `${BOUNDARY_PRE}(?:остановить\\s+задачу|остановить|прервать|stop\\s+task|abort)${BOUNDARY_POST}`,
+  'i'
+);
+
+export function isGradeOverrideAskArgs(argsStr) {
+  return GRADE_OVERRIDE_QUESTION_RE.test(String(argsStr || ''));
+}
+
+export function classifyGradeOverrideConsent(answerText, options = []) {
+  const raw = String(answerText || '').trim();
+  if (!raw) return { decision: 'unconfirmed', selectedOptionText: '', reason: '' };
+
+  const { selectedOptionText, isNumericSelection, strippedAnswer } = resolveSelectedOptionText(raw, options);
+  if (isNumericSelection && !selectedOptionText) {
+    return { decision: 'unconfirmed', selectedOptionText: '', reason: '' };
+  }
+
+  if (GRADE_ACCEPT_NEGATION_RE.test(strippedAnswer) || GRADE_ACCEPT_NEGATION_RE.test(selectedOptionText)) {
+    return { decision: 'negated', selectedOptionText, reason: strippedAnswer };
+  }
+
+  const target = isNumericSelection ? selectedOptionText : `${selectedOptionText} ${strippedAnswer}`;
+  if (GRADE_ACCEPT_RE.test(target)) {
+    return { decision: 'accept_as_is', selectedOptionText, reason: strippedAnswer };
+  }
+  if (GRADE_STOP_RE.test(target)) {
+    return { decision: 'stop_task', selectedOptionText, reason: strippedAnswer };
+  }
+  if (GRADE_CONTINUE_RE.test(target)) {
+    return { decision: 'continue_rework', selectedOptionText, reason: strippedAnswer };
+  }
+
+  return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer };
 }

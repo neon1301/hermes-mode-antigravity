@@ -16,8 +16,11 @@ import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
 import { computeWorkingTreeDiffHash, resolveBaseRef, getHermesConfig } from './qa-runner.mjs';
-import { resolveTaskContext } from './consent-validator.mjs';
+import { CorruptArtifactError, resolveTaskContext } from './consent-validator.mjs';
 import { recordMechanicalLesson } from './lessons-ledger.mjs';
+import { bindSubagentsFromSteps, splitSystemDeliveries } from './subagent-binding.mjs';
+import { evaluateGradeGate } from './grade-gate.mjs';
+import { computeCanonicalPlanHash } from './plan-gate.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,7 +109,7 @@ function readStdin() {
 let isHermesSession = false;
 let activeWorkspaceDir = process.cwd();
 
-function logGateDecision({ decision, reason, missing } = {}) {
+function logGateDecision({ decision, reason, missing, bindingConfidence, source, checks } = {}) {
   if (!isHermesSession) return;
   try {
     const hermesDir = path.join(activeWorkspaceDir, '.hermes');
@@ -129,6 +132,9 @@ function logGateDecision({ decision, reason, missing } = {}) {
       reason: reason || null,
       missing: missing || []
     };
+    if (bindingConfidence !== undefined && bindingConfidence !== null) record.bindingConfidence = bindingConfidence;
+    if (source !== undefined && source !== null) record.source = source;
+    if (checks !== undefined) record.checks = checks;
     fs.appendFileSync(logFile, JSON.stringify(record) + '\n', 'utf-8');
   } catch {
     // Fail-open
@@ -212,8 +218,8 @@ function checkUserRemovalConsent(turnSteps = [], postEditAskAnswer = '', parityR
     }
   }
   const combined = userTexts.join('\n');
-  const REMOVAL_CONSENT_RE = /(?:удалить|удали|да|согласен|подтверждаю|remove|delete|yes|approved|approve|confirm|dropped|drop)\b/i;
-  const REMOVAL_REJECTION_RE = /(?:не\s+(?:удаляй|надо|удалять)|оставь|сохрани|keep|don'?t\s+remove|no\b)/i;
+  const REMOVAL_CONSENT_RE = /(?:удалить|удали|да|согласен|подтверждаю|remove|delete|yes|approved|approve|confirm|dropped|drop)(?![а-яёa-z0-9_-])/i;
+  const REMOVAL_REJECTION_RE = /(?:не\s+(?:удаляй|надо|удалять)|оставь|сохрани|keep|don'?t\s+remove|no(?![а-яёa-z0-9_-]))/i;
 
   if (REMOVAL_REJECTION_RE.test(combined) && !REMOVAL_CONSENT_RE.test(combined)) {
     return false;
@@ -277,10 +283,27 @@ let hermesActive =
   (headText ? detectHermesInSteps(parseJsonl(headText)) : false);
 let lastUserIdx = -1;
 
+const askQuestionToolCallIds = new Set();
+for (let i = 0; i < steps.length; i++) {
+  for (const tc of collectToolCalls(steps[i])) {
+    if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+      const id = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+      if (id) askQuestionToolCallIds.add(id);
+    }
+  }
+}
+
 for (let i = 0; i < steps.length; i++) {
   const s = steps[i];
   if (isRealUserStep(s)) {
-    lastUserIdx = i;
+    const stepTcId = String(s?.tool_call_id || s?.toolCallId || s?.call_id || '');
+    const text = typeof s?.content === 'string' ? s.content : (s?.content?.text || '');
+    const isBoundAskAnswer = Boolean(stepTcId && askQuestionToolCallIds.has(stepTcId));
+    const prevWasAsk = i > 0 && collectToolCalls(steps[i - 1]).some((tc) => String(tc?.name || '').toLowerCase() === 'ask_question');
+    const isAskResponseInSameTurn = (isBoundAskAnswer || prevWasAsk) && !isHermesTrigger(text);
+    if (!isAskResponseInSameTurn) {
+      lastUserIdx = i;
+    }
   }
 }
 if (!hermesActive && detectHermesInSteps(steps)) {
@@ -295,11 +318,12 @@ if (!hermesActive) {
 }
 
 const artifactDir = String(payload?.artifactDirectoryPath || '');
-const qaTaskHash = resolveTaskContext({ combinedSteps: steps, payload }).taskHash;
+const taskContext = resolveTaskContext({ combinedSteps: steps, payload });
+const qaTaskHash = taskContext.taskHash;
 const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
 const editedSourceFiles = new Set();
+const editedNonMetaFiles = new Set();
 const editedUiFiles = new Set();
-const invokedSpecialists = new Set();
 const touchedSnapshots = [];
 let hasQaPass = false;
 let viktorTranscriptQaPass = false;
@@ -308,6 +332,7 @@ let hasUxPass = false;
 let hasCompliancePass = false;
 let hasSecurityPass = false;
 let lastWriteIdx = -1;
+let lastNonMetaWriteIdx = -1;
 let postEditAskIdx = -1;
 let postEditAskAnswer = '';
 let postEditAskToolCallId = '';
@@ -315,74 +340,48 @@ let postEditAskToolCallId = '';
 const hermesConfig = getHermesConfig(activeWorkspaceDir);
 const qaVerdictMode = hermesConfig.qaVerdictMode;
 
-const nonAuditorSubagentIds = new Set();
-const viktorSubagentUuids = new Set();
-const stanislavSubagentUuids = new Set();
-const kritikSubagentUuids = new Set();
-const pendingSubagents = [];
-
-for (let i = 0; i < steps.length; i++) {
-  const s = steps[i];
-  for (const tc of collectToolCalls(s)) {
-    const name = String(tc?.name || '').toLowerCase();
-    const args = tc?.args || {};
-    if (name === 'invoke_subagent') {
-      const typeName = String(args.TypeName || args.typeName || '').toLowerCase();
-      if (i > lastUserIdx && typeName) invokedSpecialists.add(typeName);
-      if (typeName === 'viktor') {
-        pendingSubagents.push('viktor');
-      } else if (typeName === 'stanislav') {
-        pendingSubagents.push('stanislav');
-      } else if (typeName === 'kritik') {
-        pendingSubagents.push('kritik');
-      } else {
-        pendingSubagents.push('non_auditor');
-      }
-    } else if (name === 'send_message') {
-      const recipient = String(args.Recipient || args.recipient || '').toLowerCase();
-      if (recipient && viktorSubagentUuids.has(recipient)) {
-        if (i > lastUserIdx) invokedSpecialists.add('viktor');
-      } else if (recipient && stanislavSubagentUuids.has(recipient)) {
-        if (i > lastUserIdx) invokedSpecialists.add('stanislav');
-      } else if (recipient && kritikSubagentUuids.has(recipient)) {
-        if (i > lastUserIdx) invokedSpecialists.add('kritik');
-      }
-    }
-  }
-
-  const stepType = String(s?.type || '').toUpperCase();
-  const textToScan = typeof s?.content === 'string' ? s.content : JSON.stringify(s);
-  if (pendingSubagents.length > 0 && (stepType === 'GENERIC' || s?.source === 'SYSTEM')) {
-    const matches = [...textToScan.matchAll(/"conversationId"\s*:\s*"([0-9a-f-]{36})"/gi)];
-    for (const m of matches) {
-      if (pendingSubagents.length === 0) break;
-      const kind = pendingSubagents.shift();
-      const uuid = m[1].toLowerCase();
-      if (kind === 'viktor') viktorSubagentUuids.add(uuid);
-      else if (kind === 'stanislav') stanislavSubagentUuids.add(uuid);
-      else if (kind === 'kritik') kritikSubagentUuids.add(uuid);
-      else nonAuditorSubagentIds.add(uuid);
-    }
-  }
-}
+// REQ-5 (TASK-005, v4.7.1): Unified tool_call_id-first L2 subagent binding (exact / fifo / uncertain)
+const binding = bindSubagentsFromSteps(steps, { startIdx: 0, lastUserIdx });
+const invokedSpecialists = new Set(binding.invokedSpecialistsInTurn);
+const viktorSubagentUuids = binding.getTrustedUuidsForAgent('viktor');
+const stanislavSubagentUuids = binding.getTrustedUuidsForAgent('stanislav');
+const kritikSubagentUuids = binding.getTrustedUuidsForAgent('kritik');
+const l2UncertainRejections = [];
+const observedL2Confidences = [];
 
 const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need)\s+[^\n]{0,40}\[(?:QA|UX|COMPLIANCE)\s+PASS\]/gi;
 const viktorDeliveryTexts = [];
 
 for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
   const s = turnSteps[stepIdx];
-  // Only accept verdicts from real incoming subagent deliveries, never from MODEL prose/thinking, outgoing send_message, or Stop-hook self-reminders
+  // Only accept verdicts from real incoming subagent deliveries (per-sender sliced), never MODEL prose/thinking or Stop-hook self-reminders
   if (s?.source === 'SYSTEM' || s?.type === 'SYSTEM_MESSAGE') {
-    const sysText = String(s?.content || '');
-    const isStopReminder = /Stop hook blocked termination:|Hermes Gate \(попытка/i.test(sysText);
-    if (!isStopReminder) {
-      const senderMatch = sysText.match(/sender=["']?([0-9a-f-]{36})["']?/i);
-      const senderUuid = senderMatch ? senderMatch[1].toLowerCase() : (String(s?.sender || '').match(/^[0-9a-f-]{36}$/i) ? String(s.sender).toLowerCase() : '');
+    const deliveries = splitSystemDeliveries(s);
+    for (const { senderUuid, text: sysText } of deliveries) {
+      const isStopReminder = /Stop hook blocked termination:|Hermes Gate \(попытка/i.test(sysText);
+      if (isStopReminder) continue;
+
+      if (senderUuid && binding.uncertainUuids.has(senderUuid)) {
+        const uAgent = binding.uuidToAgent.get(senderUuid) || 'auditor';
+        if (uAgent === 'viktor' || uAgent === 'kritik' || uAgent === 'stanislav') {
+          l2UncertainRejections.push(`${uAgent} (${senderUuid})`);
+          logGateDecision({
+            decision: 'continue',
+            reason: `l2_binding_uncertain: ${uAgent} delivery (${senderUuid}) rejected because multiple unbound invoke_subagent calls occurred in one step without tool_call_id. Re-invoke ${uAgent} as a single invoke_subagent call.`,
+            bindingConfidence: 'uncertain',
+            source: 'l2_binding:uncertain'
+          });
+          continue;
+        }
+      }
+
       const isViktorSender = Boolean(senderUuid && viktorSubagentUuids.has(senderUuid));
       const isStanislavSender = Boolean(senderUuid && stanislavSubagentUuids.has(senderUuid));
       const isKritikSender = Boolean(senderUuid && kritikSubagentUuids.has(senderUuid));
 
       if (isViktorSender) {
+        const conf = binding.uuidBindingConfidence.get(senderUuid) || 'fifo';
+        observedL2Confidences.push({ agent: 'viktor', confidence: conf });
         viktorDeliveryTexts.push(sysText);
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[QA REJECT(?::[^\]]*)?\]/.test(sysText)) {
@@ -405,6 +404,8 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       }
 
       if (isStanislavSender) {
+        const conf = binding.uuidBindingConfidence.get(senderUuid) || 'fifo';
+        observedL2Confidences.push({ agent: 'stanislav', confidence: conf });
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[COMPLIANCE PASS\]/.test(strippedSysText) && !/\[RULE VIOLATION/.test(sysText)) {
           hasCompliancePass = true;
@@ -412,6 +413,8 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
       }
 
       if (isKritikSender) {
+        const conf = binding.uuidBindingConfidence.get(senderUuid) || 'fifo';
+        observedL2Confidences.push({ agent: 'kritik', confidence: conf });
         const strippedSysText = sysText.replace(REQUEST_OR_WAITING_RE, '');
         if (/\[UX PASS\]/.test(strippedSysText) && !/\[UX REJECT\]/.test(sysText)) {
           hasUxPass = true;
@@ -480,6 +483,10 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
     }
     if (WRITE_TOOL_NAMES.has(name)) {
       const targetPath = String(args.Path || args.TargetFile || args.AbsolutePath || args.path || '');
+      if (targetPath && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
+        editedNonMetaFiles.add(path.normalize(targetPath));
+        lastNonMetaWriteIdx = stepIdx;
+      }
       if (SOURCE_CODE_EXT_RE.test(targetPath) && !isIgnoredArtifactOrMeta(targetPath, artifactDir)) {
         const normPath = path.normalize(targetPath);
         editedSourceFiles.add(normPath);
@@ -507,14 +514,54 @@ for (let stepIdx = 0; stepIdx < turnSteps.length; stepIdx++) {
   }
 }
 
-if (editedSourceFiles.size === 0) {
-  allow();
-  process.exit(0);
-}
-
 const convId = String(payload?.conversationId || transcriptPath);
 const turnMarker = steps[lastUserIdx]?.step_index ?? lastUserIdx;
 const counterFile = getCounterFile(convId, turnMarker);
+
+const primaryL2BindingConfidence =
+  observedL2Confidences.find((c) => c.confidence === 'exact')?.confidence ||
+  observedL2Confidences.find((c) => c.confidence === 'fifo')?.confidence ||
+  (l2UncertainRejections.length > 0 ? 'uncertain' : null);
+
+function runGradeGateFailClosed() {
+  try {
+    return evaluateGradeGate({
+      activeWorkspaceDir,
+      taskContext,
+      turnSteps,
+      allSteps: steps,
+      lastAnyWriteIdx: Math.max(lastWriteIdx, lastNonMetaWriteIdx),
+      convId,
+      binding,
+      computeCanonicalPlanHash,
+      logGateDecision,
+      recordMechanicalLesson
+    });
+  } catch (err) {
+    if (err instanceof CorruptArtifactError) {
+      blockStop(
+        `⛔ Hermes «Инспектор» (corrupt_protected_artifact): защищённый артефакт ${err.artifactName} повреждён (${err.detail}). Завершение заблокировано в режиме fail-closed.\n[EN: Hermes Inspector (corrupt_protected_artifact): protected artifact ${err.artifactName} is corrupted (${err.detail}). Stop blocked fail-closed.]`,
+        { missing: [err.artifactName], source: 'fail_closed:corrupt_artifact' }
+      );
+      process.exit(0);
+    }
+    throw err;
+  }
+}
+
+if (editedSourceFiles.size === 0) {
+  if (editedNonMetaFiles.size > 0) {
+    const nonCodeGrade = runGradeGateFailClosed();
+    if (nonCodeGrade.active && !nonCodeGrade.passed) {
+      blockStop(nonCodeGrade.reason, { missing: [nonCodeGrade.code || 'grade_missing'] });
+      process.exit(0);
+    }
+  }
+  allow({ bindingConfidence: primaryL2BindingConfidence });
+  process.exit(0);
+}
+
+const gradeEval = runGradeGateFailClosed();
 
 const lastUserContent = lastUserIdx >= 0
   ? (typeof steps[lastUserIdx]?.content === 'string' ? steps[lastUserIdx].content : (steps[lastUserIdx]?.content?.text || ''))
@@ -599,11 +646,11 @@ const hasNegationOfSkip = NEGATION_SKIP_RE.test(postEditAskAnswer);
 const hasPositiveSkip = POSITIVE_SKIP_RE.test(postEditAskAnswer);
 const isEconomySkipRequested = postEditAskIdx > lastWriteIdx && hasPositiveSkip && !hasNegationOfSkip;
 
-// In economy mode: allow immediately if no UI files were edited or if UX PASS is already granted.
-// If UI files were modified, UX review by Kritik is strictly required even in economy mode to prevent broken layouts.
-if (isEconomySkipRequested && (editedUiFiles.size === 0 || hasUxPass)) {
+// In economy mode: allow immediately if no UI files were edited or if UX PASS is already granted,
+// EXCEPT confirmed-plan tasks with an active Grade Gate (REQ-3: confirmed plan always requires grade PASS or validated user override).
+if (isEconomySkipRequested && (editedUiFiles.size === 0 || hasUxPass) && (!gradeEval.active || gradeEval.passed)) {
   cleanupCounter(counterFile);
-  allow();
+  allow({ bindingConfidence: primaryL2BindingConfidence });
   process.exit(0);
 }
 
@@ -946,9 +993,30 @@ try {
   }
 } catch {}
 
+// REQ-2 & REQ-3 (v4.7.1): Explicit grader rejections, REWORK/ceiling, NEEDS_HUMAN, or negated override
+// ALWAYS block Stop directly outside MAX_RETURNS=2 so they can never be silently bypassed.
+if (gradeEval.active && !gradeEval.passed && gradeEval.code && gradeEval.code !== 'grade_missing') {
+  blockStop(gradeEval.reason, { missing: [gradeEval.code], bindingConfidence: primaryL2BindingConfidence });
+  process.exit(0);
+}
+
 if (missing.length === 0) {
+  if (gradeEval.active && !gradeEval.passed) {
+    blockStop(gradeEval.reason, { missing: [gradeEval.code || 'grade_missing'], bindingConfidence: primaryL2BindingConfidence });
+    process.exit(0);
+  }
   cleanupCounter(counterFile);
-  allow();
+  allow({ bindingConfidence: primaryL2BindingConfidence });
+  process.exit(0);
+}
+
+// REQ-5 (TASK-005): Fail-closed block when L2 auditor delivery was rejected due to uncertain multi-invoke binding
+if (l2UncertainRejections.length > 0) {
+  blockStop(
+    `⛔ Hermes «Инспектор» (l2_binding_uncertain): вердикт L2-аудитора (${l2UncertainRejections.join(', ')}) отклонён (bindingConfidence="uncertain" — несколько invoke_subagent в одном шаге без tool_call_id). Перевызовите аудитора одиночным вызовом invoke_subagent.\n` +
+    `[EN: Hermes Inspector (l2_binding_uncertain): L2 auditor delivery (${l2UncertainRejections.join(', ')}) rejected (bindingConfidence="uncertain" — multi-invoke without tool_call_id). Re-invoke auditor as a single invoke_subagent call.]`,
+    { missing: ['l2_binding_uncertain', ...missing], bindingConfidence: 'uncertain' }
+  );
   process.exit(0);
 }
 
@@ -983,6 +1051,14 @@ if (isLoopRequested) {
 const attempt = readCounter(counterFile);
 
 if (!isLoopRequested && attempt >= MAX_RETURNS) {
+  // HIGH-1 (REQ-3): Confirmed-plan Grade Gate MUST NEVER be silently bypassed via MAX_RETURNS = 2
+  if (gradeEval.active && !gradeEval.passed) {
+    blockStop(gradeEval.reason, {
+      missing: [gradeEval.code || 'grade_missing', ...missing],
+      bindingConfidence: primaryL2BindingConfidence
+    });
+    process.exit(0);
+  }
   allow();
   process.exit(0);
 }

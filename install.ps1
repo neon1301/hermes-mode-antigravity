@@ -1,8 +1,8 @@
-﻿# Hermes Fleet Plugin Installer for Google Antigravity (v4.7.0)
+﻿# Hermes Fleet Plugin Installer for Google Antigravity (v4.7.1)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Hermes Fleet v4.7.0 Installer for Antigravity" -ForegroundColor Cyan
+Write-Host "  Hermes Fleet v4.7.1 Installer for Antigravity" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -46,9 +46,10 @@ $items = @(
     "scripts"
 )
 
-# Items shipped by older versions that must not linger in the target (e.g. always-on rules before v3.6.7)
+# Items shipped by older versions or repo-only artifacts that must not linger in the target
 $staleItems = @(
-    "rules"
+    "rules",
+    "logs"
 )
 
 foreach ($stale in $staleItems) {

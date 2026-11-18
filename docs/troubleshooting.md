@@ -123,3 +123,23 @@ For Standard/Complex tasks with new behavior, Plan Gate operates independently o
 2. For any «так принято» / `best practice` claim, include `https://` URL + verbatim quote + date (inline or `## Источники` `[n]`), an existing local `path:line`, or the honest marker «мой выбор, не конвенция».
 3. Present the 1-screen plan and invoke `ask_question` with `[Делай]`, `[Убрать лишнее]`, `[Добавить своё]`. Revisions (`v2`) require fresh confirmation.
 4. Trivial Micro/Fast-Path edits (`--fast-path`, standalone typo fix), direct `@specialist`, and `/hermes fix-warnings` bypass automatically; a human user may disable Plan Gate via `"planGate": "off"` in `.hermes/config.json` or `HERMES_PLAN_GATE=off`.
+
+---
+
+## 5. Independent Grader, Team-Stop & L2 Binding («Инспектор» — v4.7.1)
+
+### Symptom
+- **Stop (`qa-gate.mjs`) blocks** with `grade_missing`, `grade_conflict_of_interest`, `grade_hash_mismatch`, `grade_incomplete_coverage`, `grade_evidence_invalid`, `grade_overall_mismatch`, `grade_rework_required`, `grade_rework_ceiling`, `grade_needs_human`, `grade_override_negated`, or `l2_binding_uncertain`.
+- **PreToolUse (`clean-edits-guard.mjs`) blocks** Lead and subagent writes/write-spawns with `team_stop_active`, blocks plan `ask_question` dialogs containing internal ID walls (`plan_ask_mirror_invalid`), rejects `--fast-path` on complex tasks (`fast_path_complex_rejected`), and blocks direct agent writes into `logs/` (`logs_direct_write_deny`).
+
+### Cause
+1. **Independent Grader (`grade_*`):** Tasks with a confirmed plan derive protected `.hermes/rubric.json` and require an authentic `hermes-grade` `PASS` from a read-only specialist outside `councilRoster ∪ writeWorkers ∪ {Lead}` (`qaVerdictMode="legacy"`, `economy skip`, and `MAX_RETURNS = 2` do not bypass it).
+2. **Team-Stop (`team_stop_active`):** Triggered by hard violations (`sec_l1_pattern`, `tamper_protected` file-write/shell, or `plan_tampered`), writing protected `.hermes/team-stop.json` (`status: "active"`). Protected paths list expanded to **19** built-in paths.
+3. **L2 Binding (`l2_binding_uncertain`):** Multiple L2 auditor/grader invocations in a single step without `tool_call_id` are rejected fail-closed (`TASK-005`).
+4. **Plan Mirror & Fast-Path & Black Box (`plan_ask_mirror_invalid`, `--fast-path`, `logs_direct_write_deny`):** Plan `ask_question` windows must show a plain-language 4-section mirror without internal codes (`REQ-*`/`FINDING-*`/`HIGH-*`); `--fast-path` is strictly for trivial edits (for human gate overrides use `.hermes/config.json` or env); `logs/` is populated solely by `node scripts/export-logs.mjs`.
+
+### Resolution
+1. For **`grade_*`**: invoke a free read-only specialist with `.hermes/rubric.json`, `.hermes/*`, and `git diff` (see `skills/hermes/references/independent-grading-protocol.md`). On `NEEDS_HUMAN` or 3/3 `REWORK` ceiling, request a validated user choice via `ask_question` («Принять как есть» is logged in `.hermes/grade-ledger.jsonl` without flipping `overall` to `PASS`).
+2. For **`team_stop_active`**: use read-only council/diagnostics or emergency `manage_subagents(kill/kill_all)` to inspect/halt workers, then call `ask_question` («Разблокировать команду») for validated user unblock (`consent-validator.mjs`). Mechanical `PASS` never clears a hard-stop.
+3. For **`l2_binding_uncertain`**: re-invoke the L2 auditor or grader as a single `invoke_subagent` call.
+4. For **`plan_ask_mirror_invalid` / `logs_direct_write_deny`**: rewrite the plan confirmation question in plain Russian («Понял», «Добавлю сам», «Чего не делаю», «Вопросы») keeping IDs in `.hermes/plan.md`; export run logs strictly via `node scripts/export-logs.mjs` (see `skills/hermes/references/log-export-protocol.md`).

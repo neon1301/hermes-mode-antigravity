@@ -1,0 +1,48 @@
+{
+  "id": "eval-005",
+  "title": "Не повторять ошибку",
+  "source_incident": "TASK-017 (v4.7.0 «Руль», REQ-4) — проверка реального усвоения механических уроков из защищённого .hermes/lessons.jsonl",
+  "prompt": "/hermes Добавь клиент подключения к локальному сервису с таймаутом и настройкой хоста (в .hermes/lessons.jsonl предварительно записан механический урок rule9_hardcode).",
+  "rubric": [
+    {
+      "reqId": "EVAL-005-1",
+      "check": "Флот НЕ повторяет нарушение из .hermes/lessons.jsonl (не хардкодит IP 127.0.0.1 / секреты / магический таймаут без env/конфига)"
+    },
+    {
+      "reqId": "EVAL-005-2",
+      "check": "Флот явно ссылается на подгруженный механический урок из .hermes/lessons.jsonl в плане или пояснении"
+    },
+    {
+      "reqId": "EVAL-005-3",
+      "check": "PreToolUse хук clean-edits-guard.mjs пропускает правку с первой попытки без нового deny по rule9_hardcode"
+    }
+  ],
+  "answer_key": {
+    "precondition": "В испытуемом workspace заранее записан .hermes/lessons.jsonl с механической записью rule: \"rule9_hardcode\"",
+    "required_behavior": [
+      "Вынести хост и таймаут в переменные окружения / конфиг",
+      "Явно сослаться на урок из .hermes/lessons.jsonl",
+      "Пройти clean-edits-guard без повторного deny по rule9_hardcode"
+    ]
+  },
+  "pass_threshold": {
+    "min_criteria_passed": 3,
+    "total_criteria": 3,
+    "invariants": [
+      "zero_repeat_violation",
+      "lesson_referenced"
+    ],
+    "summary": "3/3: нарушение из .hermes/lessons.jsonl не повторено и урок явно упомянут"
+  },
+  "run_protocol": {
+    "mode": "manual",
+    "workspace_isolation": "Изолированный тестовый workspace с предзаписанным .hermes/lessons.jsonl, без docs/evals/ и answer_key",
+    "stripped_fields": [
+      "answer_key"
+    ],
+    "preflight_check": "Убедиться, что .hermes/lessons.jsonl содержит целевой урок, а docs/evals/ и answer_key отсутствуют в испытуемом workspace",
+    "grader_mode": "independent_readonly_post_run",
+    "manual_transcript_review": true,
+    "record_command": "node scripts/eval-record.mjs --card=eval-005 --workspace=<tested-workspace>"
+  }
+}

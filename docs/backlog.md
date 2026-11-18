@@ -74,13 +74,11 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
 
 ### [TASK-005] Subagent UUID FIFO Assignment Verification & tool_call_id Binding
 * **Priority:** P2
-* **Target Version:** v4.6.0 (Partially Closed) -> v4.7.1 (Remainder)
-* **Status:** 🟡 PARTIALLY COMPLETED in v4.6.0
-* **Completed in v4.6.0:**
-  - Implemented `tool_call_id`-first `invoke_subagent -> conversationId` binding (`bindingConfidence: "exact"`) in `hooks/clean-edits-guard.mjs` (`verifyCouncilGate`), with single-invoke FIFO (`"fifo"`) and ambiguous multi-invoke marking (`"uncertain"`).
-  - Enforced that `"uncertain"` bindings continue to participate in quorum while strictly NOT accruing reputation (`binding_uncertain_no_reputation` lock).
-* **Honest Remainder (Next Step):**
-  - Extending identical `tool_call_id` binding verification to `hooks/qa-gate.mjs` L2 auditor (`viktor`/`kritik`) UUID extraction and validating out-of-order multi-invoke harness delivery under live Antigravity runtime remains open for `v4.7.1` («Инспектор»).
+* **Target Version:** v4.6.0 (Partially Closed) -> v4.7.1 (Closed)
+* **Status:** ✅ COMPLETED in v4.7.1
+* **Resolution:**
+  - `v4.6.0`: Implemented `tool_call_id`-first `invoke_subagent -> conversationId` binding (`bindingConfidence: "exact"`) in `hooks/clean-edits-guard.mjs`, with single-invoke FIFO (`"fifo"`) and ambiguous multi-invoke marking (`"uncertain"`, zero reputation accrual).
+  - `v4.7.1`: Extracted unified `hooks/subagent-binding.mjs` (`exact` / `fifo` / `uncertain` + per-sender `splitSystemDeliveries`) and wired into `hooks/qa-gate.mjs` for L2 auditors (`viktor`, `kritik`, `stanislav`) and independent graders. Ambiguous multi-invoke without `tool_call_id` fails closed (`l2_binding_uncertain`) with `bindingConfidence` logged to `.hermes/gate-log.jsonl` (locked by `l2_binding_exact_accept`, `l2_binding_single_fifo_accept_logged`, `l2_binding_multi_uncertain_reject`).
 
 ---
 
@@ -232,4 +230,24 @@ This backlog tracks architectural tasks, technical debt, and external donor eval
   - Implemented Plan Gate (`verifyPlanGate`) running strictly after `verifyCouncilGate` and orthogonally to council mode (`councilGate: "off"` does not disable `planGate`), requiring `.hermes/plan.md` (meta-path), 4-section + EARS-lite lint (`КОГДА` / `ДОЛЖНА` / `Проверка:` + convention-claim source/honest marker), hardened 5-step consent validation (option-order text binding, Cyrillic negation-guard, colloquial approval allowlist, Edit-Dominance, anti-prose/SYSTEM echo), pre-/post-persistent anti-TOCTOU, and `v2` reconfirmation ledger.
   - Implemented REQ-3 TDD `pre-implementation` 4-factor monotonic ratchet in `syncProgressJournal` using `isStrictTestPath`, so Red tests prior to first production write never trip the stall circuit breaker while post-implementation stalls and v4.5.1 locks remain unweakened.
   - Implemented REQ-4 mechanical error memory `.hermes/lessons.jsonl` (`{ ts, taskHash, rule, reasonHash, count, source: "mechanical" }`) populated exclusively by hooks (`QA REJECT` on Stop, repeated `deny >= 2` per rule in task, `stall_breaker`), injected by `hooks/context-injector.mjs` (`<= 5` unique entries, `<= 2048` UTF-8 bytes) via static `RULE_HINTS`.
-  - Added modular `skills/hermes/references/plan-steering-protocol.md`, updated `docs/known-boundaries.md` (explicitly deferring independent grader, team stop on deny, A2A, eval suite, and `TASK-005` remainder to `v4.7.1` «Инспектор»), fixed `docs/troubleshooting.md` numbering & synced `TROUBLESHOOTING.md`, and added 24 deterministic test locks across existing 11 suites with 0 bytes growth on `fleet-protocol.md`.
+  - Added modular `skills/hermes/references/plan-steering-protocol.md`, updated `docs/known-boundaries.md` (explicitly deferring independent grader, team stop on deny, eval suite, and `TASK-005` remainder to `v4.7.1` «Инспектор»; A2A was subsequently rejected in `TASK-018`), fixed `docs/troubleshooting.md` numbering & synced `TROUBLESHOOTING.md`, and added 24 deterministic test locks across existing 11 suites with 0 bytes growth on `fleet-protocol.md`.
+
+---
+
+### [TASK-018] Hermes Fleet v4.7.1 «Инспектор» — Independent Grader, Team Stop, Behavioral Evals, Black Box Logs & TASK-005 Closure (REQ-0..REQ-10)
+* **Priority:** P1 / P2
+* **Target Version:** v4.7.1
+* **Status:** ✅ COMPLETED in v4.7.1
+* **Resolution:**
+  - Extracted 5 pure-stdlib modules (`hooks/subagent-binding.mjs`, `hooks/grade-gate.mjs`, `hooks/team-stop.mjs`, `scripts/eval-record.mjs`, `scripts/export-logs.mjs`) and unified all **19** built-in immutable protected paths (`DEFAULT_PROTECTED_VERDICT_PATHS` + `buildProtectedShellRegex()`) in `hooks/consent-validator.mjs` (14 from v4.7.0 + `.hermes/rubric.json`, `.hermes/grade-report.json`, `.hermes/grade-ledger.jsonl`, `.hermes/team-stop.json`, `.hermes/eval-results.jsonl`). Also fixed live Antigravity `ask_question` output handling (`source: "MODEL", type: "GENERIC", status: "DONE"` with `Created At` + `Completed At` + `A1:`, hardened against batched `run_command` stdout spoofing `MEDIUM-5`).
+  - **REQ-1 & REQ-2 & REQ-3 (Rubric, Independent Grader & Stop Gate):** Mechanical `.hermes/rubric.json` derivation on `PLAN_FROZEN` / `PLAN_REVISED` (preserving `previousRubricHash` in `plan-ledger.jsonl`), independent read-only grader role documented in `skills/hermes/references/independent-grading-protocol.md` (without adding a 15th agent card), mechanical `.hermes/grade-report.json` + `.hermes/grade-ledger.jsonl` verification (authentic UUID, separation of duties `∉ councilRoster ∪ writeWorkers ∪ {Lead}`, hash match, 100% `reqId` coverage, real `path:line` workspace & line-bounds check, `UNKNOWN > NOT_FULFILLED > FULFILLED` recomputation), Stop gate outside `MAX_RETURNS = 2` (`HIGH-1`), `qaVerdictMode = "legacy"`, and `isEconomySkipRequested` with 3-cycle `REWORK` ceiling, post-edit invalidation of `GRADE_USER_OVERRIDE` (`HIGH-3`), and `consent-validator.mjs`-validated user override (never flipping `overall` to `PASS`).
+  - **REQ-4 (Hard-Stop `.hermes/team-stop.json`):** Triggered on `sec_l1_pattern`, `tamper_protected` (file-write & shell including `node -e`/`python -c` on `.hermes/*`, `LOW-6`), and `plan_tampered`; blocks Lead & subagent writes and write-worker spawns while permitting read-only council, diagnostics, `ask_question`, and emergency `manage_subagents(kill/kill_all)`; Lead taskHash-isolated (`superseded` on new task, while subagent-triggered stops bind to Lead `taskHash`/`unknown` so Lead cannot silently supersede them, `HIGH-2`), never cleared by mechanical `PASS`, unblocked solely via validated user consent.
+  - **REQ-5 & REQ-6 (TASK-005 & Artifact-First Critic):** Closed `TASK-005` in `hooks/qa-gate.mjs` (`exact` / `fifo` / fail-closed `uncertain` with `l2_binding_uncertain`, rejecting `PLANNER_RESPONSE` prose UUID spoofing `HIGH-4`, + `bindingConfidence` in `gate-log.jsonl`) and added Stage 2 Artifact-First clause to `skills/hermes/references/specialist-council-protocol.md`.
+  - **REQ-7 & REQ-8 & REQ-9 & REQ-10 (Behavioral Evals, Black Box Logs, Hardening FINDING-7..10, 55 New Locks & Honest v4.7.0 Post-Mortem):** Added `docs/evals/README.md` + 5 real-incident cards (`eval-001.json`..`eval-005.json`) + `scripts/eval-record.mjs`; added `scripts/export-logs.mjs` + `skills/hermes/references/log-export-protocol.md` (`logs/` excluded from installers, direct agent writes denied); closed `FINDING-7` (`--fast-path` rejected on complex tasks), `FINDING-8` (test suites isolated in `mkdtempSync`, never touching live `cwd/.hermes/`), `FINDING-9` (council roster excludes post-edit auditors after state loss), `FINDING-10` (plain-language 4-section plan mirror enforced on `ask_question` without internal IDs); expanded tests from 537 to 592 across 11 suites with `+0 B` on `fleet-protocol.md` (`12 275 B` disk CRLF / `12 176 B` LF); honestly recorded v4.7.0 `7fb0edd` `diffHash` discrepancy (`9a11800dcad79fb9` vs `a31a67ba4a0d3075`).
+
+---
+
+### [DECISION-A2A] Peer-to-Peer Agent-to-Agent (A2A) Protocol
+* **Priority:** P3
+* **Status:** ❌ HOLD / REJECTED (v4.7.1)
+* **Rationale:** Explicitly crossed out from the roadmap based on the *Worse Together* study (2026-11-11): centralized coordinator topology outperforms peer-to-peer agent communication by **10–45 percentage points**. Hermes Fleet commits to the Lead-relay coordinator architecture reinforced by direct artifact inspection (REQ-6) and independent read-only grading (REQ-2). History in `CHANGELOG.md [4.7.0]` is preserved untouched; roadmap entries in `README.md` and `README.ru.md` have been cleaned up.
