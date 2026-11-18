@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "version": "4.7.1",
+  "exportedAt": "2026-11-18T07:15:40.690Z",
+  "nodeVersion": "v22.23.4",
+  "platform": "win32",
+  "taskHash": "9fe7459b736b9959",
+  "releaseCommitHash": "e76bbcf1874c744313ecc77e30466e2be2055bbd",
+  "releaseTreeHash": "135610eac559cc13a7aa2bb6d4ce1e199d24121c",
+  "verdictDiffHash": "12f8ee82741c075a",
+  "includeTranscript": false,
+  "maxFileBytes": 2097152,
+  "files": {
+    "test-summary.json": {
+      "status": "present",
+      "source": ".hermes/test-summary.json",
+      "size": 1265,
+      "sha256": "443fb7d2ecfac7973beafa905a9d12666c1be4f1f74a5bdc888ed95f7ab0dcb4"
+    },
+    "gate-log.jsonl": {
+      "status": "present",
+      "source": ".hermes/gate-log.jsonl",
+      "size": 46366,
+      "sha256": "06fec2760da38fa09fc8af48097a69e764d1c998da2d3e6337c644a45dc0b8d4"
+    },
+    "council-state.json": {
+      "status": "present",
+      "source": ".hermes/council-state.json",
+      "size": 544,
+      "sha256": "2581e09d1309ee17d51f83c3b085b07d7d8d61e06c4fcfefe7837c54ce02a1b9"
+    },
+    "council-outcomes.jsonl": {
+      "status": "present",
+      "source": ".hermes/council-outcomes.jsonl",
+      "size": 292,
+      "sha256": "ee720426f9a74e1f64fff5a6c7ddf7a85ea4391a699cc2a310f274afc15a16af"
+    },
+    "council-cost.jsonl": {
+      "status": "absent",
+      "source": ".hermes/council-cost.jsonl"
+    },
+    "progress-journal.jsonl": {
+      "status": "present",
+      "source": ".hermes/progress-journal.jsonl",
+      "size": 272,
+      "sha256": "bd9273c75eb944d9f181b3614ee666bbcedbdfad5ff8b176712a30e96c21d21f"
+    },
+    "lessons.jsonl": {
+      "status": "present",
+      "source": ".hermes/lessons.jsonl",
+      "size": 2524,
+      "sha256": "90da1910da173e2cd23eb02a813de92eb459a6203c29da35b9c0f487fecd54e5"
+    },
+    "qa-verdict.json": {
+      "status": "present",
+      "source": ".hermes/qa-verdict.json",
+      "size": 731,
+      "sha256": "d959ca3486e0bd3bfe5ff4d038f5b0581535d5d7f94020204db23720effa7393"
+    },
+    "security-verdict.json": {
+      "status": "absent",
+      "source": ".hermes/security-verdict.json"
+    },
+    "plan-state.json": {
+      "status": "present",
+      "source": ".hermes/plan-state.json",
+      "size": 456,
+      "sha256": "ddc24e82a0ea818c2a592bf55ae4de8c4cbceffcf066d42d3346fee4723d8ea8"
+    },
+    "plan-ledger.jsonl": {
+      "status": "present",
+      "source": ".hermes/plan-ledger.jsonl",
+      "size": 496,
+      "sha256": "704b99ab4d4db99f72195fb148eda4ea8b4c701ff916fda3f0927b7b33840fcb"
+    },
+    "rubric.json": {
+      "status": "present",
+      "source": ".hermes/rubric.json",
+      "size": 1234,
+      "sha256": "05fe1c2ed4b654338aa140ab743c469ce81c429b735de52f508c9f8f9dac6b58"
+    },
+    "grade-report.json": {
+      "status": "absent",
+      "source": ".hermes/grade-report.json"
+    },
+    "grade-ledger.jsonl": {
+      "status": "absent",
+      "source": ".hermes/grade-ledger.jsonl"
+    },
+    "team-stop.json": {
+      "status": "absent",
+      "source": ".hermes/team-stop.json"
+    },
+    "eval-results.jsonl": {
+      "status": "absent",
+      "source": ".hermes/eval-results.jsonl"
+    },
+    "plan.md.txt": {
+      "status": "present",
+      "source": ".hermes/plan.md",
+      "size": 1563,
+      "sha256": "a7f7e789fcec986c353262d9f7306af1b6c8976ccd209761fb469dfd5c93ed1e"
+    },
+    "decisions.md.txt": {
+      "status": "present",
+      "source": ".hermes/decisions.md",
+      "size": 5072,
+      "sha256": "0df75c3271a911a8787939fb2748e1982a7cfef758e8ab04f95f6540c248e850"
+    },
+    "npm-test.log": {
+      "status": "present",
+      "source": "cli:npm-test",
+      "size": 87402,
+      "sha256": "d40196d861b0783018841eebe691d1b4acdc2be5fe631325980dfb39cf8de77c"
+    },
+    "verify.log": {
+      "status": "present",
+      "source": "cli:verify",
+      "size": 87864,
+      "sha256": "cc237da50d209d98ef218a69b991cdaab683ec9f00fec67a23c1d21fa941456f"
+    },
+    "install.log": {
+      "status": "present",
+      "source": "cli:install",
+      "size": 89240,
+      "sha256": "dd6112633b47c0c8c719262add03671af46b779bd1f38ef6c4d949fe2ba0f70d"
+    },
+    "transcript-shape.jsonl": {
+      "status": "present",
+      "source": "transcript:shape_only",
+      "size": 116427,
+      "sha256": "801126c0d1e5c84c7a94d8e586aea00bd705ca2898821329a1622645e9d92c09"
+    },
+    "git-state.json": {
+      "status": "present",
+      "source": "mechanical:git",
+      "size": 184,
+      "sha256": "c6f34507e7c7dabe21ca12279a8e17697085c228c250c55c09341c600046367a"
+    }
+  }
+}

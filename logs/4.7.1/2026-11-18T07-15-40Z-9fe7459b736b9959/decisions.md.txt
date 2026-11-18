@@ -1,0 +1,21 @@
+# Решение Совета Специалистов: Hermes Fleet v4.7.1 «Инспектор»
+
+- **Дата:** 2026-11-18T02:37:00+05:00
+- **Режим:** roundtable (3 стадии NGT/Дельфи, полный протокол по выбору пользователя)
+- **Раундов завершено:** 3
+- **Состав стола:** `@dmitry` (архитектор хуков), `@kritik` (адвокат дьявола & UX/Eval), `@anna` (протоколы и документация)
+- **Результат слепого ранжирования (медиана / метод Борда):** Вариант 1 (медиана 1.0, Борда 9/9) > Вариант 3 (2.0, 6/9) > Вариант 2 (3.0, 3/9)
+- **Проверка критериев (протокольный уровень):** Критерии оценки, зафиксированные в `.hermes/council-roundtable.md` до окончания Стадии 2, не изменялись на протяжении Стадии 3 (`@stanislav` вне ростера стола, чтобы остаться независимым кандидатом для комплаенса/грейдинга).
+
+## Принятые идеи
+- Выделение 4 изолированных pure-stdlib модулей (`hooks/subagent-binding.mjs`, `hooks/grade-gate.mjs`, `hooks/team-stop.mjs`, `scripts/eval-record.mjs`) + единый реестр ровно 19 защищённых путей и генератор `buildProtectedShellRegex()` в `hooks/consent-validator.mjs`, shell-tamper с тегом `tamper_protected`, разделение `isSubagent` vs Lead при `team-stop.json` и подсчёт `REWORK` по `.hermes/grade-ledger.jsonl` без 20-го артефакта (автор: `@dmitry`).
+- Развязка Grade Gate от `MAX_RETURNS = 2` и `isEconomySkipRequested` при подтверждённом плане, строгий парсер `evidence` (`path:line`, Windows `\`, диапазоны `:10-20`/`#L10-L20`, `realpathSync` внутри workspace, `1 <= startLine <= endLine <= totalLines`), приоритет `UNKNOWN > NOT_FULFILLED > FULFILLED` с механическим пересчётом `overall`, запуск Grade Gate на любые non-meta правки при подтверждённом плане, исключение `manage_subagents(kill/kill_all)` в `Anti-Premature Kill` при активном `team-stop.json`, подавление повторного post-edit `ask_question` во время `REWORK`, `superseded` для устаревшего `team-stop.json` другой задачи Lead и расширение per-case cleanup 5 новых файлов в `clean-edits-guard.test.mjs` (автор: `@kritik`).
+- Модульный протокол `skills/hermes/references/independent-grading-protocol.md` с `+0 B` в `fleet-protocol.md`, инлайн-код для runtime `.hermes/*` (защита `markdown_reference_links_integrity`), усиление `specialist-council-protocol.md` (REQ-6), 5 реальных JSON-карточек `docs/evals/eval-001..005.json` с явной JS-валидацией поверх ограничений `contract-validator.mjs`, честная фиксация расхождения `diffHash` v4.7.0 (`9a11800dcad79fb9` vs `a31a67ba4a0d3075`), A2A = `HOLD/REJECTED` (*Worse Together*, 11.11.2026) и синхронизация всех 9 версионных точек без переписывания истории `CHANGELOG.md` (автор: `@anna`).
+
+## Отклонённые варианты
+- **Вариант 2 (инлайн `tool_call_id` в `qa-gate.mjs`, Grade Gate только на `editedSourceFiles > 0`, `NOT_FULFILLED > UNKNOWN`):** отклонён единогласно (3 место) из-за раздувания 1013-строчного `qa-gate.mjs`, дыры в Grade Gate для docs/json правок с планом и холостых циклов REWORK при `UNKNOWN`.
+- **Вариант 3 (расширение `contract-validator.mjs` поддержкой `minItems`/`minLength`/`additionalProperties`/union `type`):** отклонён (2 место) как лишний blast radius вне скоупа REQ-1..REQ-9 — семантические проверки (`realpathSync`, границы строк, 100% покрытие `rubric.json`, пересчёт `overall`) всё равно живут в JS.
+- **Промежуточные R1-идеи, снятые самими авторами в R2:** 20-й защищённый файл `grade-state.json`, включение `stall_breaker` в `team-stop.json`, пропуск Grade Gate при `qaVerdictMode=legacy`, `maxRework=2` вместо 3, и запрет `@viktor` быть грейдером вне совета.
+
+## Сохранённое несогласие (Dissent Ledger)
+- Несогласий нет (`[CONVERGED]` / `[NO DISSENT]` от адвоката дьявола `@kritik` и единогласный рейтинг `Вариант 1 > 3 > 2` в R3).

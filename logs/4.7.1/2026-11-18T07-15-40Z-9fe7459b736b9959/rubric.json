@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "taskHash": "9fe7459b736b9959",
+  "planHash": "17c73563d7963e52cdec35ed84f109ea26cf58ac7d37af52c43d06ab1af18ffb",
+  "rubricHash": "2bd86911f016f917e192bc822bb575da11c15a902cedddfe6190f2df75773ed8",
+  "version": 1,
+  "generatedAt": "2026-11-18T07:15:04.278Z",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "condition": "запускается пробный скрипт `scripts/smoke-probe.mjs` при существующем `plugin.json`",
+      "behavior": "прочитать файл и напечатать версию плагина в stdout",
+      "verification": "проверка создания не-meta файла `scripts/smoke-probe.mjs` под живыми хуками v4.7.1 с последующим удалением."
+    },
+    {
+      "reqId": "REQ-2",
+      "condition": "целевой файл `plugin.json` отсутствует",
+      "behavior": "вывести понятное сообщение об ошибке в stderr и завершиться с ненулевым кодом без необработанного исключения",
+      "verification": "явная ветка `if (!fs.existsSync(target))` в `scripts/smoke-probe.mjs`."
+    }
+  ]
+}
