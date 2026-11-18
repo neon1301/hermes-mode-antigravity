@@ -1,0 +1,18 @@
+{
+  "conversationId": "5e6e845e-f662-4f5f-8272-9e1339360ac1",
+  "turnMarker": 708,
+  "taskHash": "9fe7459b736b9959",
+  "domain": "general",
+  "domains": [
+    "general"
+  ],
+  "task": "/hermes сделай скрипт-пробу, который читает plugin.json и печатает версию плагина, с обработкой ошиб",
+  "mode": "solo",
+  "decision": "solo",
+  "requiredRounds": 0,
+  "roundsCompleted": 0,
+  "roster": [],
+  "isLoop": false,
+  "status": "APPROVED",
+  "timestamp": "2026-11-18T07:15:04.266Z"
+}

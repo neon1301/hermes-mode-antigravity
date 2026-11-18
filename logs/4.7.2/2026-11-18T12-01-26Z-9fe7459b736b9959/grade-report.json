@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "source": "mechanical",
+  "taskHash": "9fe7459b736b9959",
+  "planHash": "a47c5c1ec8d915d8a605cea33d30416a6b5a4fa9e474fc8c06ee9a309ddcbf45",
+  "rubricHash": "e97851a6dab4e673f9f6445a5b0d4c4398276ba2427c3938c17d8f9c3f999705",
+  "rubricVersion": 2,
+  "version": 2,
+  "graderUuid": "7f7f97c3-41ee-4900-bb49-8a72134d18ca",
+  "graderAgent": "sergey",
+  "bindingConfidence": "fifo",
+  "overall": "PASS",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "verdict": "FULFILLED",
+      "evidence": "scripts/xray-scan.mjs:819-1082"
+    },
+    {
+      "reqId": "REQ-2",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/xray-ledger.mjs:457-536"
+    },
+    {
+      "reqId": "REQ-3",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/xray-ledger.mjs:146-211"
+    },
+    {
+      "reqId": "REQ-4",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/consent-validator.mjs:573-654"
+    },
+    {
+      "reqId": "REQ-5",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/context-injector.mjs:251-259"
+    },
+    {
+      "reqId": "REQ-6",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/qa-gate.mjs:157-187"
+    },
+    {
+      "reqId": "REQ-7",
+      "verdict": "FULFILLED",
+      "evidence": "scripts/export-logs.mjs:288-324"
+    },
+    {
+      "reqId": "REQ-8",
+      "verdict": "FULFILLED",
+      "evidence": "docs/evals/eval-006.json:1-61"
+    },
+    {
+      "reqId": "REQ-9",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/consistency.test.mjs:673-713"
+    },
+    {
+      "reqId": "REQ-10",
+      "verdict": "FULFILLED",
+      "evidence": "skills/hermes/references/xray-protocol.md:1-120"
+    },
+    {
+      "reqId": "REQ-4.2",
+      "verdict": "FULFILLED",
+      "evidence": "hooks/clean-edits-guard.mjs:2809-2839"
+    },
+    {
+      "reqId": "REQ-7.2",
+      "verdict": "FULFILLED",
+      "evidence": ".gitignore:1-7"
+    }
+  ],
+  "ts": "2026-11-18T11:44:39.794Z"
+}
