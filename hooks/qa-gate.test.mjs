@@ -3731,8 +3731,8 @@ try {
         steps: [
           { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes tweak app' },
           { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: appFile } }] },
-          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'pe1', args: { questions: [{ question: 'Запустить сотрудников на проверку?', options: ['(Recommended) Без проверки', 'Да'] }] } }] },
-          { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'pe1', content: 'Created At: 2026-11-18T10:00:00Z\nCompleted At: 2026-11-18T10:00:05Z\nA1: (Recommended) Без проверки' },
+          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'pe1', args: { questions: [{ question: 'Запустить сотрудников на проверку?', options: ['(Recommended) Да, запустить проверку', 'Завершить без проверки'] }] } }] },
+          { step_index: 3, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'pe1', content: 'Created At: 2026-11-18T10:00:00Z\nCompleted At: 2026-11-18T10:00:05Z\nA1: Завершить без проверки' },
           // Follow-up X-ray advisory window MUST NOT overwrite postEditAskAnswer
           { step_index: 4, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'xr1', args: { questions: [{ question: 'Рентген нашёл проблему.\nКостыль (работает, но хрупко):\n1. Таймер без остановки (src/app.js:1)', options: ['Почини сейчас', 'Запиши в долг', 'Не трогай'] }] } }] },
           { step_index: 5, source: 'MODEL', type: 'GENERIC', status: 'DONE', tool_call_id: 'xr1', content: 'Created At: 2026-11-18T10:00:10Z\nCompleted At: 2026-11-18T10:00:12Z\nA1: Запиши в долг' }
@@ -3740,6 +3740,94 @@ try {
       });
       if (res.decision !== 'allow') {
         throw new Error(`X-ray window after Post-Edit economy skip must NOT erase postEditAskAnswer, got: ${JSON.stringify(res)}`);
+      }
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  // 25. FIX-A (P0): Stop hook recommends both Elena and Denis when UI and DB files modified simultaneously
+  runV471Test('stop_hook_recommends_elena_and_denis_on_ui_and_db', () => {
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-v472-ui-db-routing-'));
+    try {
+      fs.mkdirSync(path.join(ws, 'src', 'ui'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'src', 'db'), { recursive: true });
+      const uiFile = path.join(ws, 'src', 'ui', 'View.xaml');
+      const dbFile = path.join(ws, 'src', 'db', 'Repository.cs');
+      fs.writeFileSync(uiFile, '<UserControl>Content</UserControl>\n', 'utf-8');
+      fs.writeFileSync(dbFile, 'public class Repository { public void Save() { /* Sqlite */ } }\n', 'utf-8');
+
+      const res = runQaHookIsolated({
+        ws,
+        convId: 'c_v472_ui_db_routing',
+        steps: [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit ui and db' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: uiFile } }] },
+          { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: dbFile } }] }
+        ]
+      });
+
+      if (res.decision !== 'continue') {
+        throw new Error(`Expected continue for missing QA pass, got: ${JSON.stringify(res)}`);
+      }
+      if (!/@elena/i.test(res.reason || '') || !/@denis/i.test(res.reason || '')) {
+        throw new Error(`Stop hook recommendation MUST mention both @elena and @denis, got: ${res.reason}`);
+      }
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  // 26. FIX-B (P0): Stop hook annuls economy skip if requested via forbidden (Recommended) skip option
+  runV471Test('stop_hook_annuls_forbidden_recommended_skip', () => {
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-v472-forbidden-skip-'));
+    try {
+      fs.mkdirSync(path.join(ws, 'src'), { recursive: true });
+      const appFile = path.join(ws, 'src', 'main.ts');
+      fs.writeFileSync(appFile, 'export const val = 42;\n', 'utf-8');
+
+      const res = runQaHookIsolated({
+        ws,
+        convId: 'c_v472_forbidden_skip',
+        steps: [
+          { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes update main' },
+          { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: appFile } }] },
+          {
+            step_index: 2,
+            source: 'MODEL',
+            type: 'PLANNER_RESPONSE',
+            tool_calls: [
+              {
+                name: 'ask_question',
+                id: 'pe_forbidden',
+                args: {
+                  questions: [
+                    {
+                      question: 'Запустить сотрудников на проверку?',
+                      options: [
+                        '(Recommended) Без проверки (экономия токенов)',
+                        'Да, запустить проверку'
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            step_index: 3,
+            source: 'MODEL',
+            type: 'GENERIC',
+            status: 'DONE',
+            tool_call_id: 'pe_forbidden',
+            content: 'Created At: 2026-11-19T10:00:00Z\nCompleted At: 2026-11-19T10:00:05Z\nA1: (Recommended) Без проверки (экономия токенов)'
+          }
+        ]
+      });
+
+      // Annulled economy skip must fall back to asking for QA verification (continue), not allow!
+      if (res.decision !== 'continue') {
+        throw new Error(`Forbidden (Recommended) skip MUST be annulled to continue, got: ${JSON.stringify(res)}`);
       }
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });

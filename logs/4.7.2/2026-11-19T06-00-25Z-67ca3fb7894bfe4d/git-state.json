@@ -1,0 +1,7 @@
+{
+  "branch": "main",
+  "commit": "73b4e426e6776a9428eae1b290346090a07294a7",
+  "tree": "06fecec3ac1ec5b216f1c739962b75bdc771a8c0",
+  "statusPorcelain": "M hooks/clean-edits-guard.mjs\n M hooks/clean-edits-guard.test.mjs\n M hooks/consent-validator.mjs\n M hooks/consistency.test.mjs\n M hooks/qa-gate.mjs\n M hooks/qa-gate.test.mjs\n?? logs/4.7.2/2026-11-19T06-00-25Z-67ca3fb7894bfe4d/",
+  "diffStat": "hooks/clean-edits-guard.mjs      | 226 ++++++++++++++++++++++++-\n hooks/clean-edits-guard.test.mjs | 219 ++++++++++++++++++++++++\n hooks/consent-validator.mjs      | 353 +++++++++++++++++++++++++++++++++++++++\n hooks/consistency.test.mjs       |  51 +++++-\n hooks/qa-gate.mjs                | 105 ++++++------\n hooks/qa-gate.test.mjs           |  92 +++++++++-\n 6 files changed, 984 insertions(+), 62 deletions(-)"
+}

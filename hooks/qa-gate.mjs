@@ -16,7 +16,17 @@ import { evaluateRules } from './rule-engine.mjs';
 import { resolveWorkspaceDir } from './workspace.mjs';
 import { validateSchema } from '../skills/compliance-policy-as-code/scripts/contract-validator.mjs';
 import { computeWorkingTreeDiffHash, resolveBaseRef, getHermesConfig } from './qa-runner.mjs';
-import { CorruptArtifactError, isXrayWindowAskArgs, resolveTaskContext } from './consent-validator.mjs';
+import {
+  computeRecommendedSpecialists,
+  CorruptArtifactError,
+  DOMAIN_ROUTING_RULES,
+  FORBIDDEN_SKIP_RECOMMENDED_RE,
+  isXrayWindowAskArgs,
+  RECOMMENDED_BADGE_RE,
+  resolveTaskContext,
+  SKIP_OPTION_RE,
+  UI_SOURCE_FILE_RE
+} from './consent-validator.mjs';
 import { recordMechanicalLesson } from './lessons-ledger.mjs';
 import { bindSubagentsFromSteps, splitSystemDeliveries } from './subagent-binding.mjs';
 import { evaluateGradeGate } from './grade-gate.mjs';
@@ -55,51 +65,9 @@ const WRITE_TOOL_NAMES = new Set([
 ]);
 
 const SOURCE_CODE_EXT_RE = /\.(cs|ts|tsx|js|jsx|mjs|cjs|py|go|java|rs|cpp|c|h|hpp|vb|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$/i;
-const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
 const META_PATH_RE = /(?:^|[\\/])\.hermes[\\/]/i;
 
-const DOMAIN_ROUTING_RULES = [
-  {
-    agents: ['@elena (дизайн/окна)', '@kritik (пост-проверка UX)'],
-    keys: ['elena', 'kritik'],
-    re: /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
-  },
-  {
-    agents: ['@denis (БД/индексы/WAL)'],
-    keys: ['denis'],
-    re: /(?:Database|DbContext|Repository|Migration|Sqlite|Postgres|Mssql|SqlConnection|SqliteConnection|PRAGMA\s+journal_mode|BEGIN\s+IMMEDIATE|SELECT\s+.+\s+FROM)/i
-  },
-  {
-    agents: ['@alexey (протоколы/сокеты)', '@igor (эмуляция/стресс-тест)'],
-    keys: ['alexey', 'igor'],
-    re: /(?:Socket|TcpClient|UdpClient|NetworkStream|ReadExactly|Modbus|OpcUa|Profinet|SerialPort|Plc)/i
-  },
-  {
-    agents: ['@ruslan (SAP/BAPI/COM)'],
-    keys: ['ruslan'],
-    re: /(?:RfcDestination|IRfcFunction|BAPI_|IDoc|FinalReleaseComObject|SapGui)/i
-  },
-  {
-    agents: ['@mikhail (AI/RAG/LLM)'],
-    keys: ['mikhail'],
-    re: /(?:Embedding|Qdrant|PgVector|CrossEncoder|Langfuse|vLLM|Whisper|Docling|Promptfoo)/i
-  },
-  {
-    agents: ['@artem (реверс/бинарные фреймы)'],
-    keys: ['artem'],
-    re: /(?:BinaryPrimitives|Crc16|Crc32|Endian|Disasm|EvidenceLedger)/i
-  },
-  {
-    agents: ['@gleb (3D/Digital Twin/WebGL)'],
-    keys: ['gleb'],
-    re: /(?:\bThree(?:\.js)?\b|WebGL|DigitalTwin|WebView2|InstancedMesh|OrbitControls)/i
-  },
-  {
-    agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],
-    keys: ['dmitry', 'elena'],
-    re: /(?:Controller|Endpoint|Outbox|Idempotency|ProblemDetails|appsettings|IOptions|Channel<)/i
-  }
-];
+// REQ-1 & FIX-A: DOMAIN_ROUTING_RULES and computeRecommendedSpecialists are imported from consent-validator.mjs (single source of truth).
 
 function readStdin() {
   try {
@@ -680,11 +648,40 @@ if (isRewriteTask) {
 // Casual words like "нет", "не нужно", "достаточно", "no" or negations like "don't skip", "нельзя пропустить",
 // "не оставляй без проверки", "без проверки не оставляй" MUST NOT bypass verification.
 const NEGATION_SKIP_RE = /(?:(?:не|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск))|(?:(?:skip|без\s+проверки|пропустит[ье]|пропускай|пропуск)(?![\wА-Яа-яЁё])[^\r\n]{0,35}(?:не|нельзя|никогда|don'?t|do\s+not|never)(?![\wА-Яа-яЁё]))/i;
-const POSITIVE_SKIP_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:без\s+проверки|skip\b|пропустить\s+проверк[уае]?)/i;
+const POSITIVE_SKIP_RE = /(?:^|\n)\s*(?:[A-Za-z]?\d+[:.)]\s*|option\s+\d+[:.]\s*|[-*]\s*)?(?:\(recommended\)\s*)?(?:завершить\s+без\s+проверки|без\s+проверки|skip\b|пропустить\s+проверк[уае]?)/i;
 
 const hasNegationOfSkip = NEGATION_SKIP_RE.test(postEditAskAnswer);
 const hasPositiveSkip = POSITIVE_SKIP_RE.test(postEditAskAnswer);
-const isEconomySkipRequested = postEditAskIdx > lastWriteIdx && hasPositiveSkip && !hasNegationOfSkip;
+
+// FIX-B: Check if the skip was nudged via a forbidden (Recommended) badge when source files were modified
+let isForbiddenRecommendedSkip = false;
+if (hasPositiveSkip && editedSourceFiles.size > 0 && postEditAskIdx >= 0) {
+  const askStep = turnSteps[postEditAskIdx];
+  if (askStep) {
+    for (const tc of collectToolCalls(askStep)) {
+      if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+        const qList = tc?.args?.questions;
+        if (Array.isArray(qList)) {
+          for (const q of qList) {
+            if (Array.isArray(q?.options)) {
+              for (const opt of q.options) {
+                const optStr = String(opt || '');
+                if (FORBIDDEN_SKIP_RECOMMENDED_RE.test(optStr) || (SKIP_OPTION_RE.test(optStr) && RECOMMENDED_BADGE_RE.test(optStr))) {
+                  isForbiddenRecommendedSkip = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+if (isForbiddenRecommendedSkip) {
+  logGateDecision({ decision: 'continue', reason: 'invalid_skip_nudge_with_recommended_tag' });
+}
+
+const isEconomySkipRequested = postEditAskIdx > lastWriteIdx && hasPositiveSkip && !hasNegationOfSkip && !isForbiddenRecommendedSkip;
 
 // In economy mode: allow immediately if no UI files were edited or if UX PASS is already granted,
 // EXCEPT confirmed-plan tasks with an active Grade Gate (REQ-3: confirmed plan always requires grade PASS or validated user override).
@@ -1108,16 +1105,12 @@ if (!isLoopRequested && attempt >= MAX_RETURNS) {
 
 writeCounter(counterFile, attempt + 1);
 
-const combinedTouched = touchedSnapshots.join('\n');
-const recommendedTeam = new Set();
-for (const rule of DOMAIN_ROUTING_RULES) {
-  if (rule.re.test(combinedTouched)) {
-    const missingKey = rule.keys.some((k) => !invokedSpecialists.has(k));
-    if (missingKey) {
-      for (const label of rule.agents) recommendedTeam.add(label);
-    }
-  }
-}
+const routing = computeRecommendedSpecialists(touchedSnapshots, {
+  invokedSpecialists,
+  editedSourceFiles,
+  editedUiFiles
+});
+const recommendedTeam = new Set(routing.recommendedLabels);
 if (editedUiFiles.size === 0 && !invokedSpecialists.has('elena') && !invokedSpecialists.has('kritik')) {
   recommendedTeam.add('@elena / @kritik (оцените: не нужно ли после изменений кода переделать окна/дизайн?)');
 }

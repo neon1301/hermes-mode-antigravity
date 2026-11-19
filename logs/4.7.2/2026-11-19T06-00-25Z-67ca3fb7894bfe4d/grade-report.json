@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "source": "mechanical",
+  "taskHash": "67ca3fb7894bfe4d",
+  "planHash": "99db0899cdee5c86595f10a55dc1c58c0185b0009ecec87afab1c342e05e991e",
+  "rubricHash": "4b75fcc44892ff3b02973f1bfa3767df8b37e456f1870f4798ca515a8e80f3d7",
+  "rubricVersion": 1,
+  "version": 1,
+  "graderUuid": "905e7358-97b3-4c49-b1cb-7c1be4eb473c",
+  "graderAgent": "sergey",
+  "bindingConfidence": "fifo",
+  "overall": "PASS",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "verdict": "FULFILLED",
+      "evidence": "README.md:27"
+    },
+    {
+      "reqId": "REQ-2",
+      "verdict": "FULFILLED",
+      "evidence": "README.md:144-178"
+    },
+    {
+      "reqId": "REQ-3",
+      "verdict": "FULFILLED",
+      "evidence": "README.md:190-219"
+    },
+    {
+      "reqId": "REQ-4",
+      "verdict": "FULFILLED",
+      "evidence": "README.md:272-283"
+    },
+    {
+      "reqId": "REQ-5",
+      "verdict": "FULFILLED",
+      "evidence": "README.md:286-303"
+    },
+    {
+      "reqId": "REQ-6",
+      "verdict": "FULFILLED",
+      "evidence": "README.ru.md:1-326"
+    },
+    {
+      "reqId": "REQ-7",
+      "verdict": "FULFILLED",
+      "evidence": "logs/4.7.2/2026-11-19T04-14-12Z-67ca3fb7894bfe4d/git-state.json:1-7"
+    }
+  ],
+  "ts": "2026-11-19T04:25:21.871Z"
+}

@@ -22,24 +22,37 @@ import {
 } from './council-learning.mjs';
 import {
   buildProtectedShellRegex,
+  classifyDbMutationConsent,
   classifyXrayWindowConsent,
+  computeRecommendedSpecialists,
   CONN_SECRET_RE,
   CorruptArtifactError,
   DEFAULT_PROTECTED_VERDICT_PATHS,
+  DOMAIN_ROUTING_RULES,
   extractAskQuestionOptions,
   extractAuthenticAskAnswer,
+  FORBIDDEN_SKIP_RECOMMENDED_RE,
+  isDbMutationAskArgs,
   isGradeOverrideAskArgs,
+  isLiveDataMutationCommand,
+  isPostEditAskArgs,
   isStrictTestPath,
   isTeamStopUnblockAskArgs,
+  isWhitelistedTestCommand,
   isXrayWindowAskArgs,
   KNOWN_SECRET_PREFIX_RE,
+  lintPostEditAskWindow,
   lintXrayWindowText,
   readGateModeConfig,
   readProtectedJsonlStrict,
   readProtectedJsonStrict,
+  RECOMMENDED_BADGE_RE,
   resolveTaskContext,
-  SECRET_ASSIGN_RE
+  SECRET_ASSIGN_RE,
+  SKIP_OPTION_RE,
+  UI_SOURCE_FILE_RE
 } from './consent-validator.mjs';
+import { computeWorkingTreeDiffHash } from './qa-runner.mjs';
 import {
   extractPlanAskQuestionText,
   formatPlanDeny,
@@ -2627,6 +2640,44 @@ if (toolName === 'run_command') {
     process.exit(0);
   }
 
+  // REQ-3 & FIX-C: Intercept live database mutation commands without prior authentic user confirmation
+  if (isLiveDataMutationCommand(cmd, activeWorkspaceDir)) {
+    let dbConfirmed = false;
+    const transcriptPath = payload?.transcriptPath;
+    if (transcriptPath) {
+      try {
+        const { combinedSteps } = getTranscriptData(transcriptPath);
+        for (let i = combinedSteps.length - 1; i >= 0; i--) {
+          const s = combinedSteps[i];
+          for (const tc of collectToolCalls(s)) {
+            if (String(tc?.name || '').toLowerCase() === 'ask_question') {
+              const tcArgs = tc?.args || {};
+              const tcArgsStr = typeof tcArgs === 'string' ? tcArgs : JSON.stringify(tcArgs);
+              if (isDbMutationAskArgs(tcArgsStr)) {
+                const tcId = String(tc?.id || tc?.tool_call_id || tc?.call_id || '');
+                const ans = extractAuthenticAskAnswer(combinedSteps, i, tcId);
+                const { options } = extractAskQuestionOptions(tcArgs);
+                const classification = classifyDbMutationConsent(ans, options);
+                if (classification.decision === 'confirmed') {
+                  dbConfirmed = true;
+                }
+                break;
+              }
+            }
+          }
+          if (dbConfirmed) break;
+        }
+      } catch {}
+    }
+    if (!dbConfirmed) {
+      deny(
+        `⛔ Hermes Safety Lock (live_db_mutation_unconfirmed): Мутация живой базы данных заблокирована (${rawCmd.slice(0, 80)})! Для изменения, удаления, сброса или миграции рабочей БД требуется отдельное окно подтверждения пользователя через ask_question ДО выполнения команды.\n[EN: Hermes Safety Lock (live_db_mutation_unconfirmed): Live database mutation blocked without prior confirmation via ask_question: ${rawCmd.slice(0, 80)}]`,
+        { toolName, rule: 'live_db_mutation_unconfirmed', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+  }
+
   // REQ-2 (v4.7.2): Block shell deletion (rm / del / Remove-Item / unlink / git rm) of packaged or unproven X-ray files
   const SHELL_DELETE_FILE_RE = /(?:^|[;&|\n]\s*)(?:(?:git\s+rm)|(?:rm|del|erase|unlink|remove-item|ri))\b(?:\s+[-/][a-z0-9]+)*\s+["']?([^"'\s|;&]+)["']?/gi;
   for (const dm of cmd.matchAll(SHELL_DELETE_FILE_RE)) {
@@ -2926,6 +2977,138 @@ if (toolName === 'manage_subagents') {
   }
 }
 
+function extractTurnEditsAndRoutingContext(steps = [], workspaceDir = '') {
+  let lastUserIdx = -1;
+  for (let i = 0; i < steps.length; i++) {
+    if (isRealUserStep(steps[i])) lastUserIdx = i;
+  }
+  const turnSteps = steps.slice(lastUserIdx >= 0 ? lastUserIdx + 1 : 0);
+
+  const editedSourceFiles = new Set();
+  const editedUiFiles = new Set();
+  const touchedSnapshots = [];
+  const invokedSpecialists = new Set();
+  let lastWriteIdx = -1;
+
+  for (let i = 0; i < turnSteps.length; i++) {
+    const s = turnSteps[i];
+    for (const tc of collectToolCalls(s)) {
+      const tcName = String(tc?.name || '').toLowerCase();
+      const tcArgs = tc?.args || {};
+
+      if (tcName === 'invoke_subagent') {
+        const specs = extractSubagentSpecs(tcArgs);
+        for (const spec of specs) {
+          const typeName = String(spec.TypeName || spec.typeName || spec.Role || spec.role || '').toLowerCase();
+          const cleanName = typeName.replace(/^@/, '');
+          const resolved = HERMES_AGENT_ALIASES[cleanName] || cleanName;
+          if (HERMES_AGENTS.has(resolved)) invokedSpecialists.add(resolved);
+        }
+      }
+
+      if (FILE_WRITE_TOOLS.has(tcName)) {
+        const targetPath = String(tcArgs.Path || tcArgs.TargetFile || tcArgs.AbsolutePath || tcArgs.path || '');
+        if (targetPath && !isMetaOrArtifactPath(targetPath)) {
+          if (SOURCE_CODE_EXT_RE.test(targetPath) && !isStrictTestPath(targetPath)) {
+            editedSourceFiles.add(path.normalize(targetPath));
+            lastWriteIdx = i;
+            const snippet = String(tcArgs.Content || tcArgs.Replacement || tcArgs.CodeContent || '');
+            let diskContent = '';
+            try {
+              const fullPath = path.isAbsolute(targetPath) ? targetPath : path.resolve(workspaceDir, targetPath);
+              if (fs.existsSync(fullPath)) diskContent = fs.readFileSync(fullPath, 'utf-8');
+            } catch {}
+            touchedSnapshots.push(`${targetPath}\n${snippet}\n${diskContent}`);
+            if (UI_SOURCE_FILE_RE.test(targetPath)) {
+              editedUiFiles.add(path.normalize(targetPath));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    turnSteps,
+    lastUserIdx,
+    lastWriteIdx,
+    editedSourceFiles,
+    editedUiFiles,
+    touchedSnapshots,
+    invokedSpecialists
+  };
+}
+
+if (toolName === 'send_message') {
+  const msgText = String(args.Message || args.message || args.content || '');
+  const REQUEST_OR_WAITING_RE = /(?:ожида[юем]|жд[уём]|требуется|получит[ье]|перед|после|ready\s+for|waiting\s+for|need|проведи|выдай|предоставь|запусти)\s+[^\n]{0,40}\[(?:QA|SECURITY)\s+PASS\]/gi;
+  const strippedMsg = msgText.replace(REQUEST_OR_WAITING_RE, '');
+
+  if (/\[QA\s+PASS\]/i.test(strippedMsg)) {
+    const qaPath = path.join(activeWorkspaceDir, '.hermes', 'qa-verdict.json');
+    let valid = false;
+    let staleHash = false;
+    try {
+      if (fs.existsSync(qaPath)) {
+        const v = JSON.parse(fs.readFileSync(qaPath, 'utf-8'));
+        let currentDiffHash = '';
+        try { currentDiffHash = computeWorkingTreeDiffHash(activeWorkspaceDir); } catch {}
+        if (currentDiffHash && v?.diffHash && v.diffHash !== currentDiffHash) {
+          staleHash = true;
+        } else if (v?.runner === 'mechanical' && v?.status === 'PASS') {
+          valid = true;
+        }
+      }
+    } catch {}
+    if (staleHash) {
+      deny(
+        '⛔ Hermes Gate (stale_diff_verdict_token_deny): Токен [QA PASS] отклонён: хеш диффа в артефакте .hermes/qa-verdict.json не совпадает с текущим состоянием рабочего дерева!\n[EN: Hermes Gate (stale_diff_verdict_token_deny): [QA PASS] rejected: diffHash in .hermes/qa-verdict.json does not match working tree.]',
+        { toolName, rule: 'stale_diff_verdict_token_deny', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+    if (!valid) {
+      deny(
+        '⛔ Hermes Gate (premature_verdict_token_deny): Использование токена [QA PASS] в send_message запрещено до формирования валидного механического артефакта .hermes/qa-verdict.json!\n[EN: Hermes Gate (premature_verdict_token_deny): [QA PASS] token in send_message is forbidden prior to valid mechanical .hermes/qa-verdict.json generation.]',
+        { toolName, rule: 'premature_verdict_token_deny', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+  }
+
+  if (/\[SECURITY\s+PASS\]/i.test(strippedMsg)) {
+    const secPath = path.join(activeWorkspaceDir, '.hermes', 'security-verdict.json');
+    let valid = false;
+    let staleHash = false;
+    try {
+      if (fs.existsSync(secPath)) {
+        const v = JSON.parse(fs.readFileSync(secPath, 'utf-8'));
+        let currentDiffHash = '';
+        try { currentDiffHash = computeWorkingTreeDiffHash(activeWorkspaceDir); } catch {}
+        if (currentDiffHash && v?.diffHash && v.diffHash !== currentDiffHash) {
+          staleHash = true;
+        } else if (v?.status === 'PASS' && v?.unresolvedHighCritical === 0) {
+          valid = true;
+        }
+      }
+    } catch {}
+    if (staleHash) {
+      deny(
+        '⛔ Hermes Gate (stale_diff_verdict_token_deny): Токен [SECURITY PASS] отклонён: хеш диффа в артефакте .hermes/security-verdict.json не совпадает с текущим состоянием рабочего дерева!\n[EN: Hermes Gate (stale_diff_verdict_token_deny): [SECURITY PASS] rejected: diffHash in .hermes/security-verdict.json does not match working tree.]',
+        { toolName, rule: 'stale_diff_verdict_token_deny', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+    if (!valid) {
+      deny(
+        '⛔ Hermes Gate (premature_verdict_token_deny): Использование токена [SECURITY PASS] в send_message запрещено до формирования валидного механического артефакта .hermes/security-verdict.json!\n[EN: Hermes Gate (premature_verdict_token_deny): [SECURITY PASS] token in send_message is forbidden prior to valid mechanical .hermes/security-verdict.json generation.]',
+        { toolName, rule: 'premature_verdict_token_deny', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+  }
+}
+
 if (toolName === 'ask_question') {
   // FINDING-10: Plan confirmation ask_question must show a plain-language mirror, not a wall of internal IDs
   const askArgsStr = typeof args === 'string' ? args : JSON.stringify(args || '');
@@ -2955,6 +3138,47 @@ if (toolName === 'ask_question') {
       deny(
         `⛔ Hermes «Рентген» (xray_window_plain_ru_no_internal_codes): окно Рентгена заблокировано до показа пользователю. ${xrayCheck.errors.join(' ')}\n[EN: Hermes X-Ray (xray_window_plain_ru_no_internal_codes): X-ray ask_question blocked before display: ${xrayCheck.errors.join(' ')}]`,
         { toolName, rule: 'xray_window_plain_ru_no_internal_codes', taskHash: activeTaskHash }
+      );
+      process.exit(0);
+    }
+  }
+
+  // REQ-1 & FIX-A / FIX-B / FIX-D: Post-verification token economy window validation
+  if (isPostEditAskArgs(askArgsStr)) {
+    const qText = extractPlanAskQuestionText(args);
+    const { options } = extractAskQuestionOptions(args);
+    const transcriptPath = payload?.transcriptPath;
+    let turnContext = {
+      turnSteps: [],
+      editedSourceFiles: new Set(),
+      editedUiFiles: new Set(),
+      touchedSnapshots: [],
+      invokedSpecialists: new Set()
+    };
+    if (transcriptPath) {
+      try {
+        const { combinedSteps, tailSteps } = getTranscriptData(transcriptPath);
+        const stepsToScan = (combinedSteps && combinedSteps.length > 0) ? combinedSteps : (tailSteps || []);
+        turnContext = extractTurnEditsAndRoutingContext(stepsToScan, activeWorkspaceDir);
+      } catch {}
+    }
+    let currentDiffHash = '';
+    try {
+      currentDiffHash = computeWorkingTreeDiffHash(activeWorkspaceDir);
+    } catch {}
+
+    const postLint = lintPostEditAskWindow(qText, options, {
+      workspaceDir: activeWorkspaceDir,
+      touchedSnapshots: turnContext.touchedSnapshots,
+      invokedSpecialists: turnContext.invokedSpecialists,
+      editedSourceFiles: turnContext.editedSourceFiles,
+      editedUiFiles: turnContext.editedUiFiles,
+      currentDiffHash
+    });
+    if (!postLint.ok) {
+      deny(
+        `⛔ Hermes Gate (post_edit_window_invalid): Окно пост-проверки отклонено.\n${postLint.errors.join('\n')}\n[EN: Hermes Gate (post_edit_window_invalid): Post-edit verification window rejected: ${postLint.errors.join('; ')}]`,
+        { toolName, rule: 'post_edit_window_invalid', taskHash: activeTaskHash }
       );
       process.exit(0);
     }

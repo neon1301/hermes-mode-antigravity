@@ -317,10 +317,10 @@ await test('wave3_artifacts_and_contracts_integrity', () => {
     throw new Error(`Expected 11 suites in .hermes/test-summary.json, found ${summary.suites?.length}`);
   }
   const expectedBreakdown = {
-    'consistency': 23,
+    'consistency': 24,
     'context-injector': 20,
-    'clean-edits-guard': 313,
-    'qa-gate': 128,
+    'clean-edits-guard': 321,
+    'qa-gate': 130,
     'rule-engine': 20,
     'session-report': 6,
     'eval-harness': 71,
@@ -748,6 +748,51 @@ await test('eval_006_schema_valid', () => {
   const sh = fs.readFileSync(path.join(rootDir, 'install.sh'), 'utf-8');
   if (!/"scripts"/.test(ps1) || !/"logs"/.test(ps1) || !/"scripts"/.test(sh) || !/\/logs/.test(sh)) {
     throw new Error('install.ps1 / install.sh must copy scripts/ and clean/exclude logs/');
+  }
+});
+
+// 24. REQ-1..4 (FIX-A..D): Domain routing rules, UI+DB lock, and live db safety invariants
+await test('governance_routing_and_db_safety_invariants', async () => {
+  const cv = await import('./consent-validator.mjs');
+  if (!Array.isArray(cv.DOMAIN_ROUTING_RULES) || cv.DOMAIN_ROUTING_RULES.length !== 8) {
+    throw new Error(`Expected 8 domains in DOMAIN_ROUTING_RULES, got ${cv.DOMAIN_ROUTING_RULES?.length}`);
+  }
+  const expectedDomains = new Set(['ui', 'database', 'protocols', 'sap', 'ai', 'reverse', 'digital_twin', 'backend']);
+  for (const r of cv.DOMAIN_ROUTING_RULES) {
+    if (!expectedDomains.has(r.domain)) {
+      throw new Error(`Unexpected domain '${r.domain}' in DOMAIN_ROUTING_RULES`);
+    }
+  }
+
+  // FIX-A UI+DB lock test
+  const r1 = cv.computeRecommendedSpecialists(['View.xaml\n<Window></Window>', 'Repository.cs\nCREATE TABLE Users;']);
+  if (!r1.uiAndDbSimultaneous || !r1.mandatorySpecialists.includes('elena') || !r1.mandatorySpecialists.includes('denis')) {
+    throw new Error(`Simultaneous UI+DB edit must mandate elena and denis, got: ${JSON.stringify(r1)}`);
+  }
+
+  // FIX-B Anti-nudge skip test
+  const lintB1 = cv.lintPostEditAskWindow('Я закончил доработку.', ['(Recommended) Завершить без проверки'], {
+    hasModifiedSources: true
+  });
+  if (lintB1.ok || !lintB1.errors.some((e) => /FIX-B/i.test(e))) {
+    throw new Error('lintPostEditAskWindow must reject (Recommended) on skip with modified sources');
+  }
+
+  // FIX-C DB safety invariants
+  if (!cv.isLiveDataMutationCommand('dotnet ef database update')) {
+    throw new Error('dotnet ef database update must be classified as live DB mutation');
+  }
+  if (!cv.isLiveDataMutationCommand('psql -c "DROP TABLE users"')) {
+    throw new Error('DROP TABLE must be classified as live DB mutation');
+  }
+  if (!cv.isWhitelistedTestCommand('dotnet test')) {
+    throw new Error('dotnet test must be whitelisted');
+  }
+  if (cv.isLiveDataMutationCommand('dotnet test tests/App.Tests.csproj')) {
+    throw new Error('dotnet test under tests/ must not be classified as live DB mutation');
+  }
+  if (cv.isLiveDataMutationCommand('sqlite3 :memory: "DROP TABLE users"')) {
+    throw new Error(':memory: database must not be classified as live DB mutation');
   }
 });
 

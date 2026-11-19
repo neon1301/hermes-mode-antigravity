@@ -6260,6 +6260,225 @@ const cases = [
         throw new Error(`X-ray ask_question MUST NOT fulfill Step 0 Model Handshake, got: ${JSON.stringify(res)}`);
       }
     }
+  },
+  // FIX-A (P0): Post-edit ask_question window linked with domain routing (UI + DB lock)
+  {
+    name: 'post_edit_window_missing_specialists_ui_db_deny',
+    expected: 'deny',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit ui and db' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/components/Panel.xaml', Content: '<Window>UI</Window>' } }] },
+      { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/data/Repository.cs', Content: 'CREATE TABLE Users (id int);' } }] }
+    ],
+    payload: {
+      toolCall: {
+        name: 'ask_question',
+        args: {
+          questions: [
+            {
+              question: 'Я закончил доработку. Запустить сотрудников на проверку (@dmitry)?',
+              options: [
+                '(Recommended) Запустить сотрудников на проверку: @dmitry',
+                'Завершить без проверки'
+              ]
+            }
+          ]
+        }
+      }
+    },
+    verify: (parsed) => {
+      if (!/post_edit_window_invalid/i.test(parsed.reason || '') || !/@elena/i.test(parsed.reason || '') || !/@denis/i.test(parsed.reason || '')) {
+        throw new Error(`Expected missing specialists error naming @elena and @denis, got: ${parsed.reason}`);
+      }
+    }
+  },
+  {
+    name: 'post_edit_window_specialists_ui_db_allow',
+    expected: 'allow',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit ui and db' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/components/Panel.xaml', Content: '<Window>UI</Window>' } }] },
+      { step_index: 2, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/data/Repository.cs', Content: 'CREATE TABLE Users (id int);' } }] }
+    ],
+    payload: {
+      toolCall: {
+        name: 'ask_question',
+        args: {
+          questions: [
+            {
+              question: 'Я закончил доработку. Подключите профильных специалистов: @elena, @denis, @kritik',
+              options: [
+                '(Recommended) Запустить сотрудников на проверку: @elena, @denis, @kritik',
+                'Завершить без проверки'
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  // FIX-B (P0): Prohibit (Recommended) on skip when source code was edited
+  {
+    name: 'post_edit_window_forbidden_recommended_on_skip_deny',
+    expected: 'deny',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes edit app' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'edit_file', args: { Path: 'src/app.ts', Content: 'export const x = 1;' } }] }
+    ],
+    payload: {
+      toolCall: {
+        name: 'ask_question',
+        args: {
+          questions: [
+            {
+              question: 'Я закончил доработку. Что делаем?',
+              options: [
+                '(Recommended) Завершить без проверки (экономия токенов)',
+                'Запустить сотрудников на проверку'
+              ]
+            }
+          ]
+        }
+      }
+    },
+    verify: (parsed) => {
+      if (!/post_edit_window_invalid/i.test(parsed.reason || '') || !/FIX-B/i.test(parsed.reason || '')) {
+        throw new Error(`Expected forbidden_recommended_on_skip in FIX-B, got: ${parsed.reason}`);
+      }
+    }
+  },
+
+  // FIX-C (P1): Live DB mutation confirmation lock
+  {
+    name: 'live_db_mutation_unconfirmed_deny',
+    expected: 'deny',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes migrate db' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: {
+      toolCall: {
+        name: 'run_command',
+        args: {
+          CommandLine: 'dotnet ef database update --connection "Server=prod;Database=app;"',
+          WaitMsBeforeAsync: 5000,
+          toolSummary: 'DB migration'
+        }
+      }
+    },
+    verify: (parsed) => {
+      if (!/live_db_mutation_unconfirmed/i.test(parsed.reason || '')) {
+        throw new Error(`Expected live_db_mutation_unconfirmed, got: ${parsed.reason}`);
+      }
+    }
+  },
+  {
+    name: 'live_db_mutation_whitelisted_test_allow',
+    expected: 'allow',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes run tests' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' }
+    ],
+    payload: {
+      toolCall: {
+        name: 'run_command',
+        args: {
+          CommandLine: 'dotnet test tests/App.Tests/App.Tests.csproj',
+          WaitMsBeforeAsync: 5000,
+          toolSummary: 'Run tests'
+        }
+      }
+    }
+  },
+  {
+    name: 'live_db_mutation_confirmed_consent_allow',
+    expected: 'allow',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes migrate db' },
+      { step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'ask_question', id: 'handshake', args: {} }] },
+      { step_index: 2, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: 'A1: Gemini Flash\nA2: Medium' },
+      {
+        step_index: 3,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        tool_calls: [
+          {
+            name: 'ask_question',
+            id: 'call_db_confirm',
+            args: {
+              questions: [
+                {
+                  question: 'Внимание: операция мутирует базу данных. Подтвердить выполнение миграции живой БД?',
+                  options: [
+                    '1. Подтверждаю мутацию базы данных',
+                    '2. Отменить выполнение'
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        step_index: 4,
+        source: 'USER_EXPLICIT',
+        type: 'USER_INPUT',
+        tool_call_id: 'call_db_confirm',
+        content: '1. Подтверждаю мутацию базы данных'
+      }
+    ],
+    payload: {
+      toolCall: {
+        name: 'run_command',
+        args: {
+          CommandLine: 'dotnet ef database update',
+          WaitMsBeforeAsync: 5000,
+          toolSummary: 'DB migration'
+        }
+      }
+    }
+  },
+
+  // FIX-D (P1): Premature [QA PASS] / [SECURITY PASS] without mechanical artifact denied
+  {
+    name: 'premature_verdict_send_message_missing_artifact_deny',
+    expected: 'deny',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes finish up' }
+    ],
+    payload: {
+      toolCall: {
+        name: 'send_message',
+        args: {
+          Recipient: 'subagent-lead',
+          Message: 'Работа завершена, вот [QA PASS] по всем тестам.'
+        }
+      }
+    },
+    verify: (parsed) => {
+      if (!/premature_verdict_token_deny/i.test(parsed.reason || '')) {
+        throw new Error(`Expected premature_verdict_token_deny, got: ${parsed.reason}`);
+      }
+    }
+  },
+  {
+    name: 'premature_verdict_send_message_imperative_prompt_allow',
+    expected: 'allow',
+    transcript: [
+      { step_index: 0, source: 'USER_EXPLICIT', type: 'USER_INPUT', content: '/hermes run tests' }
+    ],
+    payload: {
+      toolCall: {
+        name: 'send_message',
+        args: {
+          Recipient: 'subagent-qa',
+          Message: 'Проведи тестирование и выдай [QA PASS]'
+        }
+      }
+    }
   }
 ];
 

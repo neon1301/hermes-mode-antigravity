@@ -276,6 +276,15 @@ export function extractAskQuestionOptions(askStep) {
   const options = [];
   let questionText = '';
   if (!askStep) return { options, questionText };
+  if (Array.isArray(askStep.questions) && askStep.questions.length > 0) {
+    questionText = String(askStep.questions[0]?.question || '');
+    if (Array.isArray(askStep.questions[0]?.options)) {
+      for (const opt of askStep.questions[0].options) {
+        options.push(String(opt || ''));
+      }
+    }
+    return { options, questionText };
+  }
   for (const tc of collectToolCalls(askStep)) {
     if (String(tc?.name || '').toLowerCase() === 'ask_question') {
       const qList = tc?.args?.questions;
@@ -651,4 +660,348 @@ export function classifyXrayWindowConsent(answerText, options = []) {
   }
 
   return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer, partialItems };
+}
+
+// --- REQ-1 & FIX-A: Canonical domain routing rules (single source of truth) ---
+export const UI_SOURCE_FILE_RE = /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:^|[\\/])[^\\/]*(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|Widget|Screen|Page|Layout|ScrollBar|Menu|Toolbar)[^\\/]*\.(?:cs|ts|js|py|cpp|vb)$|\.Designer\.(?:cs|vb)$/i;
+
+export const DOMAIN_ROUTING_RULES = Object.freeze([
+  {
+    domain: 'ui',
+    agents: ['@elena (дизайн/окна)', '@kritik (пост-проверка UX)'],
+    keys: ['elena', 'kritik'],
+    re: /\.(?:tsx|jsx|xaml|razor|vue|svelte|css|scss|sass|less|html|htm)$|(?:Form|Window|Dialog|Control|View|Panel|Modal|Popup|Flyout|Theme|Style|ScrollBar|DataGridView|DoubleBuffered|MouseLeave|Deactivate)/i
+  },
+  {
+    domain: 'database',
+    agents: ['@denis (БД/индексы/WAL)'],
+    keys: ['denis'],
+    re: /(?:Database|DbContext|Repository|Migration|Sqlite|Postgres|Mssql|SqlConnection|SqliteConnection|PRAGMA\s+journal_mode|BEGIN\s+IMMEDIATE|SELECT\s+.+\s+FROM|\.sql\b|\.db\b|\.sqlite\b)/i
+  },
+  {
+    domain: 'protocols',
+    agents: ['@alexey (протоколы/сокеты)', '@igor (эмуляция/стресс-тест)'],
+    keys: ['alexey', 'igor'],
+    re: /(?:Socket|TcpClient|UdpClient|NetworkStream|ReadExactly|Modbus|OpcUa|Profinet|SerialPort|Plc)/i
+  },
+  {
+    domain: 'sap',
+    agents: ['@ruslan (SAP/BAPI/COM)'],
+    keys: ['ruslan'],
+    re: /(?:RfcDestination|IRfcFunction|BAPI_|IDoc|FinalReleaseComObject|SapGui)/i
+  },
+  {
+    domain: 'ai',
+    agents: ['@mikhail (AI/RAG/LLM)'],
+    keys: ['mikhail'],
+    re: /(?:Embedding|Qdrant|PgVector|CrossEncoder|Langfuse|vLLM|Whisper|Docling|Promptfoo)/i
+  },
+  {
+    domain: 'reverse',
+    agents: ['@artem (реверс/бинарные фреймы)'],
+    keys: ['artem'],
+    re: /(?:BinaryPrimitives|Crc16|Crc32|Endian|Disasm|EvidenceLedger)/i
+  },
+  {
+    domain: 'digital_twin',
+    agents: ['@gleb (3D/Digital Twin/WebGL)'],
+    keys: ['gleb'],
+    re: /(?:\bThree(?:\.js)?\b|WebGL|DigitalTwin|WebView2|InstancedMesh|OrbitControls)/i
+  },
+  {
+    domain: 'backend',
+    agents: ['@dmitry (Backend/API/Конфиг)', '@elena (проверить, нужно ли вывести новые настройки/статусы в окно)'],
+    keys: ['dmitry', 'elena'],
+    re: /(?:Controller|Endpoint|Outbox|Idempotency|ProblemDetails|appsettings|IOptions|Channel<)/i
+  }
+]);
+
+export function computeRecommendedSpecialists(touchedSnapshotsOrDiff = [], {
+  invokedSpecialists = new Set(),
+  editedSourceFiles = new Set(),
+  editedUiFiles = new Set()
+} = {}) {
+  const combinedText = Array.isArray(touchedSnapshotsOrDiff)
+    ? touchedSnapshotsOrDiff.join('\n')
+    : String(touchedSnapshotsOrDiff || '');
+
+  const recommendedKeys = new Set();
+  const recommendedLabels = new Set();
+  const matchedDomains = new Set();
+
+  for (const rule of DOMAIN_ROUTING_RULES) {
+    if (rule.re.test(combinedText)) {
+      if (rule.domain) matchedDomains.add(rule.domain);
+      const missingKey = rule.keys.some((k) => !invokedSpecialists.has(k));
+      if (missingKey) {
+        for (const k of rule.keys) {
+          if (!invokedSpecialists.has(k)) recommendedKeys.add(k);
+        }
+        for (const label of rule.agents) recommendedLabels.add(label);
+      }
+    }
+  }
+
+  const uiRule = DOMAIN_ROUTING_RULES.find((r) => r.domain === 'ui');
+  const dbRule = DOMAIN_ROUTING_RULES.find((r) => r.domain === 'database');
+  const isUiTouched = Boolean((uiRule && uiRule.re.test(combinedText)) || (editedUiFiles && editedUiFiles.size > 0));
+  const isDbTouched = Boolean(dbRule && dbRule.re.test(combinedText));
+
+  if (isUiTouched) {
+    if (!invokedSpecialists.has('elena')) {
+      recommendedKeys.add('elena');
+      recommendedLabels.add('@elena (дизайн/окна)');
+    }
+    if (!invokedSpecialists.has('kritik')) {
+      recommendedKeys.add('kritik');
+      recommendedLabels.add('@kritik (пост-проверка UX)');
+    }
+  }
+  if (isDbTouched && !invokedSpecialists.has('denis')) {
+    recommendedKeys.add('denis');
+    recommendedLabels.add('@denis (БД/индексы/WAL)');
+  }
+
+  const mandatorySpecialists = new Set();
+  if (isUiTouched && isDbTouched) {
+    if (!invokedSpecialists.has('elena')) mandatorySpecialists.add('elena');
+    if (!invokedSpecialists.has('denis')) mandatorySpecialists.add('denis');
+  }
+
+  return {
+    recommendedKeys: [...recommendedKeys],
+    recommendedLabels: [...recommendedLabels],
+    matchedDomains: [...matchedDomains],
+    isUiTouched,
+    isDbTouched,
+    mandatorySpecialists: [...mandatorySpecialists],
+    uiAndDbSimultaneous: isUiTouched && isDbTouched
+  };
+}
+
+// --- FIX-A & FIX-B: Post-verification token economy window validation ---
+export const POST_EDIT_ASK_QUESTION_RE = /(?:запустить\s+(?:сотрудников|специалистов|проверку|проверк[уае])|завершить\s+без\s+проверки|проверка\s+после\s+доработки|закончил\s+доработку|экономия\s+токенов|finish\s+without\s+verification|run\s+verification)/i;
+export const SKIP_OPTION_RE = /(?:без\s+проверки|skip\b|пропустить\s+проверк[уае]?|завершить\s+без\s+проверки)/i;
+export const RECOMMENDED_BADGE_RE = /(?:\(recommended\)|\(рекомендуется\)|\(рекомендовано\)|\(по\s+умолчанию\)|\(default\)|\[recommended\]|\[рекомендуется\]|\[рекомендовано\]|\brecommended\b|\bрекомендуется\b)/i;
+
+export const FORBIDDEN_SKIP_RECOMMENDED_RE = new RegExp(
+  `(?:${RECOMMENDED_BADGE_RE.source}[\\s\\S]{0,50}${SKIP_OPTION_RE.source})|(?:${SKIP_OPTION_RE.source}[\\s\\S]{0,50}${RECOMMENDED_BADGE_RE.source})`,
+  'i'
+);
+
+export function isPostEditAskArgs(argsStr) {
+  const s = String(argsStr || '');
+  if (!POST_EDIT_ASK_QUESTION_RE.test(s)) return false;
+  if (/(?:согласны\s+ли\s+вы\s+с\s+планом|подтверд(?:и(?:ть|те)?|ать)\s+план|утверд(?:и(?:ть|те)?|ать)\s+план|план\s+v?\d*\s*подходит|approve\s+(?:the\s+)?plan|confirm\s+(?:the\s+)?plan)/i.test(s)) {
+    return false;
+  }
+  if (isXrayWindowAskArgs(s) || isTeamStopUnblockAskArgs(s) || isGradeOverrideAskArgs(s)) {
+    return false;
+  }
+  return true;
+}
+
+export function lintPostEditAskWindow(questionText, options = [], context = {}) {
+  const errors = [];
+  const fullText = `${questionText}\n${(Array.isArray(options) ? options : []).join('\n')}`;
+  const {
+    workspaceDir = process.cwd(),
+    touchedSnapshots = [],
+    invokedSpecialists = new Set(),
+    editedSourceFiles = new Set(),
+    editedUiFiles = new Set(),
+    currentDiffHash = ''
+  } = context;
+
+  const routing = computeRecommendedSpecialists(touchedSnapshots, {
+    invokedSpecialists,
+    editedSourceFiles,
+    editedUiFiles
+  });
+
+  // FIX-A (P0): Check mandatory UI+DB lock and domain specialists
+  if (routing.uiAndDbSimultaneous) {
+    const hasElena = /(?:@?elena|елена|дизайн|окна)/i.test(fullText);
+    const hasDenis = /(?:@?denis|денис|бд|баз[аы]|индекс|миграц)/i.test(fullText);
+    if (!hasElena) {
+      errors.push('Замок UI+БД (FIX-A): затронуты и интерфейс, и база данных — окно ОБЯЗАНО предлагать профильного специалиста @elena.');
+    }
+    if (!hasDenis) {
+      errors.push('Замок UI+БД (FIX-A): затронуты и интерфейс, и база данных — окно ОБЯЗАНО предлагать профильного специалиста @denis.');
+    }
+  }
+
+  // FIX-A: Domain-level coverage
+  for (const domain of routing.matchedDomains) {
+    if (domain === 'ui' && !routing.uiAndDbSimultaneous) {
+      const hasUi = /(?:@?elena|@?kritik|елена|критик|дизайн|окна|ux)/i.test(fullText);
+      if (!hasUi) {
+        errors.push('Замок маршрутизации (FIX-A): затронут UI — окно ОБЯЗАНО предлагать профильного специалиста (@elena или @kritik).');
+      }
+    } else if (domain === 'database' && !routing.uiAndDbSimultaneous) {
+      const hasDb = /(?:@?denis|денис|бд|баз[аы]|индекс|миграц)/i.test(fullText);
+      if (!hasDb) {
+        errors.push('Замок маршрутизации (FIX-A): затронута база данных — окно ОБЯЗАНО предлагать профильного специалиста @denis.');
+      }
+    } else if (domain === 'protocols') {
+      const hasProtocols = /(?:@?alexey|@?igor|алексей|игорь|сокет|протокол)/i.test(fullText);
+      if (!hasProtocols) {
+        errors.push('Замок маршрутизации (FIX-A): затронуты сетевые протоколы — окно ОБЯЗАНО предлагать профильного специалиста (@alexey или @igor).');
+      }
+    } else if (domain === 'sap') {
+      const hasSap = /(?:@?ruslan|руслан|sap|bapi)/i.test(fullText);
+      if (!hasSap) {
+        errors.push('Замок маршрутизации (FIX-A): затронут контур SAP — окно ОБЯЗАНО предлагать профильного специалиста @ruslan.');
+      }
+    } else if (domain === 'ai') {
+      const hasAi = /(?:@?mikhail|михаил|rag|эмбед|llm)/i.test(fullText);
+      if (!hasAi) {
+        errors.push('Замок маршрутизации (FIX-A): затронут контур AI/RAG — окно ОБЯЗАНО предлагать профильного специалиста @mikhail.');
+      }
+    } else if (domain === 'reverse') {
+      const hasReverse = /(?:@?artem|артем|артём|реверс|дизасм)/i.test(fullText);
+      if (!hasReverse) {
+        errors.push('Замок маршрутизации (FIX-A): затронут контур реверса/бинарных протоколов — окно ОБЯЗАНО предлагать профильного специалиста @artem.');
+      }
+    } else if (domain === 'digital_twin') {
+      const has3d = /(?:@?gleb|глеб|3d|three\.js|webgl)/i.test(fullText);
+      if (!has3d) {
+        errors.push('Замок маршрутизации (FIX-A): затронут контур 3D/Digital Twin — окно ОБЯЗАНО предлагать профильного специалиста @gleb.');
+      }
+    } else if (domain === 'backend') {
+      const hasBackend = /(?:@?dmitry|дмитрий|backend|бэкенд|api)/i.test(fullText);
+      if (!hasBackend) {
+        errors.push('Замок маршрутизации (FIX-A): затронут Backend/API — окно ОБЯЗАНО предлагать профильного специалиста @dmitry.');
+      }
+    }
+  }
+
+  // FIX-B (P0): Anti-nudge restriction on skip option when source files are modified
+  const hasModifiedSources = (editedSourceFiles && editedSourceFiles.size > 0) || (context.hasModifiedSources === true);
+  if (hasModifiedSources && Array.isArray(options)) {
+    for (const opt of options) {
+      const optStr = String(opt || '');
+      if (FORBIDDEN_SKIP_RECOMMENDED_RE.test(optStr) || (SKIP_OPTION_RE.test(optStr) && RECOMMENDED_BADGE_RE.test(optStr))) {
+        errors.push('Замок FIX-B: Запрещено ставить метку (Recommended) / (Рекомендуется) на вариант завершения без проверки при изменённых исходниках! Рекомендуйте проверку сотрудниками.');
+      }
+    }
+  }
+
+  // FIX-D (P1): Mechanical artifact verification before prose verdict claims
+  const claimsQaPass = /(?:\[QA\s+PASS\]|\bqa\s+pass\b|тесты\s+(?:успешно\s+)?пройдены|проверка\s+пройдена)/i.test(fullText);
+  if (claimsQaPass) {
+    const qaPath = path.join(workspaceDir, '.hermes', 'qa-verdict.json');
+    let valid = false;
+    try {
+      if (fs.existsSync(qaPath)) {
+        const v = JSON.parse(fs.readFileSync(qaPath, 'utf-8'));
+        const matchesHash = !currentDiffHash || v?.diffHash === currentDiffHash;
+        if (v?.runner === 'mechanical' && v?.status === 'PASS' && matchesHash) {
+          valid = true;
+        }
+      }
+    } catch {}
+    if (!valid) {
+      errors.push('Замок FIX-D: В окне пост-проверки заявлен [QA PASS], но валидный механический артефакт .hermes/qa-verdict.json отсутствует или diffHash не совпадает.');
+    }
+  }
+
+  const claimsSecPass = /(?:\[SECURITY\s+PASS\]|\bsecurity\s+pass\b)/i.test(fullText);
+  if (claimsSecPass) {
+    const secPath = path.join(workspaceDir, '.hermes', 'security-verdict.json');
+    let valid = false;
+    try {
+      if (fs.existsSync(secPath)) {
+        const v = JSON.parse(fs.readFileSync(secPath, 'utf-8'));
+        const matchesHash = !currentDiffHash || v?.diffHash === currentDiffHash;
+        if (v?.status === 'PASS' && v?.unresolvedHighCritical === 0 && matchesHash) {
+          valid = true;
+        }
+      }
+    } catch {}
+    if (!valid) {
+      errors.push('Замок FIX-D: В окне пост-проверки заявлен [SECURITY PASS], но валидный механический артефакт .hermes/security-verdict.json отсутствует или diffHash не совпадает.');
+    }
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    routing
+  };
+}
+
+// --- FIX-C: Live user database mutation safety gate ---
+export const SQL_DESTRUCTIVE_DDL_RE = /\b(?:DROP\s+(?:TABLE|DATABASE|SCHEMA|VIEW|INDEX)|TRUNCATE(?:\s+TABLE)?|ALTER\s+TABLE)\b/i;
+export const SQL_MUTATING_DML_RE = /\b(?:DELETE\s+FROM|UPDATE\s+[\w`"\[\]]+\s+SET)\b/i;
+export const CLI_MIGRATION_CMD_RE = /\b(?:dotnet\s+ef\s+database\s+(?:update|drop)|prisma\s+(?:db\s+push|migrate\s+(?:deploy|reset))|alembic\s+(?:upgrade|downgrade)|flyway\s+(?:migrate|clean)|liquibase\s+update)\b/i;
+export const DB_CLI_CLIENT_RE = /\b(?:sqlite3?|psql|mysql|sqlcmd|mariadb)\b/i;
+export const LIVE_DB_FILE_DELETE_RE = /\b(?:rm|del|erase|remove-item|ri|mv|move|move-item)\b[^\n;&|]+\.(?:db|sqlite|sqlite3|mdf|ldf|ibd|db3)\b/i;
+
+export const LIVE_DB_MUTATION_CMD_RE = new RegExp(
+  `${SQL_DESTRUCTIVE_DDL_RE.source}|${SQL_MUTATING_DML_RE.source}|${CLI_MIGRATION_CMD_RE.source}|${LIVE_DB_FILE_DELETE_RE.source}`,
+  'i'
+);
+
+export function isWhitelistedTestCommand(cmdLine = '') {
+  const s = String(cmdLine || '');
+  if (/(?:dotnet\s+test|npm\s+test|pytest|go\s+test|cargo\s+test|vitest|jest)\b/i.test(s)) return true;
+  if (/node\s+(?:hooks|scripts)[\\/]test-runner/i.test(s)) return true;
+  if (/node\s+hooks[\\/][\w.-]+\.test\.mjs/i.test(s)) return true;
+  if (/:\s*memory\s*:/i.test(s)) return true;
+  if (/(?:^|[\\/\s"'])(?:tests?|__tests__|fixtures|temp|tmp|\.tmp)[\\/]/i.test(s) && !/(?:production|live|warehouse)\.(?:db|sqlite)/i.test(s)) {
+    if (/\.(?:test|mock|sample|fixture)\.(?:db|sqlite)\b/i.test(s) || /(?:tests?|temp|tmp)[\\/][\w.-]+\.(?:db|sqlite)/i.test(s)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isLiveDataMutationCommand(cmdLine = '', workspaceDir = '') {
+  const s = String(cmdLine || '').trim();
+  if (!s) return false;
+  if (isWhitelistedTestCommand(s)) return false;
+
+  // 1. Direct CLI migrations against production
+  if (CLI_MIGRATION_CMD_RE.test(s)) return true;
+
+  // 2. Shell file delete of working DB
+  if (LIVE_DB_FILE_DELETE_RE.test(s)) {
+    if (/(?:tests?|fixtures|temp|tmp|\.tmp)[\\/]/i.test(s)) return false;
+    return true;
+  }
+
+  // 3. Destructive SQL via DB CLI
+  const isDbCli = DB_CLI_CLIENT_RE.test(s);
+  const hasDestructiveSql = SQL_DESTRUCTIVE_DDL_RE.test(s) || SQL_MUTATING_DML_RE.test(s);
+  if (isDbCli && hasDestructiveSql) {
+    if (/(?:tests?|fixtures|temp|tmp|\.tmp)[\\/]/i.test(s) || /:\s*memory\s*:/i.test(s)) return false;
+    return true;
+  }
+
+  // 4. Raw destructive DDL/DML targeting db file
+  if (hasDestructiveSql && /\.(?:db|sqlite|sqlite3|mdf|ldf)\b/i.test(s)) {
+    if (/(?:tests?|fixtures|temp|tmp|\.tmp)[\\/]/i.test(s)) return false;
+    return true;
+  }
+
+  return false;
+}
+
+export const DB_MUTATION_ASK_RE = /(?:мутаци[яие]|мутиру(?:ет|ют)|изменени[яие]\s+(?:живых\s+)?данных|удалени[яие]\s+данных\s+из\s+бд|миграци[яие]\s+(?:живой\s+)?бд|live\s+database\s+mutation|удалить\s+таблиц[уе]|truncate\s+table|drop\s+table|удалени[яие]\s+базы\s+данных)/i;
+
+export function isDbMutationAskArgs(argsStr) {
+  return DB_MUTATION_ASK_RE.test(String(argsStr || ''));
+}
+
+export function classifyDbMutationConsent(answerText, options = []) {
+  const raw = String(answerText || '').trim();
+  if (!raw) return { decision: 'unconfirmed', selectedOptionText: '', reason: '' };
+  const { selectedOptionText, strippedAnswer } = resolveSelectedOptionText(raw, options);
+  const target = `${selectedOptionText} ${strippedAnswer}`;
+  const NEGATION_RE = /(?:не\s+(?:надо|нужно|трогай|удаляй|применяй|делай)|отмена|отклонить|don'?t|cancel|abort|no\b)/i;
+  const CONFIRM_RE = /(?:подтверждаю|разрешить|применить|да\b|согласен|confirm|apply|yes\b|approve)/i;
+  if (NEGATION_RE.test(target)) return { decision: 'negated', selectedOptionText, reason: strippedAnswer };
+  if (CONFIRM_RE.test(target)) return { decision: 'confirmed', selectedOptionText, reason: strippedAnswer };
+  return { decision: 'unconfirmed', selectedOptionText, reason: strippedAnswer };
 }

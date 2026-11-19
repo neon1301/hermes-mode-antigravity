@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "taskHash": "67ca3fb7894bfe4d",
+  "planHash": "2fa3387e2218474a0922602725ee07b5c62700a6e537152b48609e8efd02300f",
+  "rubricHash": "cda85b282f3d7e01abd89861f0976674ab2107270af08b75df1163221e951f28",
+  "version": 2,
+  "generatedAt": "2026-11-19T05:14:38.055Z",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "condition": "вызывается инструмент `ask_question` в окне пост-проверочного опроса (Token Economy) при одновременной модификации исходников UI и БД",
+      "behavior": "проверить через `lintPostEditAskWindow` в `hooks/consent-validator.mjs` наличие в тексте вопроса и опциях обоих профильных специалистов (`@elena` и `@denis`), блокируя вызов (`deny: post_edit_window_missing_specialists`), если хотя бы один из них пропущен",
+      "verification": "юнит-тесты в `hooks/clean-edits-guard.test.mjs`."
+    },
+    {
+      "reqId": "REQ-2",
+      "condition": "вызывается `ask_question` после модификации исходных файлов проекта",
+      "behavior": "запретить привязку метки `(Recommended)` / `[Рекомендуется]` к опции «завершить без проверки», отклоняя вызов (`deny: forbidden_recommended_on_skip`), а Stop-хук `hooks/qa-gate.mjs` ДОЛЖЕН аннулировать `isEconomySkipRequested`, если выбор был получен через манипулятивный промпт",
+      "verification": "тесты в `hooks/clean-edits-guard.test.mjs` и `hooks/qa-gate.test.mjs`."
+    },
+    {
+      "reqId": "REQ-3",
+      "condition": "вызывается инструмент `run_command` с деструктивной командой мутации живых баз данных (DDL/DML SQL, накатка миграций ORM, удаление/перезапись файлов БД вне каталогов `tests/` и `temp/`)",
+      "behavior": "заблокировать выполнение (`deny: live_db_mutation_unconfirmed`), если в текущем сеансе до этого не было получено аутентичного согласия пользователя через отдельное окно `isDbMutationAskArgs`, при этом прогон тестов (`dotnet test`, `npm test`, `pytest`) и in-memory БД `:memory:` должны пропускаться без блокировки (белый список)",
+      "verification": "тесты в `hooks/clean-edits-guard.test.mjs`."
+    },
+    {
+      "reqId": "REQ-4",
+      "condition": "субагент или Lead вызывает `send_message` с утверждением `[QA PASS]` или `[SECURITY PASS]` (за пределами побудительных запросов `REQUEST_OR_WAITING_RE`), либо вызывает `ask_question` с утверждением об успешном прохождении тестов",
+      "behavior": "заблокировать вызов (`deny: premature_verdict_token_deny`), если на диске отсутствует валидный, свежий механический артефакт `.hermes/qa-verdict.json` или `.hermes/security-verdict.json` с совпадающим `diffHash`",
+      "verification": "тесты в `hooks/clean-edits-guard.test.mjs`."
+    },
+    {
+      "reqId": "REQ-5",
+      "condition": "выполняются все 11 тест-сьютов комплекса",
+      "behavior": "продемонстрировать 100% PASS (619+ тестов) без ослабления существующих защит, с соблюдением инвариантов консистентности и ацикличности модулей",
+      "verification": "прогон `npm test` и `node hooks/consistency.test.mjs`."
+    },
+    {
+      "reqId": "REQ-6",
+      "condition": "завершаются правки модулей и тестов",
+      "behavior": "добавить декларативное правило безопасности `.hermes/rules/safety-live-db-mutation.md`, обновить установленный плагин через `.\\install.ps1`, выгрузить аудит-логи через `node scripts/export-logs.mjs`, зафиксировать изменения в git и запушить в GitHub",
+      "verification": "статус `git status` и `git ls-remote`."
+    }
+  ]
+}
