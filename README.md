@@ -24,6 +24,7 @@ Coding assistants often stumble on complex production tasks: they perform partia
 | 🔴 **Self-Signs `[QA PASS]`:** The agent hallucinates approval in its own prose without running tests. | 🟢 **Symmetric UUID Verdicts & `ackToken`:** Gates enforce authentic subagent delivery strictly from verified session UUIDs (`viktor`, `stanislav`, `kritik`). | [Rule 3 / Anti-Self-Signing](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
 | 🔴 **Hardcodes IPs & Secrets:** Raw IPs (`127.0.0.1`), dev ports, and credentials leak directly into committed code. | 🟢 **Rule 9 Zero-Hardcode PreToolUse Guard:** Intercepts and denies hardcoded paths, IPs, and secrets before execution with an audited escape hatch. | [Rule 9 / PreToolUse Guard](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
 | 🔴 **Breaks Neighboring Features:** Rapid AI edits introduce silent regressions and circular dependencies. | 🟢 **Regression Locks & Dual-Contour Pipeline:** Read-only scouts (Contour A) design blueprints; write waves (Contour B) merge via Bors-style Refinery queue. | [Rule 12 / Refinery Queue](skills/hermes/references/fleet-protocol.md#⚡-15-правил-hermes-collaboration-protocol) |
+| 🔴 **Accumulates Silent Debt & Stubs:** Passing tests mask dead functions, empty `catch` blocks, stub returns, and abandoned timers. | 🟢 **Mechanical X-Ray & Debt Ledger:** 2-pass pure-stdlib scanner buckets findings into garbage, stubs, and fragile workarounds with zero-ref proof and an append-only `.hermes/debt-ledger.jsonl`. | [X-Ray Protocol](skills/hermes/references/xray-protocol.md) |
 
 ---
 
@@ -140,6 +141,44 @@ User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
 
 ---
 
+## 🩺 Mechanical X-Ray & Product Debt Book (v4.7.2)
+
+Passing tests alone do not guarantee clean code: software often works on the outside while rotting on the inside with abandoned stubs, dead handlers, empty `catch` blocks, and fragile timer workarounds. The user cannot see these issues and cannot formulate prompts to find them. **Hermes X-Ray** automatically discovers them, surfaces a clear human-readable digest of $\le 5$ items, and tracks technical debt without blocking execution.
+
+### 1. Three Triage Buckets
+* 🗑️ **Dead Code (`dead`) — Proven Garbage:** Functions, variables, or unmounted handlers with verified 0 call sites across the entire repository.
+* 🚧 **Stubs (`stub`) — High Risk:** Unimplemented methods (`throw new NotImplementedException()`, `return null;`, `return {};`), empty `catch` blocks swallowing errors, or unfinished `TODO`/`FIXME` markers.
+* 🩹 **Fragile Workarounds (`fragile`) — Structural Crutches:** Suppressed linters (`@ts-ignore`, `eslint-disable`), arbitrary `setTimeout`/`Thread.Sleep` synchronization hacks, hardcoded retry limits, and missing error fallbacks.
+
+### 2. User Impact Classification
+Every finding is classified by operational risk rather than theoretical purism:
+* 💥 `brick_risk`: Unhandled exception or unmounted handler that can crash runtime workflows.
+* 🛑 `lies_to_user`: UI or API claims a feature succeeded while silently returning mock/empty data.
+* ⏳ `resource_waste`: Abandoned timer, leaking event listener, or unclosed stream consuming CPU/RAM.
+* 🎨 `cosmetic`: Non-critical code smell, styling deviation, or dormant naming discrepancy.
+
+### 3. Human-First Review Window & Decision Actions
+At the conclusion of a sprint, X-Ray presents an advisory prompt with $\le 5$ actionable findings written in plain human language (zero internal codes, zero percentage scores) with 3 standard options:
+1. **`[Fix now]`**: Transitions the workflow into Plan Gate `PLAN_REVISED` v(N+1) with dedicated remediation acceptance criteria.
+2. **`[Record to debt]`**: Appends the findings to the persistent, append-only `.hermes/debt-ledger.jsonl`. In future tasks, up to 3 prioritized debt items ($\le 1024$ bytes) are automatically injected into context via `context-injector.mjs`.
+3. **`[Leave untouched]`**: Marks the item as `accepted` (tolerated technical debt), suppressing future notifications.
+
+### 4. Zero-Ref Safety Lock & Advisory Contract
+* **Zero-Ref Proof (`xray_delete_without_zero_ref_proof_deny`):** The agent is strictly blocked from deleting suspected dead code without providing verified zero-reference proof (`refs: 0`).
+* **Advisory Fail-Open Pipeline:** X-Ray runs on the `allow`-branch of the Stop hook. It counsels and informs; it **never** locks or fails the build pipeline.
+* **21 Protected Verdict Paths:** `.hermes/xray-report.json` and `.hermes/debt-ledger.jsonl` are protected from unverified agent tampering alongside all other fleet verdict logs.
+* **Honest Boundaries:** Pure stdlib scanner supports JavaScript, TypeScript, ES5, HTML, CSS, and generic source formats. Full Roslyn symbol graph for C#/XAML is deferred to [TASK-020]; optional blocking mode (`enforce`) is deferred to [TASK-021].
+
+### 5. Dogfooding Telemetry [Example]
+Run against the Hermes Fleet repository itself (224 files, < 400ms scan duration):
+* **By Category:** 0 dead, 93 stubs, 164 fragile workarounds (total 257 findings).
+* **By Operational Impact:** 0 `lies_to_user`, 93 `brick_risk`, 1 `resource_waste`, 163 `cosmetic`.
+*(Note: Dogfood metrics are provided as an empirical example, not a universal guarantee).*
+
+For detailed architectural contracts and JSON schemas, see [X-Ray Protocol](skills/hermes/references/xray-protocol.md).
+
+---
+
 ## 🎮 Command Reference
 
 | Command | Purpose |
@@ -148,6 +187,7 @@ User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
 | **/hermes feature [description]** | 🚀 7-Phase feature development protocol (Discovery, 3 options, Fast-Path) |
 | **/hermes council [task]** | 🏛️ Mandatory Specialist Council gate before planning & code writes ([`specialist-council-protocol.md`](skills/hermes/references/specialist-council-protocol.md)) |
 | **/hermes board** | 📊 Display live interactive Kanban board in chat via Generative UI |
+| **/hermes xray [--all]** | 🩺 Launch mechanical X-Ray scanner for dead code, stubs, and fragile workarounds |
 | **/hermes fix-warnings [--loop]** | 🧹 Batch eliminate compiler/linter warnings (Zero Warnings Policy; `--loop` enables convergence) |
 | **/hermes loop [task]** | 🔄 Autonomous bounded convergence loop (ceiling of 25 iterations, L2 review at finale) |
 | **/hermes audit** | ⚖️ Independent compliance audit of all 15 rules and 22 skills by Stanislav |
@@ -156,6 +196,27 @@ User: /hermes Refactor machine telemetry parser to zero-alloc ReadOnlySpan<byte>
 | **/hermes report** | 📊 Output session activity metrics, file edits, and gate decisions (Data Honesty) |
 | **/hermes rules / standup** | 📜 Fleet declarative rules summary (`.hermes/rules/*.md`) / Team standup (`standups.md`) |
 | **@name [query]** | Direct invocation of a specialist (`@dmitry`, `@elena`, `@viktor`, `@kritik`...) |
+
+### Portable CLI Execution (Any Repository)
+Run X-Ray or export release logs from the plugin root against any external project repository:
+
+**PowerShell (Windows):**
+```powershell
+# Run X-Ray scanner against target project
+node "$HOME\.gemini\config\plugins\hermes-fleet\scripts\xray-scan.mjs" --workspace="."
+
+# Export immutable run artifacts and debt ledger
+node "$HOME\.gemini\config\plugins\hermes-fleet\scripts\export-logs.mjs" --workspace="."
+```
+
+**Bash (Linux / macOS):**
+```bash
+# Run X-Ray scanner against target project
+node "$HOME/.gemini/config/plugins/hermes-fleet/scripts/xray-scan.mjs" --workspace="."
+
+# Export immutable run artifacts and debt ledger
+node "$HOME/.gemini/config/plugins/hermes-fleet/scripts/export-logs.mjs" --workspace="."
+```
 
 > 💡 **Zero-Context Activation:** Hermes activates only on explicit user triggers (`/hermes`, `@specialist`, or phrase «Hermes Mode»). Outside of active mode, hooks fail-open with zero token overhead.
 
@@ -215,12 +276,31 @@ Real tasks tracked in [`docs/backlog.md`](docs/backlog.md) and `.hermes/tasks.js
 - **[TASK-006] (P3, Post-v4.7.2):** Dynamic Convoy stall & distributed deadlock detection hook for multi-agent swarms.
 - **[TASK-020] (P2, Post-v4.7.2):** Dedicated C# / XAML adapter for the X-Ray scanner (Roslyn/MSBuild symbol graph).
 - **[TASK-021] (P3, Post-v4.7.2):** Evaluation of optional `xray: "enforce"` blocking mode after empirical false-positive telemetry.
+- **[TASK-022] (P2, Post-v4.7.2):** X-Ray doc/eval reference masking (`collectWrittenText` incident) & separate runtime vs passive doc refs.
+- **[TASK-023] (P2, Post-v4.7.2):** Mechanical writer for `.hermes/security-verdict.json` on Stop verification.
+- **[TASK-024] (P2, Post-v4.7.2):** Stale `.hermes/council-state.json` refresh on resumed chats without a new `/hermes` trigger.
+- **[TASK-025] (P2, Post-v4.7.2):** Mechanical `verify-before-claim` release tag verification & lesson rule.
 
 ---
 
 ## 🔒 Local CI & Pre-Push Verification
 
-Hermes Fleet includes a **Zero-Billing Local CI Gate**:
+Hermes Fleet includes a **Zero-Billing Local CI Gate** running 619 tests across 11 suites:
+
+| Test Suite | Tests | Status | Scope |
+| :--- | :---: | :---: | :--- |
+| `clean-edits-guard` | 313 | 🟢 PASS | PreToolUse hardcode, council gate, plan integrity & zero-ref locks |
+| `qa-gate` | 128 | 🟢 PASS | Stop hook verification, authentic UUID matching & single build gate |
+| `eval-harness` | 71 | 🟢 PASS | Behavioral evals, scenario runners & agent regression tests |
+| `consistency` | 23 | 🟢 PASS | Link integrity, 21 protected paths, sync matrices & no-A2A locks |
+| `context-injector` | 20 | 🟢 PASS | User prompt injection, lessons budgeting & debt ledger integration |
+| `rule-engine` | 20 | 🟢 PASS | Spec Law, 15 core rules enforcement & rule syntax audits |
+| `doc-lint` | 15 | 🟢 PASS | Markdown formatting, frontmatter verification & ADR structure |
+| `contract-validator` | 9 | 🟢 PASS | JSON schema contracts & payload interface verification |
+| `refinery` | 9 | 🟢 PASS | Dual-contour write wave queues & patch application integrity |
+| `session-report` | 6 | 🟢 PASS | Execution metrics, token usage tracking & activity summaries |
+| `journal` | 5 | 🟢 PASS | Append-only progress journal logging & state reconstruction |
+| **Total** | **619** | **🟢 PASS** | **100% Zero-Billing Local CI Verification** |
 
 ```bash
 # Run all 11 test suites locally (619 tests)
