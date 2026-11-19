@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "taskHash": "67ca3fb7894bfe4d",
+  "planHash": "99db0899cdee5c86595f10a55dc1c58c0185b0009ecec87afab1c342e05e991e",
+  "rubricHash": "4b75fcc44892ff3b02973f1bfa3767df8b37e456f1870f4798ca515a8e80f3d7",
+  "version": 1,
+  "generatedAt": "2026-11-19T04:03:53.256Z",
+  "items": [
+    {
+      "reqId": "REQ-1",
+      "condition": "обновляется таблица Problem→Solution в `README.md` и `README.ru.md`",
+      "behavior": "добавить 5-ю строку о тихом долге и заглушках со ссылкой на `skills/hermes/references/xray-protocol.md` и кодом `.hermes/debt-ledger.jsonl`",
+      "verification": "тест `hooks/consistency.test.mjs` (`markdown_reference_links_integrity`)."
+    },
+    {
+      "reqId": "REQ-2",
+      "condition": "добавляется секция «Механический Рентген и Книга долга / Mechanical X-Ray & Product Debt Book (v4.7.2)»",
+      "behavior": "раскрыть 3 корзины находок (`dead`, `stub`, `fragile`), классификацию влияния на пользователя (`brick_risk`, `lies_to_user`, `resource_waste`, `cosmetic`), формат окна (≤5 пунктов, 0 внутренних кодов/процентов), 3 кнопки выбора, замок `xray_delete_without_zero_ref_proof_deny`, advisory fail-open контракт и точные данные догфудинга (224 файла, 257 находок) с пометкой `[Пример]` / `[Example]`",
+      "verification": "визуальный аудит разметки и тест `hooks/consistency.test.mjs`."
+    },
+    {
+      "reqId": "REQ-3",
+      "condition": "обновляется справка по командам",
+      "behavior": "добавить команду `/hermes xray [--all]` и блоки переносимого запуска CLI `node scripts/xray-scan.mjs` и `node scripts/export-logs.mjs` для PowerShell и Bash из корня плагина",
+      "verification": "наличие блоков CLI в обоих файлах README."
+    },
+    {
+      "reqId": "REQ-4",
+      "condition": "обновляется дорожная карта в `README.md` и `README.ru.md`",
+      "behavior": "содержать 7 актуальных задач (`TASK-006`, `TASK-020`, `TASK-021`, `TASK-022`, `TASK-023`, `TASK-024`, `TASK-025`) и строго исключить любые упоминания A2A",
+      "verification": "тест `hooks/consistency.test.mjs` (`no_a2a_in_roadmap`)."
+    },
+    {
+      "reqId": "REQ-5",
+      "condition": "обновляется секция локального CI",
+      "behavior": "включить таблицу из 11 сьютов с точным разбитием тестов (619/619 PASS) согласно `.hermes/test-summary.json`",
+      "verification": "сверка сумм тестов и прогон `npm test`."
+    },
+    {
+      "reqId": "REQ-6",
+      "condition": "завершаются правки документации",
+      "behavior": "обеспечить 100% билингвальный паритет между `README.md` и `README.ru.md`, пройти полный локальный CI `npm test` (619/619 PASS) и обновить копию установленного плагина через `install.ps1`",
+      "verification": "успешный прогон `npm test` и `verify.ps1`."
+    },
+    {
+      "reqId": "REQ-7",
+      "condition": "сохраняются правки в git",
+      "behavior": "оформить отдельный коммит документации и отдельный коммит выгрузки артефактов `logs/4.7.2/` без смешивания истории",
+      "verification": "`git log -2 --oneline`."
+    }
+  ]
+}

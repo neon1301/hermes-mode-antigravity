@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-11-19T04:10:58.383Z",
+  "suites": [
+    {
+      "name": "context-injector",
+      "passed": 20,
+      "total": 20,
+      "status": "PASS"
+    },
+    {
+      "name": "clean-edits-guard",
+      "passed": 313,
+      "total": 313,
+      "status": "PASS"
+    },
+    {
+      "name": "qa-gate",
+      "passed": 128,
+      "total": 128,
+      "status": "PASS"
+    },
+    {
+      "name": "rule-engine",
+      "passed": 20,
+      "total": 20,
+      "status": "PASS"
+    },
+    {
+      "name": "session-report",
+      "passed": 6,
+      "total": 6,
+      "status": "PASS"
+    },
+    {
+      "name": "eval-harness",
+      "passed": 71,
+      "total": 71,
+      "status": "PASS"
+    },
+    {
+      "name": "contract-validator",
+      "passed": 9,
+      "total": 9,
+      "status": "PASS"
+    },
+    {
+      "name": "doc-lint",
+      "passed": 15,
+      "total": 15,
+      "status": "PASS"
+    },
+    {
+      "name": "refinery",
+      "passed": 9,
+      "total": 9,
+      "status": "PASS"
+    },
+    {
+      "name": "journal",
+      "passed": 5,
+      "total": 5,
+      "status": "PASS"
+    },
+    {
+      "name": "consistency",
+      "passed": 23,
+      "total": 23,
+      "status": "PASS"
+    }
+  ],
+  "passed": 619,
+  "total": 619,
+  "status": "PASS"
+}
